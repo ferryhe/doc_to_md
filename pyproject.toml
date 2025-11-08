@@ -9,8 +9,11 @@ dependencies = [
     "typer",
     "rich",
     "pydantic",
+    "pydantic-settings",
     "python-dotenv",
     "requests",
+    "click",
+    "pypdf",
 ]
 
 [project.scripts]

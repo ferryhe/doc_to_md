@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Type
+from typing import Annotated, Dict, Optional, Type, cast
 
 import typer
 
@@ -29,22 +29,31 @@ def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise typer.BadParameter(f"Unknown engine '{engine}'")
     engine_cls = ENGINE_REGISTRY[engine]
-    if engine == "siliconflow":
+    if engine in {"siliconflow", "mistral"}:
         return engine_cls(model=model)
     return engine_cls()
 
 
+def _normalize_engine(input_value: Optional[str], default: EngineName) -> EngineName:
+    if input_value is None:
+        return default
+    candidate = input_value.lower()
+    if candidate not in ENGINE_REGISTRY:
+        raise typer.BadParameter(f"Unknown engine '{input_value}'")
+    return cast(EngineName, candidate)
+
+
 @app.command()
 def convert(
-    input_path: Path = typer.Option(None, help="Directory of input docs; defaults to settings.input_dir"),
-    output_path: Path = typer.Option(None, help="Where to write Markdown files"),
-    engine: EngineName = typer.Option(None, help="Engine name (local, mistral, siliconflow)"),
-    model: str | None = typer.Option(None, help="Model override for engines that support it"),
+    input_path: Annotated[Optional[str], typer.Option("--input-path", help="Directory of input docs; defaults to settings.input_dir")] = None,
+    output_path: Annotated[Optional[str], typer.Option("--output-path", help="Where to write Markdown files")] = None,
+    engine: Annotated[Optional[str], typer.Option("--engine", "-e", help="Engine name (local, mistral, siliconflow)")] = None,
+    model: Annotated[Optional[str], typer.Option("--model", "-m", help="Model override for engines that support it")] = None,
 ) -> None:
     settings: Settings = get_settings()
-    input_dir = input_path or settings.input_dir
-    output_dir = output_path or settings.output_dir
-    engine_name = engine or settings.default_engine
+    input_dir = Path(input_path) if input_path else settings.input_dir
+    output_dir = Path(output_path) if output_path else settings.output_dir
+    engine_name = _normalize_engine(engine, settings.default_engine)
 
     try:
         engine_instance = _resolve_engine(engine_name, model)

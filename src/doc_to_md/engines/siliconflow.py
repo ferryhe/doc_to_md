@@ -17,7 +17,7 @@ class SiliconFlowEngine(Engine):
         if not settings.siliconflow_api_key:
             raise RuntimeError("SILICONFLOW_API_KEY missing")
         self.api_key = settings.siliconflow_api_key
-        self.model = model or settings.default_model
+        self.model = model or settings.siliconflow_default_model
 
     def convert(self, path: Path) -> EngineResponse:  # pragma: no cover - stub network
         files = {"file": path.read_bytes()}

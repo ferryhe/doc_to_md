@@ -12,14 +12,15 @@ from .base import Engine, EngineResponse
 class MistralEngine(Engine):
     name = "mistral"
 
-    def __init__(self) -> None:
+    def __init__(self, model: str | None = None) -> None:
         settings = get_settings()
         if not settings.minstral_api_key:
             raise RuntimeError("MINSTRAL_API_KEY missing")
         self.api_key = settings.minstral_api_key
+        self.model = model or settings.mistral_default_model
 
     def convert(self, path: Path) -> EngineResponse:  # pragma: no cover - stub network
-        payload = {"model": "mistral-large", "input": path.read_text(encoding="utf-8", errors="ignore")}
+        payload = {"model": self.model, "input": path.read_text(encoding="utf-8", errors="ignore")}
         headers = {"Authorization": f"Bearer {self.api_key}"}
         response = requests.post("https://api.mistral.ai/v1/convert", json=payload, headers=headers, timeout=30)
         response.raise_for_status()
