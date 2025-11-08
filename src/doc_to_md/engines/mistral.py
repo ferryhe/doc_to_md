@@ -20,9 +20,9 @@ class MistralEngine(Engine):
 
     def __init__(self, model: str | None = None, include_images: bool = False) -> None:
         settings = get_settings()
-        if not settings.minstral_api_key:
-            raise RuntimeError("MINSTRAL_API_KEY missing")
-        self.api_key = settings.minstral_api_key
+        if not settings.mistral_api_key:
+            raise RuntimeError("MISTRAL_API_KEY missing")
+        self.api_key = settings.mistral_api_key
         self.model = model or settings.mistral_default_model
         self.include_images = include_images
         self.client = Mistral(api_key=self.api_key)

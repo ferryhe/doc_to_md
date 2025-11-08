@@ -69,21 +69,10 @@ class SiliconFlowEngine(Engine):
 
     def _extract_content(self, completion) -> str:
         """Normalize OpenAI responses into a Markdown string."""
-        for choice in completion.choices:
-            content = choice.message.content
-            if isinstance(content, str):
-                return content.strip()
-            if isinstance(content, Sequence) and not isinstance(content, str):
-                pieces: list[str] = []
-                for part in content:
-                    if isinstance(part, dict):
-                        text_segment = part.get("text")
-                        if text_segment:
-                            pieces.append(text_segment)
-                    else:
-                        text_segment = getattr(part, "text", None)
-                        if text_segment:
-                            pieces.append(text_segment)
-                if pieces:
-                    return "\n".join(pieces).strip()
-        raise RuntimeError("SiliconFlow response did not contain any content")
+        if not completion.choices:
+            raise RuntimeError("SiliconFlow response did not contain any choices")
+
+        content = completion.choices[0].message.content
+        if isinstance(content, str):
+            return content.strip()
+        raise RuntimeError(f"Unexpected content type in SiliconFlow response: {type(content)}")

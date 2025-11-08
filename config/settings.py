@@ -16,7 +16,7 @@ EngineName = Literal["mistral", "siliconflow", "local"]
 
 
 class Settings(BaseSettings):
-    minstral_api_key: str | None = Field(default=None, env="MINSTRAL_API_KEY")
+    mistral_api_key: str | None = Field(default=None, env="MISTRAL_API_KEY")
     siliconflow_api_key: str | None = Field(default=None, env="SILICONFLOW_API_KEY")
 
     default_engine: EngineName = Field(default="local", env="DEFAULT_ENGINE")
