@@ -1,6 +1,7 @@
 """SiliconFlow/DeepSeek engine implemented via the OpenAI-compatible API."""
 from __future__ import annotations
 
+import base64
 import time
 from pathlib import Path
 from typing import Callable, List, Sequence, TypeVar
@@ -34,6 +35,11 @@ class SiliconFlowEngine(Engine):
         self._retry_backoff = 1.5
 
     def convert(self, path: Path) -> EngineResponse:  # pragma: no cover - network call
+        if self._is_image(path):
+            return self._process_image(path)
+        return self._process_text(path)
+
+    def _process_text(self, path: Path) -> EngineResponse:
         raw_text = extract_text(path)
         chunks = self._chunk_text(raw_text)
         markdown_parts: list[str] = []
@@ -62,6 +68,41 @@ class SiliconFlowEngine(Engine):
         markdown = self._compose_markdown(path.name, markdown_parts, len(chunks))
         return EngineResponse(markdown=markdown, model=self.model)
 
+    def _process_image(self, path: Path) -> EngineResponse:
+        base64_image = self._encode_image(path)
+        user_prompt = self._build_user_prompt_for_image(path.name)
+        completion = self._request_with_retry(
+            lambda: self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                            },
+                        ],
+                    }
+                ],
+                timeout=self.timeout,
+                max_tokens=4096,  # Vision models often need a higher max_tokens limit
+            ),
+            operation=f"siliconflow_image_{path.name}",
+        )
+        markdown = self._extract_content(completion)
+        return EngineResponse(markdown=markdown, model=self.model)
+
+    @staticmethod
+    def _is_image(path: Path) -> bool:
+        return path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+
+    @staticmethod
+    def _encode_image(path: Path) -> str:
+        with path.open("rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
+
     def _chunk_text(self, text: str) -> List[str]:
         sanitized = text.strip()
         if not sanitized:
@@ -86,6 +127,14 @@ class SiliconFlowEngine(Engine):
             "Convert the following content into Markdown. Maintain hierarchical headings if obvious, convert numbered "
             "lists, and format tables when the structure is clear.\n\n"
             f"{text}"
+        )
+
+    def _build_user_prompt_for_image(self, filename: str) -> str:
+        return (
+            f"Source document: {filename}\n\n"
+            "This is an image of a document. Perform OCR on the image and convert its content into clean, "
+            "well-structured Markdown. Preserve headings, tables, and lists if they are present in the image. "
+            "Do not describe the image; instead, transcribe and format its textual content."
         )
 
     def _compose_markdown(self, filename: str, parts: Sequence[str], chunk_total: int) -> str:
