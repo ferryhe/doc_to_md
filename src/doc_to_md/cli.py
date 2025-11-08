@@ -74,6 +74,7 @@ def convert(
             source_name=source_path.name,
             markdown=engine_response.markdown,
             engine=engine_instance.name,
+            assets=engine_response.assets,
         )
         cleaned = enforce_markdown(result)
         target = write_markdown(cleaned, output_dir)
