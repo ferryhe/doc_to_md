@@ -18,7 +18,7 @@ from .base import Engine, EngineResponse
 class MistralEngine(Engine):
     name = "mistral"
 
-    def __init__(self, model: str | None = None, include_images: bool = False) -> None:
+    def __init__(self, model: str | None = None, include_images: bool = False, **kwargs) -> None:
         settings = get_settings()
         if not settings.mistral_api_key:
             raise RuntimeError("MISTRAL_API_KEY missing")
