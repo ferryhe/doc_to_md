@@ -1,0 +1,20 @@
+[project]
+name = "doc-to-markdown-converter"
+version = "0.1.0"
+description = "Modular CLI for converting documentation to Markdown using multiple engines"
+authors = [{name = "Your Name", email = "you@example.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer",
+    "rich",
+    "pydantic",
+    "python-dotenv",
+    "requests",
+]
+
+[project.scripts]
+doc-to-md = "doc_to_md.cli:app"
+
+[tool.setuptools.package-data]
+doc_to_md = ["py.typed"]
