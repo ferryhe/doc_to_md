@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = Field(
         default="https://api.siliconflow.cn/v1", env="SILICONFLOW_BASE_URL"
     )
+    mistral_timeout_seconds: float = Field(default=60.0, env="MISTRAL_TIMEOUT_SECONDS")
+    mistral_retry_attempts: int = Field(default=3, env="MISTRAL_RETRY_ATTEMPTS")
+    mistral_max_pdf_tokens: int = Field(default=9000, env="MISTRAL_MAX_PDF_TOKENS")
+    mistral_max_pages_per_chunk: int = Field(default=25, env="MISTRAL_MAX_PAGES_PER_CHUNK")
+
+    siliconflow_timeout_seconds: float = Field(default=60.0, env="SILICONFLOW_TIMEOUT_SECONDS")
+    siliconflow_retry_attempts: int = Field(default=3, env="SILICONFLOW_RETRY_ATTEMPTS")
+    siliconflow_max_input_tokens: int = Field(default=3500, env="SILICONFLOW_MAX_INPUT_TOKENS")
+    siliconflow_chunk_overlap_tokens: int = Field(default=200, env="SILICONFLOW_CHUNK_OVERLAP_TOKENS")
 
     input_dir: Path = Field(default=DEFAULT_INPUT_DIR)
     output_dir: Path = Field(default=DEFAULT_OUTPUT_DIR)
@@ -56,6 +65,14 @@ class Settings(BaseSettings):
 
         for directory in (self.input_dir, self.output_dir):
             directory.mkdir(parents=True, exist_ok=True)
+
+        if self.siliconflow_chunk_overlap_tokens >= self.siliconflow_max_input_tokens:
+            raise ValueError("SILICONFLOW_CHUNK_OVERLAP_TOKENS must be smaller than SILICONFLOW_MAX_INPUT_TOKENS")
+
+        for field_name in ("mistral_retry_attempts", "siliconflow_retry_attempts"):
+            value = getattr(self, field_name)
+            if value < 1:
+                raise ValueError(f"{field_name.upper()} must be at least 1")
 
         return self
 
