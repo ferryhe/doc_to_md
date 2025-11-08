@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     default_engine: EngineName = Field(default="local", env="DEFAULT_ENGINE")
     mistral_default_model: str = Field(default="mistral-ocr-latest", env="MISTRAL_DEFAULT_MODEL")
     siliconflow_default_model: str = Field(default="deepseek-ai/DeepSeek-OCR", env="SILICONFLOW_DEFAULT_MODEL")
+    siliconflow_base_url: str = Field(
+        default="https://api.siliconflow.cn/v1", env="SILICONFLOW_BASE_URL"
+    )
 
     input_dir: Path = Field(default=DEFAULT_INPUT_DIR)
     output_dir: Path = Field(default=DEFAULT_OUTPUT_DIR)
