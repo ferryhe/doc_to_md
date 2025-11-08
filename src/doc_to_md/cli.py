@@ -1,10 +1,19 @@
 """CLI entry point for doc-to-markdown conversions."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+import sys
+import time
 from typing import Annotated, Dict, Optional, Type, cast
 
 import typer
+
+# Ensure project root (where `config` lives) is importable even when running via src layout.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 from config.settings import EngineName, Settings, get_settings
 from doc_to_md.engines.base import Engine
@@ -25,6 +34,19 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
 }
 
 
+@dataclass(slots=True)
+class RunMetrics:
+    total_candidates: int = 0
+    skipped_by_since: int = 0
+    dry_run: int = 0
+    successes: int = 0
+    failures: int = 0
+
+    @property
+    def eligible(self) -> int:
+        return self.total_candidates - self.skipped_by_since
+
+
 def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise typer.BadParameter(f"Unknown engine '{engine}'")
@@ -43,12 +65,44 @@ def _normalize_engine(input_value: Optional[str], default: EngineName) -> Engine
     return cast(EngineName, candidate)
 
 
+def _should_process(path: Path, since_timestamp: float | None) -> tuple[bool, float | None]:
+    """Return whether a document should be processed and provide its mtime."""
+    try:
+        mtime = path.stat().st_mtime
+    except FileNotFoundError:
+        return False, None
+    if since_timestamp is None:
+        return True, mtime
+    return mtime >= since_timestamp, mtime
+
+
+def _format_summary(metrics: RunMetrics, elapsed_seconds: float) -> str:
+    return (
+        "Summary: "
+        f"total={metrics.total_candidates}, "
+        f"eligible={metrics.eligible}, "
+        f"converted={metrics.successes}, "
+        f"failed={metrics.failures}, "
+        f"skipped_since={metrics.skipped_by_since}, "
+        f"dry_run={metrics.dry_run}, "
+        f"duration={elapsed_seconds:.2f}s"
+    )
+
+
 @app.command()
 def convert(
     input_path: Annotated[Optional[str], typer.Option("--input-path", help="Directory of input docs; defaults to settings.input_dir")] = None,
     output_path: Annotated[Optional[str], typer.Option("--output-path", help="Where to write Markdown files")] = None,
     engine: Annotated[Optional[str], typer.Option("--engine", "-e", help="Engine name (local, mistral, siliconflow)")] = None,
     model: Annotated[Optional[str], typer.Option("--model", "-m", help="Model override for engines that support it")] = None,
+    since: Annotated[
+        Optional[datetime],
+        typer.Option(
+            "--since",
+            help="Process only files modified on/after this timestamp (ISO 8601, e.g. 2025-05-01T00:00:00).",
+        ),
+    ] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="List eligible files without converting or writing output")] = False,
 ) -> None:
     settings: Settings = get_settings()
     input_dir = Path(input_path) if input_path else settings.input_dir
@@ -62,12 +116,31 @@ def convert(
 
     log_info(f"Using engine '{engine_name}' (model: {getattr(engine_instance, 'model', 'n/a')})")
 
+    since_timestamp = since.timestamp() if since else None
+    metrics = RunMetrics()
+    started_at = time.perf_counter()
+
     for source_path in iter_documents(input_dir):
+        metrics.total_candidates += 1
+        should_process, mtime = _should_process(source_path, since_timestamp)
+        if not should_process:
+            metrics.skipped_by_since += 1
+            if since_timestamp is not None:
+                stamp = datetime.fromtimestamp(mtime).isoformat() if mtime else "unknown"
+                log_info(f"Skipping {source_path} (modified {stamp}) due to --since filter")
+            continue
+
+        if dry_run:
+            metrics.dry_run += 1
+            log_info(f"[dry-run] Would convert {source_path}")
+            continue
+
         log_info(f"Converting {source_path}")
         try:
             engine_response = engine_instance.convert(source_path)
         except Exception as exc:  # noqa: BLE001
             log_error(f"Failed to convert {source_path.name}: {exc}")
+            metrics.failures += 1
             continue
 
         result = ConversionResult(
@@ -79,6 +152,10 @@ def convert(
         cleaned = enforce_markdown(result)
         target = write_markdown(cleaned, output_dir)
         log_info(f"Wrote {target}")
+        metrics.successes += 1
+
+    elapsed = time.perf_counter() - started_at
+    log_info(_format_summary(metrics, elapsed))
 
 
 @app.command()
