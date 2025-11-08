@@ -4,6 +4,7 @@ CLI tool that ingests documents, runs them through pluggable OCR/LLM engines (Mi
 ## Feature highlights
 - Typer-based CLI with `convert` and `list-engines` commands.
 - Configurable engines, timeouts, and chunk sizes via `.env` or environment variables.
+- Cloud APIs (Mistral, SiliconFlow), LLM-based converters (Marker, MarkItDown), and local OCR/ML stacks (PaddleOCR, Docling, MinerU) supported side-by-side.
 - PDF chunking/token accounting for Mistral OCR, token-based text chunking for SiliconFlow.
 - Lightweight local fallback that relies on the built-in text extraction pipeline.
 - Deterministic logging and metrics that summarize every conversion run.
@@ -72,6 +73,24 @@ doc_to_md/
 | `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS` | Per-engine network behavior. | See `.env.example` |
 | `MISTRAL_MAX_PDF_TOKENS`, `MISTRAL_MAX_PAGES_PER_CHUNK` | Controls PDF slicing before OCR. | See `.env.example` |
 | `SILICONFLOW_MAX_INPUT_TOKENS`, `SILICONFLOW_CHUNK_OVERLAP_TOKENS` | Controls text chunking before LLM calls. | See `.env.example` |
+| `MARKITDOWN_*` | Toggles for MarkItDown's plugin/builtin usage. | Enabled |
+| `PADDLEOCR_*` | Language and PDF render DPI. | `en`, 220 DPI |
+| `DOCLING_*` | Page limits / error handling. | Unlimited, strict |
+| `MINERU_*` | Backend selection, parse method, language, page range. | `pipeline`, `auto`, `en` |
+| `MARKER_*` | Whether to enable LLM processors, extra processors, image extraction. | LLM off, processors unset |
+
+> ℹ️ **Optional dependencies**  
+> New engines pull in sizeable third-party stacks. Install only what you need:
+> ```bash
+> # Pick any subset
+> pip install markitdown            # MarkItDownEngine
+> pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
+> pip install docling               # DoclingEngine
+> pip install mineru                # MinerUEngine (GPU strongly recommended)
+> pip install marker-pdf            # MarkerEngine
+> ```
+> Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs.
+> Some stacks (e.g., MinerU vs. Marker) currently demand incompatible Pillow versions—install only what you plan to use in a given virtualenv.
 
 `config/settings.py` automatically creates the configured `input_dir` and `output_dir` if they do not exist.
 
@@ -101,6 +120,11 @@ python -m doc_to_md.cli list-engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
 - **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
 - **SiliconFlow / DeepSeek OCR** (`siliconflow`): extracts raw text locally, chunks by tokens, and calls SiliconFlow's OpenAI-compatible completions endpoint to rebuild Markdown.
+- **MarkItDown** (`markitdown`): invokes Microsoft's MarkItDown library for high fidelity conversions across office formats without leaving your machine.
+- **PaddleOCR** (`paddleocr`): runs PaddleOCR locally (CPU or GPU) against PDFs or images to reconstruct page-by-page Markdown summaries.
+- **MinerU** (`mineru`): wraps the MinerU CLI pipeline, capturing the generated Markdown plus image assets from its output folders.
+- **Docling** (`docling`): feeds documents into IBM's Docling pipeline and exports the resulting structured document back to Markdown.
+- **Marker** (`marker`): drives the Marker PDF stack (without touching disk) and exposes its Markdown renderer alongside extracted images.
 
 All engines implement `Engine.convert(Path) -> EngineResponse`, so adding another engine only requires subclassing the `Engine` protocol.
 

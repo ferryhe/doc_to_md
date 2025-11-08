@@ -17,8 +17,13 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from config.settings import EngineName, Settings, get_settings
 from doc_to_md.engines.base import Engine
+from doc_to_md.engines.docling import DoclingEngine
 from doc_to_md.engines.local import LocalEngine
+from doc_to_md.engines.markitdown import MarkItDownEngine
+from doc_to_md.engines.marker import MarkerEngine
+from doc_to_md.engines.mineru import MinerUEngine
 from doc_to_md.engines.mistral import MistralEngine
+from doc_to_md.engines.paddleocr import PaddleOCREngine
 from doc_to_md.engines.siliconflow import SiliconFlowEngine
 from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
@@ -31,6 +36,11 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
     "mistral": MistralEngine,
     "siliconflow": SiliconFlowEngine,
+    "markitdown": MarkItDownEngine,
+    "paddleocr": PaddleOCREngine,
+    "mineru": MinerUEngine,
+    "docling": DoclingEngine,
+    "marker": MarkerEngine,
 }
 
 
@@ -51,7 +61,7 @@ def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise typer.BadParameter(f"Unknown engine '{engine}'")
     engine_cls = ENGINE_REGISTRY[engine]
-    if engine in {"siliconflow", "mistral"}:
+    if engine in {"siliconflow", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}:
         return engine_cls(model=model)
     return engine_cls()
 
