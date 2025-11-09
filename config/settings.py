@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "input"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
-EngineName = Literal["mistral", "siliconflow", "local", "markitdown", "paddleocr", "mineru", "docling", "marker"]
+EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr", "mineru", "docling", "marker"]
 
 
 class Settings(BaseSettings):
@@ -77,7 +77,7 @@ class Settings(BaseSettings):
         missing_keys: list[str] = []
         if self.default_engine == "mistral" and not self.mistral_api_key:
             missing_keys.append("MISTRAL_API_KEY")
-        if self.default_engine == "siliconflow" and not self.siliconflow_api_key:
+        if self.default_engine == "deepseekocr" and not self.siliconflow_api_key:
             missing_keys.append("SILICONFLOW_API_KEY")
 
         if missing_keys:

@@ -14,7 +14,7 @@ Requires-Dist: requests
 
 # doc-to-markdown-converter
 
-Proof-of-concept CLI that ingests docs, routes them through pluggable engines (Mistral, SiliconFlow/DeepSeek-OCR, local), and emits Markdown.
+Proof-of-concept CLI that ingests docs, routes them through pluggable engines (Mistral, DeepSeek-OCR, local), and emits Markdown.
 
 ## Usage
 

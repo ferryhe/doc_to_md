@@ -1,17 +1,17 @@
 # doc-to-markdown-converter
-CLI tool that ingests documents, runs them through pluggable OCR/LLM engines (Mistral, SiliconFlow/DeepSeek-OCR, or a local extractor), and emits normalized Markdown plus optional assets.
+CLI tool that ingests documents, runs them through pluggable OCR/LLM engines (Mistral, DeepSeek-OCR, or a local extractor), and emits normalized Markdown plus optional assets.
 
 ## Feature highlights
 - Typer-based CLI with `convert` and `list-engines` commands.
 - Configurable engines, timeouts, and chunk sizes via `.env` or environment variables.
-- Cloud APIs (Mistral, SiliconFlow), LLM-based converters (Marker, MarkItDown), and local OCR/ML stacks (PaddleOCR, Docling, MinerU) supported side-by-side.
-- PDF chunking/token accounting for Mistral OCR, token-based text chunking for SiliconFlow.
+- Cloud APIs (Mistral, DeepSeek-OCR), LLM-based converters (Marker, MarkItDown), and local OCR/ML stacks (PaddleOCR, Docling, MinerU) supported side-by-side.
+- PDF chunking/token accounting for Mistral OCR, token-based text chunking for DeepSeek-OCR.
 - Lightweight local fallback that relies on the built-in text extraction pipeline.
 - Deterministic logging and metrics that summarize every conversion run.
 
 ## Architecture at a glance
 - `src/doc_to_md/cli.py` wires together configuration, document discovery, engine dispatch, post-processing, and writers.
-- `src/doc_to_md/engines/` houses engine implementations (`mistral`, `siliconflow`, `local`) that all return `EngineResponse` objects.
+- `src/doc_to_md/engines/` houses engine implementations (`mistral`, `deepseekocr`, `local`) that all return `EngineResponse` objects.
 - `src/doc_to_md/pipeline/` contains reusable helpers: `loader`, `text_extraction`, `postprocessor`, `writer`, and `preprocessor`.
 - `src/doc_to_md/utils/` holds shared logging and token utilities.
 - `config/settings.py` (Pydantic) centralizes environment loading and validation so every module can call `get_settings()`.
@@ -26,7 +26,7 @@ doc_to_md/
 |   |-- output/               # Default output target
 |   |-- output_local/
 |   |-- output_mistral/
-|   `-- output_siliconflow/
+|   `-- output_deepseekocr/
 |-- src/
 |   `-- doc_to_md/
 |       |-- cli.py
@@ -64,12 +64,12 @@ doc_to_md/
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DEFAULT_ENGINE` | Engine used when `--engine` is omitted (`local`, `mistral`, `siliconflow`). | `local` |
+| `DEFAULT_ENGINE` | Engine used when `--engine` is omitted (`local`, `mistral`, `deepseekocr`). | `local` |
 | `MISTRAL_API_KEY` | Required when using the Mistral OCR engine. | _unset_ |
 | `MISTRAL_DEFAULT_MODEL` | OCR model slug passed to Mistral. | `mistral-ocr-latest` |
-| `SILICONFLOW_API_KEY` | Required for SiliconFlow / DeepSeek OCR. | _unset_ |
-| `SILICONFLOW_DEFAULT_MODEL` | Model slug for SiliconFlow completions. | `deepseek-ai/DeepSeek-OCR` |
-| `SILICONFLOW_BASE_URL` | API base URL (helpful for self-hosted gateways). | `https://api.siliconflow.cn/v1` |
+| `SILICONFLOW_API_KEY` | Required for the DeepSeek-OCR engine (served via SiliconFlow). | _unset_ |
+| `SILICONFLOW_DEFAULT_MODEL` | Model slug for DeepSeek OCR completions. | `deepseek-ai/DeepSeek-OCR` |
+| `SILICONFLOW_BASE_URL` | SiliconFlow API base URL (helpful for regional gateways). | `https://api.siliconflow.cn/v1` |
 | `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS` | Per-engine network behavior. | See `.env.example` |
 | `MISTRAL_MAX_PDF_TOKENS`, `MISTRAL_MAX_PAGES_PER_CHUNK` | Controls PDF slicing before OCR. | See `.env.example` |
 | `SILICONFLOW_MAX_INPUT_TOKENS`, `SILICONFLOW_CHUNK_OVERLAP_TOKENS` | Controls text chunking before LLM calls. | See `.env.example` |
@@ -88,6 +88,7 @@ doc_to_md/
 > pip install docling               # DoclingEngine
 > pip install mineru                # MinerUEngine (GPU strongly recommended)
 > pip install marker-pdf            # MarkerEngine
+> pip install pypdfium2             # DeepSeek-OCR PDF rendering
 > ```
 > Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs.
 > Some stacks (e.g., MinerU vs. Marker) currently demand incompatible Pillow versions—install only what you plan to use in a given virtualenv.
@@ -119,7 +120,7 @@ python -m doc_to_md.cli list-engines
 ## Engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
 - **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
-- **SiliconFlow / DeepSeek OCR** (`siliconflow`): extracts raw text locally, chunks by tokens, and calls SiliconFlow's OpenAI-compatible completions endpoint to rebuild Markdown.
+- **DeepSeek OCR** (`deepseekocr`): renders PDFs/images and streams them to the DeepSeek-OCR vision model (falls back to local text extraction for unsupported formats).
 - **MarkItDown** (`markitdown`): invokes Microsoft's MarkItDown library for high fidelity conversions across office formats without leaving your machine.
 - **PaddleOCR** (`paddleocr`): runs PaddleOCR locally (CPU or GPU) against PDFs or images to reconstruct page-by-page Markdown summaries.
 - **MinerU** (`mineru`): wraps the MinerU CLI pipeline, capturing the generated Markdown plus image assets from its output folders.

@@ -11,7 +11,7 @@ src/doc_to_md/cli.py
 src/doc_to_md/engines/base.py
 src/doc_to_md/engines/local.py
 src/doc_to_md/engines/mistral.py
-src/doc_to_md/engines/siliconflow.py
+src/doc_to_md/engines/deepseekocr.py
 src/doc_to_md/pipeline/loader.py
 src/doc_to_md/pipeline/postprocessor.py
 src/doc_to_md/pipeline/preprocessor.py

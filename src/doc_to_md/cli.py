@@ -24,7 +24,7 @@ from doc_to_md.engines.marker import MarkerEngine
 from doc_to_md.engines.mineru import MinerUEngine
 from doc_to_md.engines.mistral import MistralEngine
 from doc_to_md.engines.paddleocr import PaddleOCREngine
-from doc_to_md.engines.siliconflow import SiliconFlowEngine
+from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
 from doc_to_md.pipeline.writer import write_markdown
@@ -35,7 +35,7 @@ app = typer.Typer(help="Convert documentation sources into Markdown using plugga
 ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
     "mistral": MistralEngine,
-    "siliconflow": SiliconFlowEngine,
+    "deepseekocr": DeepSeekOCREngine,
     "markitdown": MarkItDownEngine,
     "paddleocr": PaddleOCREngine,
     "mineru": MinerUEngine,
@@ -61,7 +61,7 @@ def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise typer.BadParameter(f"Unknown engine '{engine}'")
     engine_cls = ENGINE_REGISTRY[engine]
-    if engine in {"siliconflow", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}:
+    if engine in {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}:
         return engine_cls(model=model)
     return engine_cls()
 
@@ -103,7 +103,7 @@ def _format_summary(metrics: RunMetrics, elapsed_seconds: float) -> str:
 def convert(
     input_path: Annotated[Optional[str], typer.Option("--input-path", help="Directory of input docs; defaults to settings.input_dir")] = None,
     output_path: Annotated[Optional[str], typer.Option("--output-path", help="Where to write Markdown files")] = None,
-    engine: Annotated[Optional[str], typer.Option("--engine", "-e", help="Engine name (local, mistral, siliconflow)")] = None,
+    engine: Annotated[Optional[str], typer.Option("--engine", "-e", help="Engine name (local, mistral, deepseekocr)")] = None,
     model: Annotated[Optional[str], typer.Option("--model", "-m", help="Model override for engines that support it")] = None,
     since: Annotated[
         Optional[datetime],
