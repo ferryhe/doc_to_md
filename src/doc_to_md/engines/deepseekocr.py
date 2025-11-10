@@ -24,8 +24,16 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
     name = "deepseekocr"
     _PDF_RENDER_DPI = 220
     _PAGES_PER_VISION_REQUEST = 4
-    # Recommended grounding prompt per https://github.com/deepseek-ai/DeepSeek-OCR
-    _DEEPSEEK_MARKDOWN_PROMPT = "<image>\n<|grounding|>Convert the document to markdown."
+    # Use the official Free OCR prompt for mixed slide/doc inputs (per DeepSeek spec)
+    _DEEPSEEK_MARKDOWN_PROMPT = "<image>\nFree OCR."
+    _EXTRA_BODY = {
+        "skip_special_tokens": False,
+        "vllm_xargs": {
+            "ngram_size": 30,
+            "window_size": 90,
+            "whitelist_token_ids": [128821, 128822],
+        },
+    }
 
     def __init__(self, model: str | None = None) -> None:
         settings = get_settings()
@@ -124,7 +132,7 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
     ) -> str:
         page_numbers = [page_no for page_no, _ in images]
         user_prompt = self._build_user_prompt_for_images(filename, page_numbers, chunk_index, chunk_total)
-        content = [{"type": "text", "text": user_prompt}]
+        content = []
         for page_no, base64_image in images:
             content.append(
                 {
@@ -135,6 +143,7 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
                     },
                 }
             )
+        content.append({"type": "text", "text": user_prompt})
 
         completion = self._request_with_retry(
             lambda: self.client.chat.completions.create(
@@ -150,6 +159,8 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
                 ],
                 timeout=self.timeout,
                 max_tokens=4096,
+                temperature=0.0,
+                extra_body=self._EXTRA_BODY,
             ),
             operation=f"deepseekocr_images_chunk_{chunk_index}",
         )
