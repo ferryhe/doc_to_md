@@ -92,6 +92,10 @@ doc_to_md/
 > ```
 > Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs.
 > Some stacks (e.g., MinerU vs. Marker) currently demand incompatible Pillow versions—install only what you plan to use in a given virtualenv.
+> You can also rely on the extras defined in `pyproject.toml`, for example: `pip install ".[markitdown,paddleocr]"`, to pull in only the engines you need in a single command.
+
+> ⚠️ **Remote engines vs. secrets**
+> API keys are validated when their engine spins up (either because it is the default or because you explicitly pass `--engine`). You can leave `DEFAULT_ENGINE` pointing at a remote engine without its keys, but any conversion that uses that engine will still fail fast with a friendly error until the secrets are set.
 
 `config/settings.py` automatically creates the configured `input_dir` and `output_dir` if they do not exist.
 
@@ -128,6 +132,11 @@ python -m doc_to_md.cli list-engines
 - **Marker** (`marker`): drives the Marker PDF stack (without touching disk) and exposes its Markdown renderer alongside extracted images.
 
 All engines implement `Engine.convert(Path) -> EngineResponse`, so adding another engine only requires subclassing the `Engine` protocol.
+
+## Troubleshooting
+- **Settings crash on startup**: Secret checks now happen inside each engine. If a remote engine fails to initialize, either export the matching API key (`MISTRAL_API_KEY`, `SILICONFLOW_API_KEY`, etc.) or run `convert --engine local` until the keys are available.
+- **Engine import errors**: Optional stacks (Marker, MinerU, PaddleOCR, Docling, MarkItDown) are not installed automatically. Install the specific packages or use extras such as `pip install ".[marker,mineru]"` before invoking that engine.
+- **Remote OCR timeouts**: Tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and token/chunk settings in `.env` (e.g., `SILICONFLOW_MAX_INPUT_TOKENS`, `MISTRAL_MAX_PDF_TOKENS`) to match document sizes; each maps directly to validators in `config/settings.py`.
 
 ## Development & tests
 - Run the unit tests: `pytest`

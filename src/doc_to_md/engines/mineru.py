@@ -21,7 +21,7 @@ class MinerUEngine(Engine):
         self.table_enable = settings.mineru_table_enable
         self.start_page = settings.mineru_start_page
         self.end_page = settings.mineru_end_page
-        # Model metadata is descriptive only – MinerU is a local pipeline.
+        # Model metadata is descriptive only; MinerU is a local pipeline.
         self.model = model or f"{self.backend}:{self.parse_method}"
         self._runtime: Tuple[
             Callable[..., Any], Callable[..., bytes], Any
@@ -57,7 +57,7 @@ class MinerUEngine(Engine):
                 table_enable=self.table_enable,
                 start_page_id=self.start_page,
                 end_page_id=self.end_page,
-                # Keep disk spill minimal – we only care about Markdown and images.
+                # Keep disk spill minimal; we only care about Markdown and images.
                 f_draw_layout_bbox=False,
                 f_draw_span_bbox=False,
                 f_dump_md=True,

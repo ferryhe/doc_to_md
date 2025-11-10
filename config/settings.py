@@ -74,19 +74,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_environment(self) -> "Settings":
-        missing_keys: list[str] = []
-        if self.default_engine == "mistral" and not self.mistral_api_key:
-            missing_keys.append("MISTRAL_API_KEY")
-        if self.default_engine == "deepseekocr" and not self.siliconflow_api_key:
-            missing_keys.append("SILICONFLOW_API_KEY")
-
-        if missing_keys:
-            keys = ", ".join(missing_keys)
-            raise ValueError(
-                f"DEFAULT_ENGINE='{self.default_engine}' requires {keys} to be set. "
-                "Update your .env or choose another default engine."
-            )
-
         for directory in (self.input_dir, self.output_dir):
             directory.mkdir(parents=True, exist_ok=True)
 
