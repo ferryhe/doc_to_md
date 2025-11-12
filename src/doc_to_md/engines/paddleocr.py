@@ -7,6 +7,7 @@ from typing import Iterable, List
 from PIL import Image
 
 from config.settings import get_settings
+from doc_to_md.utils.hardware import has_cuda_support
 from .base import Engine, EngineResponse
 
 
@@ -20,6 +21,7 @@ class PaddleOCREngine(Engine):
         self.max_pages = settings.paddleocr_max_pages
         self.model = model or f"paddleocr-{self.lang}"
         self._ocr = None
+        self._use_gpu: bool | None = None
 
     def _ensure_ocr(self):
         if self._ocr is not None:
@@ -32,7 +34,15 @@ class PaddleOCREngine(Engine):
                 "Install it via `pip install paddleocr` before using this engine."
             ) from exc
 
-        self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang)
+        device = "gpu" if self._should_use_gpu() else "cpu"
+        try:
+            self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device=device)
+        except Exception:
+            if device == "gpu":
+                self._use_gpu = False
+                self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device="cpu")
+            else:
+                raise
         return self._ocr
 
     def convert(self, path: Path) -> EngineResponse:  # pragma: no cover - heavy dependency
@@ -97,7 +107,7 @@ class PaddleOCREngine(Engine):
         import numpy as np
 
         data = np.array(image)
-        results = ocr.ocr(data, cls=True)
+        results = ocr.ocr(data)
         lines: list[str] = []
         normalized = results
         if normalized and isinstance(normalized[0], tuple):
@@ -116,3 +126,8 @@ class PaddleOCREngine(Engine):
                 confidence = float(text_meta[1])
                 lines.append(f"- {text} _(conf {confidence:.2f})_")
         return lines
+
+    def _should_use_gpu(self) -> bool:
+        if self._use_gpu is None:
+            self._use_gpu = has_cuda_support()
+        return self._use_gpu

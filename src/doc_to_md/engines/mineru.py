@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Tuple
 
 from config.settings import get_settings
+from doc_to_md.utils.hardware import ensure_mineru_accelerator_env
 from .base import Engine, EngineAsset, EngineResponse
 
 
@@ -26,6 +27,7 @@ class MinerUEngine(Engine):
         self._runtime: Tuple[
             Callable[..., Any], Callable[..., bytes], Any
         ] | None = None  # (do_parse, read_fn, MakeMode)
+        ensure_mineru_accelerator_env()
 
     def _ensure_runtime(self) -> Tuple[Callable[..., Any], Callable[..., bytes], Any]:
         if self._runtime is not None:

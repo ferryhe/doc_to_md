@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from config.settings import get_settings
+from doc_to_md.utils.hardware import ensure_marker_accelerator_env
 from .base import Engine, EngineAsset, EngineResponse
 
 
@@ -14,6 +15,7 @@ class MarkerEngine(Engine):
 
     def __init__(self, model: str | None = None) -> None:
         settings = get_settings()
+        ensure_marker_accelerator_env()
         self._cli_options: Dict[str, Any] = {
             "output_format": "markdown",
             "disable_image_extraction": not settings.marker_extract_images,

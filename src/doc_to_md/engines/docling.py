@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from config.settings import get_settings
+from doc_to_md.utils.hardware import ensure_docling_accelerator_env
 from .base import Engine, EngineResponse
 
 
@@ -29,6 +30,16 @@ class DoclingEngine(Engine):
                 "Install it with `pip install docling` (or an equivalent extra) before using this engine."
             ) from exc
 
+        # HF Hub tries to create symlinks when caching models. On Windows without developer
+        # privileges this fails, so force the hub to fall back to copy semantics instead.
+        try:  # pragma: no cover - environment specific
+            from huggingface_hub import file_download as hf_file_download
+        except Exception:  # noqa: BLE001 - best effort
+            pass
+        else:
+            hf_file_download.are_symlinks_supported = lambda cache_dir=None: False  # type: ignore[assignment]
+
+        ensure_docling_accelerator_env()
         self._converter = DocumentConverter()
         return self._converter
 
