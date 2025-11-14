@@ -7,7 +7,7 @@ from typing import Iterable, List
 from PIL import Image
 
 from config.settings import get_settings
-from doc_to_md.utils.hardware import has_cuda_support
+from doc_to_md.utils.hardware import paddle_supports_cuda
 from .base import Engine, EngineResponse
 
 
@@ -21,7 +21,7 @@ class PaddleOCREngine(Engine):
         self.max_pages = settings.paddleocr_max_pages
         self.model = model or f"paddleocr-{self.lang}"
         self._ocr = None
-        self._use_gpu: bool | None = None
+        self._device: str | None = None
 
     def _ensure_ocr(self):
         if self._ocr is not None:
@@ -34,12 +34,12 @@ class PaddleOCREngine(Engine):
                 "Install it via `pip install paddleocr` before using this engine."
             ) from exc
 
-        device = "gpu" if self._should_use_gpu() else "cpu"
+        device = self._preferred_device()
         try:
             self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device=device)
         except Exception:
-            if device == "gpu":
-                self._use_gpu = False
+            if device.startswith("gpu"):
+                self._device = "cpu"
                 self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device="cpu")
             else:
                 raise
@@ -127,7 +127,11 @@ class PaddleOCREngine(Engine):
                 lines.append(f"- {text} _(conf {confidence:.2f})_")
         return lines
 
-    def _should_use_gpu(self) -> bool:
-        if self._use_gpu is None:
-            self._use_gpu = has_cuda_support()
-        return self._use_gpu
+    def _preferred_device(self) -> str:
+        if self._device is not None:
+            return self._device
+        if paddle_supports_cuda():
+            self._device = "gpu:0"
+        else:
+            self._device = "cpu"
+        return self._device

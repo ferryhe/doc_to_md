@@ -24,14 +24,15 @@ def detect_torch_device() -> str:
 
 @lru_cache(maxsize=1)
 def has_cuda_support() -> bool:
-    """Return True if CUDA is usable via torch or paddle."""
-    torch = _safe_import_torch()
-    if torch is not None:
-        try:
-            if torch.cuda.is_available():
-                return True
-        except Exception:  # noqa: BLE001
-            pass
+    """Return True if CUDA is usable via torch (preferred) or paddle fallback."""
+    if detect_torch_device().startswith("cuda"):
+        return True
+    return paddle_supports_cuda()
+
+
+@lru_cache(maxsize=1)
+def paddle_supports_cuda() -> bool:
+    """Return True if PaddlePaddle was compiled with CUDA."""
     try:
         import paddle  # type: ignore
 
