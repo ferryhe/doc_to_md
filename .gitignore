@@ -2,4 +2,6 @@ __pycache__/
 .env
 data/**
 *.pyc
-
+.venv
+.venv_gpu
+*doc_to_markdown_converter.egg-info
