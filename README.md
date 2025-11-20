@@ -42,7 +42,7 @@ doc_to_md/
 ## Installation
 1. **Create environment**
    ```bash
-   python -m venv .venv
+   python -m venv .venv #for GPU create.venv_gpu
    .venv\Scripts\activate  # Windows
    source .venv/bin/activate  # Unix
    ```
@@ -104,11 +104,7 @@ You can invoke the CLI either through the module (`python -m doc_to_md.cli ...`)
 
 ### Convert documents
 ```bash
-python -m doc_to_md.cli convert \
-  --input-path data/input \
-  --output-path data/output_mistral \
-  --engine mistral \
-  --model mistral-ocr-latest
+python -m doc_to_md.cli convert --input-path data/input --output-path data/output_mistral --engine mistral --model mistral-ocr-latest
 ```
 
 Common flags:
