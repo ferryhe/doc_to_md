@@ -28,7 +28,8 @@ from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
 from doc_to_md.pipeline.writer import write_markdown
-from doc_to_md.utils.logging import log_error, log_info
+from doc_to_md.utils.logging import log_error, log_info, log_warning
+from doc_to_md.utils.validation import FileValidationError
 
 app = typer.Typer(help="Convert documentation sources into Markdown using pluggable engines.")
 
@@ -129,8 +130,18 @@ def convert(
     since_timestamp = since.timestamp() if since else None
     metrics = RunMetrics()
     started_at = time.perf_counter()
+    
+    # Collect all documents first to show total count
+    documents = list(iter_documents(input_dir))
+    total_count = len(documents)
+    
+    if total_count == 0:
+        log_warning(f"No documents found in {input_dir}")
+        return
+    
+    log_info(f"Found {total_count} document(s) to process")
 
-    for source_path in iter_documents(input_dir):
+    for index, source_path in enumerate(documents, start=1):
         metrics.total_candidates += 1
         should_process, mtime = _should_process(source_path, since_timestamp)
         if not should_process:
@@ -142,12 +153,16 @@ def convert(
 
         if dry_run:
             metrics.dry_run += 1
-            log_info(f"[dry-run] Would convert {source_path}")
+            log_info(f"[{index}/{total_count}] [dry-run] Would convert {source_path}")
             continue
 
-        log_info(f"Converting {source_path}")
+        log_info(f"[{index}/{total_count}] Converting {source_path}")
         try:
             engine_response = engine_instance.convert(source_path)
+        except FileValidationError as exc:
+            log_error(f"Validation failed for {source_path.name}: {exc}")
+            metrics.failures += 1
+            continue
         except Exception as exc:  # noqa: BLE001
             log_error(f"Failed to convert {source_path.name}: {exc}")
             metrics.failures += 1
@@ -161,7 +176,7 @@ def convert(
         )
         cleaned = enforce_markdown(result)
         target = write_markdown(cleaned, output_dir)
-        log_info(f"Wrote {target}")
+        log_info(f"[{index}/{total_count}] Wrote {target}")
         metrics.successes += 1
 
     elapsed = time.perf_counter() - started_at

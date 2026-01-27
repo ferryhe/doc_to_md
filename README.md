@@ -121,6 +121,18 @@ Common flags:
 python -m doc_to_md.cli list-engines
 ```
 
+### File Size and Format Limits
+
+- **Maximum file size:** 100MB per file
+- **Maximum image size:** 100 megapixels
+- **Supported formats:** `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
+- **Not supported:** Legacy `.doc` format (please convert to `.docx` first)
+
+### List available engines
+```bash
+python -m doc_to_md.cli list-engines
+```
+
 ## Engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
 - **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
