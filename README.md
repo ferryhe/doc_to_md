@@ -121,47 +121,6 @@ Common flags:
 python -m doc_to_md.cli list-engines
 ```
 
-## Docker Deployment
-
-The project includes Docker support for easy deployment and consistent environments.
-
-### Quick Start with Docker
-
-1. **Build the image:**
-   ```bash
-   docker build -t doc-to-md:latest .
-   ```
-
-2. **Run a conversion:**
-   ```bash
-   mkdir -p data/input data/output
-   # Place your documents in data/input/
-   
-   docker run --rm \
-     -v $(pwd)/data:/app/data \
-     doc-to-md:latest \
-     doc-to-md convert \
-     --input-path /app/data/input \
-     --output-path /app/data/output \
-     --engine local
-   ```
-
-### Using Docker Compose (Recommended)
-
-1. **Configure environment:**
-   Create a `.env` file (see `.env.example`)
-
-2. **Run with docker-compose:**
-   ```bash
-   # Start with local engine
-   docker-compose up doc-to-md
-   
-   # Or with Mistral OCR (requires API key)
-   docker-compose --profile mistral up doc-to-md-mistral
-   ```
-
-For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
-
 ### File Size and Format Limits
 
 - **Maximum file size:** 100MB per file
