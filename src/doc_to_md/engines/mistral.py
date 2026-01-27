@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import base64
-import imghdr
 import re
 import time
 from dataclasses import dataclass
@@ -232,11 +231,18 @@ class MistralEngine(Engine):
 
     @staticmethod
     def _resolve_extension(binary: bytes) -> str:
-        detected = imghdr.what(None, h=binary)
-        if detected == "jpeg":
+        """Detect image format from binary data without using deprecated imghdr."""
+        # Check magic bytes for common image formats
+        if binary.startswith(b'\xff\xd8\xff'):
             return "jpg"
-        if detected:
-            return detected
+        if binary.startswith(b'\x89PNG\r\n\x1a\n'):
+            return "png"
+        if binary.startswith(b'GIF87a') or binary.startswith(b'GIF89a'):
+            return "gif"
+        if binary.startswith(b'RIFF') and binary[8:12] == b'WEBP':
+            return "webp"
+        if binary.startswith(b'BM'):
+            return "bmp"
         return "bin"
 
     @staticmethod
