@@ -29,6 +29,7 @@ from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
 from doc_to_md.pipeline.writer import write_markdown
 from doc_to_md.utils.logging import log_error, log_info
+from doc_to_md.utils.validation import FileValidationError
 
 app = typer.Typer(help="Convert documentation sources into Markdown using pluggable engines.")
 
@@ -148,6 +149,10 @@ def convert(
         log_info(f"Converting {source_path}")
         try:
             engine_response = engine_instance.convert(source_path)
+        except FileValidationError as exc:
+            log_error(f"Validation failed for {source_path.name}: {exc}")
+            metrics.failures += 1
+            continue
         except Exception as exc:  # noqa: BLE001
             log_error(f"Failed to convert {source_path.name}: {exc}")
             metrics.failures += 1
