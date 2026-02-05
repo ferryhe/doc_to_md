@@ -74,7 +74,7 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
             return self._process_text(path)
 
         markdown_parts: list[str] = []
-        # Since _PAGES_PER_VISION_REQUEST is 1, each chunk contains exactly one page
+        # Since _PAGES_PER_VISION_REQUEST is 1, each iteration processes exactly one page
         page_chunks = list(self._chunk_sequence(rendered_pages, self._PAGES_PER_VISION_REQUEST))
 
         for page_index, chunk in enumerate(page_chunks, start=1):
