@@ -19,11 +19,16 @@ T = TypeVar("T")
 
 
 class DeepSeekOCREngine(RetryableRequestMixin, Engine):
-    """Send documents to DeepSeek-OCR's OpenAI-compatible API for vision/text processing."""
+    """Send documents to DeepSeek-OCR's OpenAI-compatible API for vision/text processing.
+    
+    Note: DeepSeek-OCR's OpenAI-compatible API only supports one image per request.
+    Multi-image batching is not supported - each page must be sent in a separate API call.
+    """
 
     name = "deepseekocr"
     _PDF_RENDER_DPI = 220
-    _PAGES_PER_VISION_REQUEST = 4
+    # DeepSeek-OCR only supports one image per API request (OpenAI-compatible endpoint limitation)
+    _PAGES_PER_VISION_REQUEST = 1
     # Use the official Free OCR prompt for mixed slide/doc inputs (per DeepSeek spec)
     _DEEPSEEK_MARKDOWN_PROMPT = "<image>\nFree OCR."
     _EXTRA_BODY = {
@@ -130,20 +135,30 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
         chunk_index: int,
         chunk_total: int,
     ) -> str:
-        page_numbers = [page_no for page_no, _ in images]
-        user_prompt = self._build_user_prompt_for_images(filename, page_numbers, chunk_index, chunk_total)
-        content = []
-        for page_no, base64_image in images:
-            content.append(
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{base64_image}",
-                        "detail": "high",
-                    },
-                }
-            )
-        content.append({"type": "text", "text": user_prompt})
+        """Process image(s) with DeepSeek-OCR API.
+        
+        Note: Due to API limitations, only the first image is used even if multiple
+        images are passed. For proper multi-page handling, call this method once per page.
+        """
+        # DeepSeek-OCR API only supports one image per request
+        # Use the first image from the sequence
+        if not images:
+            raise ValueError("No images provided to _describe_images_with_model")
+        
+        page_no, base64_image = images[0]
+        user_prompt = self._build_user_prompt_for_images(filename, [page_no], chunk_index, chunk_total)
+        
+        # Build content with single image and text prompt
+        content = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{base64_image}",
+                    "detail": "high",
+                },
+            },
+            {"type": "text", "text": user_prompt},
+        ]
 
         completion = self._request_with_retry(
             lambda: self.client.chat.completions.create(
@@ -162,7 +177,7 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
                 temperature=0.0,
                 extra_body=self._EXTRA_BODY,
             ),
-            operation=f"deepseekocr_images_chunk_{chunk_index}",
+            operation=f"deepseekocr_page_{page_no}",
         )
         return self._extract_content(completion)
 
@@ -237,16 +252,21 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
 
     @staticmethod
     def _build_user_prompt_for_images(filename: str, page_numbers: Sequence[int], chunk_index: int, chunk_total: int) -> str:
+        """Build the prompt for image OCR requests.
+        
+        Note: page_numbers should contain only one page number since the API supports
+        only one image per request.
+        """
         chunk_note = ""
         if chunk_total > 1:
             chunk_note = (
-                f"This is chunk {chunk_index} of {chunk_total} from '{filename}'. Maintain continuity across chunks.\n"
+                f"This is page {chunk_index} of {chunk_total} from '{filename}'. Maintain continuity across pages.\n"
             )
 
-        page_range = ", ".join(str(num) for num in page_numbers)
+        page_num = page_numbers[0] if page_numbers else "unknown"
         return (
             f"{chunk_note}{DeepSeekOCREngine._DEEPSEEK_MARKDOWN_PROMPT}\n"
-            f"Document pages: {page_range}. Produce clean Markdown, preserving headings, tables, and ordered lists."
+            f"Document page: {page_num}. Produce clean Markdown, preserving headings, tables, and ordered lists."
         )
 
     def _compose_markdown(self, filename: str, parts: Sequence[str], chunk_total: int) -> str:
@@ -255,8 +275,8 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
         if chunk_total <= 1:
             return body
         notice = (
-            f"_Note: Source document '{filename}' exceeded per-request limits and was processed "
-            f"in {chunk_total} stitched chunks._"
+            f"_Note: Source document '{filename}' was processed in {chunk_total} separate requests "
+            f"(DeepSeek-OCR API limitation: one image per request)._"
         )
         return f"{notice}\n\n{body}"
 
