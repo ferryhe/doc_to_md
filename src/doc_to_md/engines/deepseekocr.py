@@ -74,15 +74,16 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
             return self._process_text(path)
 
         markdown_parts: list[str] = []
+        # Since _PAGES_PER_VISION_REQUEST is 1, each chunk contains exactly one page
         page_chunks = list(self._chunk_sequence(rendered_pages, self._PAGES_PER_VISION_REQUEST))
 
-        for index, chunk in enumerate(page_chunks, start=1):
+        for page_index, chunk in enumerate(page_chunks, start=1):
             markdown_parts.append(
                 self._describe_images_with_model(
                     filename=path.name,
                     images=chunk,
-                    chunk_index=index,
-                    chunk_total=len(page_chunks),
+                    page_index=page_index,
+                    page_total=len(page_chunks),
                 )
             )
 
@@ -123,8 +124,8 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
         markdown = self._describe_images_with_model(
             filename=path.name,
             images=[(1, base64_image)],
-            chunk_index=1,
-            chunk_total=1,
+            page_index=1,
+            page_total=1,
         )
         return EngineResponse(markdown=markdown, model=self.model)
 
@@ -132,8 +133,8 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
         self,
         filename: str,
         images: Sequence[Tuple[int, str]],
-        chunk_index: int,
-        chunk_total: int,
+        page_index: int,
+        page_total: int,
     ) -> str:
         """Process image(s) with DeepSeek-OCR API.
         
@@ -146,7 +147,7 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
             raise ValueError("No images provided to _describe_images_with_model")
         
         page_no, base64_image = images[0]
-        user_prompt = self._build_user_prompt_for_images(filename, [page_no], chunk_index, chunk_total)
+        user_prompt = self._build_user_prompt_for_images(filename, [page_no], page_index, page_total)
         
         # Build content with single image and text prompt
         content = [
@@ -251,21 +252,21 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
         )
 
     @staticmethod
-    def _build_user_prompt_for_images(filename: str, page_numbers: Sequence[int], chunk_index: int, chunk_total: int) -> str:
+    def _build_user_prompt_for_images(filename: str, page_numbers: Sequence[int], page_index: int, page_total: int) -> str:
         """Build the prompt for image OCR requests.
         
         Note: page_numbers should contain only one page number since the API supports
         only one image per request.
         """
-        chunk_note = ""
-        if chunk_total > 1:
-            chunk_note = (
-                f"This is page {chunk_index} of {chunk_total} from '{filename}'. Maintain continuity across pages.\n"
+        page_note = ""
+        if page_total > 1:
+            page_note = (
+                f"This is page {page_index} of {page_total} from '{filename}'. Maintain continuity across pages.\n"
             )
 
         page_num = page_numbers[0] if page_numbers else "unknown"
         return (
-            f"{chunk_note}{DeepSeekOCREngine._DEEPSEEK_MARKDOWN_PROMPT}\n"
+            f"{page_note}{DeepSeekOCREngine._DEEPSEEK_MARKDOWN_PROMPT}\n"
             f"Document page: {page_num}. Produce clean Markdown, preserving headings, tables, and ordered lists."
         )
 
