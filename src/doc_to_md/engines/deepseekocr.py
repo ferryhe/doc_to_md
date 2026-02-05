@@ -270,13 +270,13 @@ class DeepSeekOCREngine(RetryableRequestMixin, Engine):
             f"Document page: {page_num}. Produce clean Markdown, preserving headings, tables, and ordered lists."
         )
 
-    def _compose_markdown(self, filename: str, parts: Sequence[str], chunk_total: int) -> str:
+    def _compose_markdown(self, filename: str, parts: Sequence[str], page_total: int) -> str:
         cleaned_parts = [part.strip() for part in parts if part and part.strip()]
         body = "\n\n".join(cleaned_parts) if cleaned_parts else "_No content returned by DeepSeek-OCR._"
-        if chunk_total <= 1:
+        if page_total <= 1:
             return body
         notice = (
-            f"_Note: Source document '{filename}' was processed in {chunk_total} separate requests "
+            f"_Note: Source document '{filename}' was processed in {page_total} separate requests "
             f"(DeepSeek-OCR API limitation: one image per request)._"
         )
         return f"{notice}\n\n{body}"
