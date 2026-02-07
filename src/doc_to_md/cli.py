@@ -44,6 +44,9 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "marker": MarkerEngine,
 }
 
+# Engines that require a model parameter in their __init__
+ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
+
 
 @dataclass(slots=True)
 class RunMetrics:
@@ -62,7 +65,7 @@ def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise typer.BadParameter(f"Unknown engine '{engine}'")
     engine_cls = ENGINE_REGISTRY[engine]
-    if engine in {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}:
+    if engine in ENGINES_REQUIRING_MODEL:
         return engine_cls(model=model)
     return engine_cls()
 

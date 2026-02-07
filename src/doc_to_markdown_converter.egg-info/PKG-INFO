@@ -154,6 +154,18 @@ Common flags:
 python -m doc_to_md.cli list-engines
 ```
 
+### File Size and Format Limits
+
+- **Maximum file size:** 100MB per file
+- **Maximum image size:** 100 megapixels
+- **Supported formats:** `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
+- **Not supported:** Legacy `.doc` format (please convert to `.docx` first)
+
+### List available engines
+```bash
+python -m doc_to_md.cli list-engines
+```
+
 ## Engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
 - **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
@@ -171,8 +183,51 @@ All engines implement `Engine.convert(Path) -> EngineResponse`, so adding anothe
 - **Engine import errors**: Optional stacks (Marker, MinerU, PaddleOCR, Docling, MarkItDown) are not installed automatically. Install the specific packages or use extras such as `pip install ".[marker,mineru]"` before invoking that engine.
 - **Remote OCR timeouts**: Tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and token/chunk settings in `.env` (e.g., `SILICONFLOW_MAX_INPUT_TOKENS`, `MISTRAL_MAX_PDF_TOKENS`) to match document sizes; each maps directly to validators in `config/settings.py`.
 
+## Engine Benchmarking / 引擎对比测试
+
+The project includes a comprehensive benchmarking tool to compare different engines. It generates detailed reports in Chinese (中文对比报告).
+
+### Quick Start
+```bash
+# Test all available engines
+python benchmark.py
+
+# Test specific engines
+python benchmark.py --engines local markitdown paddleocr
+
+# Use your own test file
+python benchmark.py --test-file path/to/document.pdf --engines local mistral
+
+# Save results in both Markdown and JSON
+python benchmark.py --save-json --output-dir my_results
+```
+
+### Features
+- **Automated Testing**: Tests multiple engines with a single command
+- **Performance Metrics**: Measures conversion time, success rate, and output characteristics (Markdown length and asset count)
+- **Chinese Report**: Generates comprehensive comparison reports in Chinese (中文对比报告)
+- **Engine Analysis**: Provides detailed pros/cons and use case recommendations
+- **Flexible Configuration**: Test specific engines or all available ones
+
+> **Note**: The script `benchmark.py` is for use from a source checkout. Run it from the project root directory.
+
+### Report Contents / 报告内容
+The generated report includes:
+- Overall statistics and success rates (整体统计和成功率)
+- Performance rankings by conversion time (按转换时间的性能排名)
+- Detailed engine characteristics analysis (详细引擎特点分析)
+- Recommendations for different use cases (不同使用场景的建议)
+- Error diagnostics for failed conversions (失败转换的错误诊断)
+
+### Example Usage Scenarios
+1. **Choosing the right engine**: Compare all engines to find the best one for your documents
+2. **Performance validation**: Verify engine performance before production deployment
+3. **Quality assessment**: Compare output quality across different engines
+4. **Cost analysis**: Evaluate free vs. paid engine options
+
 ## Development & tests
 - Run the unit tests: `pytest`
+- Run engine benchmarks: `python benchmark.py`
 - Lint/format according to your preferred tooling (e.g., `ruff`, `black`) if you add them.
 - When creating new engines, update `.env.example`, `ENGINE_REGISTRY` in `cli.py`, and extend the README/usage docs.
 
