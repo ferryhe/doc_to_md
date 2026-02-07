@@ -25,6 +25,9 @@ src/doc_to_md/pipeline/writer.py
 src/doc_to_md/utils/hardware.py
 src/doc_to_md/utils/logging.py
 src/doc_to_md/utils/tokens.py
+src/doc_to_md/utils/validation.py
 tests/test_cli.py
 tests/test_pipeline.py
 tests/test_settings.py
+tests/test_text_extraction_enhanced.py
+tests/test_validation.py
