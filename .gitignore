@@ -8,3 +8,5 @@ data/**
 benchmark_results/
 examples/test_output/
 demo_report/
+final_test/
+test_run/
