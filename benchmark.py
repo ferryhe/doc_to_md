@@ -517,7 +517,7 @@ def main():
         print(f"Using test file: {test_file}")
     elif args.test_file:
         # User provided a file path but it doesn't exist - this is an error
-        print(f"Error: Test file '{args.test_file}' does not exist")
+        print(f"Error: Test file '{args.test_file}' does not exist", file=sys.stderr)
         sys.exit(1)
     else:
         # No test file provided, create a sample
