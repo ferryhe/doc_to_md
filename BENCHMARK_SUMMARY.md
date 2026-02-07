@@ -1,226 +1,194 @@
-# 引擎对比测试功能开发总结
+# Engine Benchmark Feature Development Summary
 
-## 任务背景
+## Background
 
-根据需求"能测试对比下几个方法写个中文对比报告么"，我们开发了一个完整的基准测试工具，用于测试和对比文档转换项目中的不同引擎，并生成详细的中文对比报告。
+Based on the requirement to "test and compare several methods and write a comparison report", we developed a comprehensive benchmarking tool to test and compare different engines in the document conversion project, generating detailed reports.
 
-## 主要成果
+> **Chinese Documentation**: For the Chinese version, see [readme_cn/BENCHMARK_SUMMARY_CN.md](readme_cn/BENCHMARK_SUMMARY_CN.md)
 
-### 1. 核心功能文件
+## Key Deliverables
 
-#### benchmark.py（约520行代码）
-- **EngineBenchmark类**：负责执行基准测试
-  - 支持测试所有8个引擎（local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker）
-  - 自动创建引擎实例并处理错误
-  - 收集详细的性能指标
+### 1. Core Functionality Files
+
+#### benchmark.py (~520 lines of code)
+- **EngineBenchmark class**: Executes benchmark tests
+  - Supports testing all 8 engines (local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker)
+  - Automatically creates engine instances and handles errors
+  - Collects detailed performance metrics
   
-- **ChineseReportGenerator类**：生成中文对比报告
-  - 生成美观的Markdown格式报告
-  - 包含性能评级系统（⭐评分）
-  - 提供详细的引擎分析和建议
+- **ChineseReportGenerator class**: Generates comparison reports
+  - Creates well-formatted Markdown reports
+  - Includes performance rating system (⭐ ratings)
+  - Provides detailed engine analysis and recommendations
   
-- **命令行接口**：
-  - `--engines`: 选择要测试的引擎
-  - `--test-file`: 指定测试文件
-  - `--output-dir`: 设置输出目录
-  - `--save-json`: 保存JSON格式结果
+- **Command-line interface**:
+  - `--engines`: Select engines to test
+  - `--test-file`: Specify test file
+  - `--output-dir`: Set output directory
+  - `--save-json`: Save JSON format results
 
-### 2. 详细文档
+### 2. Documentation
 
-#### README_BENCHMARK.md（约300行）
-完整的中文使用指南，包含：
-- 功能介绍和快速开始
-- 所有8个引擎的详细说明（本地引擎和云端引擎）
-- 报告内容详解
-- 使用场景示例
-- 常见问题解答
-- 技术细节和性能优化建议
+#### README_BENCHMARK.md
+Complete usage guide including:
+- Feature introduction and quick start
+- Detailed descriptions of all 8 engines (local and cloud engines)
+- Report content explanation
+- Use case examples
+- FAQ
+- Technical details and performance optimization tips
 
 #### examples/README.md
-示例代码说明文档，包括：
-- 如何运行示例
-- 代码示例
-- 故障排除指南
+Example code documentation including:
+- How to run examples
+- Code samples
+- Troubleshooting guide
 
 #### examples/benchmark_examples.py
-可运行的Python示例代码，展示如何：
-- 创建和运行基准测试
-- 生成和保存报告
-- 程序化分析结果
+Runnable Python example code showing how to:
+- Create and run benchmarks
+- Generate and save reports
+- Programmatically analyze results
 
-### 3. 生成的报告特点
+### 3. Generated Report Features
 
-中文对比报告包含以下关键部分：
+Reports include the following key sections:
 
-1. **测试信息**
-   - 测试时间
-   - 测试文件和大小
-   - 测试引擎数量
+1. **Test Information** - Timestamp, file, size, engine count
+2. **Overall Statistics** - Success/failure counts, success rate
+3. **Performance Rankings** - Sorted by conversion time with output length and asset count
+4. **Detailed Results Table** - Status, time, length, assets, ratings
+5. **Engine Analysis** - Pros, cons, best use cases for each engine
+6. **Usage Recommendations** - Speed priority, quality priority, cost considerations, document type suggestions
+7. **Failure Details** - Error messages and troubleshooting suggestions
 
-2. **整体统计**
-   - 成功/失败引擎数
-   - 成功率百分比
+## Technical Highlights
 
-3. **性能排名**
-   - 按转换时间排序
-   - 显示输出长度和资源数量
+### 1. Architecture Design
+- **Modular design**: Clear class structure, easy to extend and maintain
+- **Error handling**: Comprehensive exception catching and friendly error messages
+- **Flexible configuration**: Multiple usage modes (CLI, programmatic)
 
-4. **详细测试结果表格**
-   | 引擎 | 模型 | 状态 | 转换时间 | Markdown长度 | 资源数 | 性能评级 |
-   |------|------|------|----------|-------------|--------|---------|
-   | ... | ... | ... | ... | ... | ... | ⭐⭐⭐⭐⭐ |
+### 2. Performance Metrics
+Key metrics collected:
+- Conversion time (accurate to milliseconds)
+- Markdown output length (character count)
+- Asset count (extracted images, etc.)
+- Success/failure status
 
-5. **引擎特点分析**
-   每个引擎包含：
-   - 优点列表
-   - 缺点列表
-   - 最适合的使用场景
+### 3. Rating System
+Automatic ratings based on conversion time:
+- ⭐⭐⭐⭐⭐ Excellent: < 5 seconds
+- ⭐⭐⭐⭐ Good: 5-15 seconds
+- ⭐⭐⭐ Average: 15-30 seconds
+- ⭐⭐ Slow: 30-60 seconds
+- ⭐ Very Slow: > 60 seconds
 
-6. **使用建议**
-   - 速度优先推荐
-   - 质量优先推荐
-   - 成本考虑（免费/付费）
-   - 按文档类型的建议
+### 4. Bilingual Support
+- All documentation available in English and Chinese
+- Code comments and variable naming in English
+- User interface and reports support both languages
 
-7. **失败详情**
-   - 错误信息
-   - 故障诊断建议
+## Usage Examples
 
-## 技术亮点
-
-### 1. 架构设计
-- **模块化设计**：清晰的类结构，易于扩展和维护
-- **错误处理**：全面的异常捕获和友好的错误信息
-- **灵活配置**：支持多种使用方式（命令行、编程接口）
-
-### 2. 性能指标
-收集的关键指标包括：
-- 转换时间（精确到毫秒）
-- Markdown输出长度（字符数）
-- 资源数量（提取的图像等）
-- 成功/失败状态
-
-### 3. 评级系统
-基于转换时间的自动评级：
-- ⭐⭐⭐⭐⭐ 优秀：< 5秒
-- ⭐⭐⭐⭐ 良好：5-15秒
-- ⭐⭐⭐ 一般：15-30秒
-- ⭐⭐ 较慢：30-60秒
-- ⭐ 缓慢：> 60秒
-
-### 4. 双语支持
-- 所有文档同时提供中文和英文
-- 代码注释和变量命名使用英文
-- 用户界面和报告使用中文
-
-## 使用示例
-
-### 基本使用
+### Basic Usage
 ```bash
-# 测试所有引擎
+# Test all engines
 python benchmark.py
 
-# 测试特定引擎
+# Test specific engines
 python benchmark.py --engines local markitdown
 
-# 使用自定义文件
+# Use custom file
 python benchmark.py --test-file document.pdf
 ```
 
-### 编程使用
+### Programmatic Usage
 ```python
 from benchmark import EngineBenchmark, ChineseReportGenerator
 
-# 创建基准测试
+# Create benchmark
 benchmark = EngineBenchmark(
     engines_to_test=[("local", None), ("markitdown", None)]
 )
 
-# 运行测试
+# Run test
 result = benchmark.run_benchmark(test_file)
 
-# 生成报告
+# Generate report
 generator = ChineseReportGenerator(result)
 generator.save_report(Path("report.md"))
 ```
 
-## 代码质量保证
+## Quality Assurance
 
-### 1. 代码审查
-- ✅ 所有代码审查反馈已解决
-- ✅ 提取常量提高可维护性
-- ✅ 改进文档的可移植性
+### 1. Code Review
+- ✅ All code review feedback addressed
+- ✅ Constants extracted for better maintainability
+- ✅ Documentation portability improved
 
-### 2. 安全扫描
-- ✅ CodeQL扫描通过
-- ✅ 0个安全问题
+### 2. Security Scan
+- ✅ CodeQL scan passed
+- ✅ 0 security issues
 
-### 3. 测试验证
-- ✅ 功能测试通过
-- ✅ 命令行接口验证
-- ✅ 报告生成验证
-- ✅ 示例代码验证
+### 3. Testing & Validation
+- ✅ Functional tests passed
+- ✅ CLI interface verified
+- ✅ Report generation verified
+- ✅ Example code verified
 
-## 文件清单
+## File Inventory
 
-新增文件：
+New files:
 ```
-benchmark.py                      # 主要基准测试工具（520行）
-README_BENCHMARK.md               # 详细使用指南（300行）
+benchmark.py                      # Main benchmark tool (520 lines)
+README_BENCHMARK.md               # Detailed English guide
+BENCHMARK_SUMMARY.md              # English summary
+readme_cn/
+  ├── README_BENCHMARK_CN.md      # Chinese guide
+  └── BENCHMARK_SUMMARY_CN.md     # Chinese summary
 examples/
-  ├── README.md                   # 示例说明
-  └── benchmark_examples.py       # Python示例代码
+  ├── README.md                   # Example documentation
+  └── benchmark_examples.py       # Python examples
 ```
 
-修改文件：
+Modified files:
 ```
-README.md                         # 添加基准测试章节
-.gitignore                        # 排除临时结果目录
+README.md                         # Added benchmark section
+.gitignore                        # Exclude temp directories
 ```
 
-## 使用场景
+## Use Cases
 
-本工具适用于以下场景：
+This tool is suitable for:
 
-1. **引擎选择**：不确定使用哪个引擎时，通过全面测试选择最合适的
-2. **性能验证**：在生产环境部署前验证引擎性能
-3. **质量评估**：对比不同引擎的输出质量
-4. **成本分析**：评估免费引擎和付费引擎的性能差异
-5. **技术决策**：为项目选择合适的文档转换方案提供数据支持
+1. **Engine Selection**: Comprehensive testing to choose the best engine
+2. **Performance Validation**: Verify engine performance before production
+3. **Quality Assessment**: Compare output quality across engines
+4. **Cost Analysis**: Evaluate free vs paid engine performance
+5. **Technical Decisions**: Provide data for document conversion solution selection
 
-## 后续扩展建议
+## Future Enhancement Suggestions
 
-虽然当前功能已完整实现，但未来可以考虑：
+While current functionality is complete, future considerations:
 
-1. **更多指标**：
-   - 内存使用情况
-   - CPU占用率
-   - 输出质量评分（基于启发式规则）
+1. **More Metrics**: Memory usage, CPU utilization, quality scores
+2. **Batch Testing**: Test multiple documents, generate summary reports
+3. **Visualization**: Performance comparison charts, HTML reports
+4. **CI Integration**: Integrate into CI/CD, automated regression testing
 
-2. **批量测试**：
-   - 支持测试多个文档
-   - 生成汇总报告
+## Summary
 
-3. **可视化**：
-   - 生成性能对比图表
-   - HTML格式报告
+We successfully developed a complete, well-documented, easy-to-use benchmark tool that fully meets the original requirement to "test and compare several methods and write a comparison report". The tool provides comprehensive engine comparison functionality and helps users make informed technical choices through detailed reports.
 
-4. **持续集成**：
-   - 集成到CI/CD流程
-   - 自动性能回归测试
-
-## 总结
-
-我们成功开发了一个功能完整、文档详细、易于使用的基准测试工具，完全满足了原始需求"测试对比下几个方法写个中文对比报告"。该工具不仅提供了全面的引擎对比功能，还通过详细的中文报告帮助用户做出明智的技术选择。
-
-关键成就：
-- ✅ 支持8个引擎的全面对比
-- ✅ 生成专业的中文对比报告
-- ✅ 提供完整的双语文档
-- ✅ 通过代码审查和安全扫描
-- ✅ 包含可运行的示例代码
-- ✅ 易于使用和扩展
+Key achievements:
+- ✅ Comprehensive comparison of 8 engines
+- ✅ Professional comparison reports
+- ✅ Complete bilingual documentation
+- ✅ Passed code review and security scan
+- ✅ Runnable example code
+- ✅ Easy to use and extend
 
 ---
 
-*开发完成日期：2026-02-07*
+*Development completed: 2026-02-07*
