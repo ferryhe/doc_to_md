@@ -13,7 +13,8 @@ This directory contains example code for using the benchmark tool.
 ### 方式1：运行示例脚本 / Method 1: Run example script
 
 ```bash
-cd /home/runner/work/doc_to_md/doc_to_md
+# Navigate to the project root directory
+cd /path/to/doc_to_md
 python examples/benchmark_examples.py
 ```
 
@@ -24,7 +25,8 @@ This will run basic examples and generate reports in the `examples/test_output/`
 ### 方式2：直接使用命令行工具 / Method 2: Use command-line tool directly
 
 ```bash
-cd /home/runner/work/doc_to_md/doc_to_md
+# Navigate to the project root directory
+cd /path/to/doc_to_md
 
 # 测试单个引擎
 python benchmark.py --engines local
@@ -98,7 +100,7 @@ After running examples, the following files are generated in `examples/test_outp
 Make sure to run examples from the project root directory:
 
 ```bash
-cd /home/runner/work/doc_to_md/doc_to_md
+cd /path/to/doc_to_md
 python examples/benchmark_examples.py
 ```
 

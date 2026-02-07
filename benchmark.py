@@ -24,6 +24,10 @@ from config.settings import EngineName, get_settings
 from doc_to_md.cli import ENGINE_REGISTRY
 from doc_to_md.engines.base import Engine, EngineResponse
 
+# Engines that require a model parameter in their __init__
+# Keep this list in sync with cli.py's _resolve_engine function
+ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
+
 
 @dataclass
 class EngineResult:
@@ -91,7 +95,7 @@ class EngineBenchmark:
                 return None
             
             # 某些引擎需要 model 参数
-            if engine_name in {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}:
+            if engine_name in ENGINES_REQUIRING_MODEL:
                 return engine_cls(model=model)
             return engine_cls()
         except Exception as e:
