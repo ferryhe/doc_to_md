@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-引擎对比测试工具 (Engine Comparison Benchmark Tool)
+Engine Comparison Benchmark Tool
 
-此脚本用于测试和对比不同文档转换引擎的性能和质量。
-This script tests and compares the performance and quality of different document conversion engines.
+This script tests and compares the performance of different document conversion engines,
+measuring conversion time, output characteristics (Markdown length and asset count), 
+and success rates.
 """
 from __future__ import annotations
 
@@ -21,17 +22,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from config.settings import EngineName, get_settings
-from doc_to_md.cli import ENGINE_REGISTRY
+from doc_to_md.cli import ENGINE_REGISTRY, ENGINES_REQUIRING_MODEL
 from doc_to_md.engines.base import Engine, EngineResponse
-
-# Engines that require a model parameter in their __init__
-# Keep this list in sync with cli.py's _resolve_engine function
-ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
 
 
 @dataclass
 class EngineResult:
-    """单个引擎的测试结果"""
+    """Result from testing a single engine"""
     engine_name: str
     model: str
     success: bool
@@ -43,14 +40,14 @@ class EngineResult:
 
 @dataclass
 class BenchmarkResult:
-    """完整的基准测试结果"""
+    """Complete benchmark test results"""
     timestamp: str
     test_file: str
     file_size_bytes: int
     results: list[EngineResult] = field(default_factory=list)
     
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式"""
+        """Convert to dictionary format"""
         return {
             'timestamp': self.timestamp,
             'test_file': self.test_file,
@@ -60,20 +57,20 @@ class BenchmarkResult:
 
 
 class EngineBenchmark:
-    """引擎基准测试类"""
+    """Engine benchmark testing class"""
     
     def __init__(self, engines_to_test: list[tuple[EngineName, str | None]] | None = None):
         """
-        初始化基准测试
+        Initialize benchmark testing
         
         Args:
-            engines_to_test: 要测试的引擎列表，格式为 [(engine_name, model), ...]
-                           如果为 None，将测试所有可用引擎
+            engines_to_test: List of engines to test, format: [(engine_name, model), ...]
+                           If None, will test all available engines
         """
         self.settings = get_settings()
         
         if engines_to_test is None:
-            # 默认测试所有引擎
+            # Default: test all engines
             self.engines_to_test = [
                 ("local", None),
                 ("markitdown", None),
@@ -87,53 +84,59 @@ class EngineBenchmark:
         else:
             self.engines_to_test = engines_to_test
     
-    def _create_engine(self, engine_name: EngineName, model: str | None) -> Engine | None:
-        """创建引擎实例"""
+    def _create_engine(self, engine_name: EngineName, model: str | None) -> tuple[Engine | None, str | None]:
+        """
+        Create engine instance
+        
+        Returns:
+            Tuple of (engine_instance, error_message). If creation succeeds, error_message is None.
+        """
         try:
             engine_cls = ENGINE_REGISTRY.get(engine_name)
             if engine_cls is None:
-                return None
+                return None, f"Engine '{engine_name}' not found in registry"
             
-            # 某些引擎需要 model 参数
+            # Some engines require a model parameter
             if engine_name in ENGINES_REQUIRING_MODEL:
-                return engine_cls(model=model)
-            return engine_cls()
+                return engine_cls(model=model), None
+            return engine_cls(), None
         except Exception as e:
-            print(f"❌ 无法创建引擎 {engine_name}: {e}")
-            return None
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            print(f"❌ Failed to create engine {engine_name}: {error_msg}")
+            return None, error_msg
     
     def test_engine(self, engine_name: EngineName, model: str | None, test_file: Path) -> EngineResult:
         """
-        测试单个引擎
+        Test a single engine
         
         Args:
-            engine_name: 引擎名称
-            model: 模型名称（可选）
-            test_file: 测试文件路径
+            engine_name: Engine name
+            model: Model name (optional)
+            test_file: Test file path
         
         Returns:
-            EngineResult: 测试结果
+            EngineResult: Test results
         """
-        print(f"\n📊 测试引擎: {engine_name} (model: {model or 'default'})")
+        print(f"\n📊 Testing engine: {engine_name} (model: {model or 'default'})")
         
-        # 创建引擎实例
-        engine = self._create_engine(engine_name, model)
+        # Create engine instance
+        engine, create_error = self._create_engine(engine_name, model)
         if engine is None:
             return EngineResult(
                 engine_name=engine_name,
                 model=model or "default",
                 success=False,
                 conversion_time=0.0,
-                error_message="无法创建引擎实例 (可能缺少依赖或配置)"
+                error_message=create_error or "Failed to create engine instance (missing dependencies or configuration)"
             )
         
-        # 执行转换并计时
+        # Execute conversion and measure time
         try:
             start_time = time.time()
             response: EngineResponse = engine.convert(test_file)
             conversion_time = time.time() - start_time
             
-            # 收集结果
+            # Collect results
             result = EngineResult(
                 engine_name=engine_name,
                 model=response.model,
@@ -143,13 +146,13 @@ class EngineBenchmark:
                 num_assets=len(response.assets)
             )
             
-            print(f"✅ 成功 - 耗时: {conversion_time:.2f}秒, Markdown长度: {result.markdown_length}, 资源数: {result.num_assets}")
+            print(f"✅ Success - Time: {conversion_time:.2f}s, Markdown length: {result.markdown_length}, Assets: {result.num_assets}")
             return result
             
         except Exception as e:
             conversion_time = time.time() - start_time
             error_msg = f"{type(e).__name__}: {str(e)}"
-            print(f"❌ 失败 - {error_msg}")
+            print(f"❌ Failed - {error_msg}")
             return EngineResult(
                 engine_name=engine_name,
                 model=model or "default",
@@ -160,18 +163,18 @@ class EngineBenchmark:
     
     def run_benchmark(self, test_file: Path) -> BenchmarkResult:
         """
-        运行完整的基准测试
+        Run complete benchmark test
         
         Args:
-            test_file: 测试文件路径
+            test_file: Test file path
         
         Returns:
-            BenchmarkResult: 完整的测试结果
+            BenchmarkResult: Complete test results
         """
         print(f"\n{'='*60}")
-        print(f"开始基准测试")
-        print(f"测试文件: {test_file}")
-        print(f"文件大小: {test_file.stat().st_size / 1024:.2f} KB")
+        print(f"Starting benchmark test")
+        print(f"Test file: {test_file}")
+        print(f"File size: {test_file.stat().st_size / 1024:.2f} KB")
         print(f"{'='*60}")
         
         benchmark_result = BenchmarkResult(
@@ -188,19 +191,19 @@ class EngineBenchmark:
 
 
 class ChineseReportGenerator:
-    """中文对比报告生成器"""
+    """Chinese comparison report generator"""
     
     def __init__(self, benchmark_result: BenchmarkResult):
         self.result = benchmark_result
     
     def _format_time(self, seconds: float) -> str:
-        """格式化时间"""
+        """Format time"""
         if seconds < 0.01:
             return "< 0.01秒"
         return f"{seconds:.2f}秒"
     
     def _format_size(self, bytes_size: int) -> str:
-        """格式化文件大小"""
+        """Format file size"""
         if bytes_size < 1024:
             return f"{bytes_size} B"
         elif bytes_size < 1024 * 1024:
@@ -209,7 +212,7 @@ class ChineseReportGenerator:
             return f"{bytes_size / (1024 * 1024):.2f} MB"
     
     def _get_rating(self, time: float, success: bool) -> str:
-        """获取性能评级"""
+        """Get performance rating"""
         if not success:
             return "❌ 失败"
         if time < 5:
@@ -224,10 +227,10 @@ class ChineseReportGenerator:
             return "⭐ 缓慢"
     
     def generate_markdown_report(self) -> str:
-        """生成Markdown格式的中文对比报告"""
+        """Generate Chinese comparison report in Markdown format"""
         lines = []
         
-        # 标题和基本信息
+        # Title and basic information
         lines.append("# 文档转换引擎对比测试报告")
         lines.append("")
         lines.append("## 测试信息")
@@ -238,7 +241,7 @@ class ChineseReportGenerator:
         lines.append(f"- **测试引擎数量**: {len(self.result.results)}")
         lines.append("")
         
-        # 成功率统计
+        # Success rate statistics
         successful = sum(1 for r in self.result.results if r.success)
         failed = len(self.result.results) - successful
         success_rate = (successful / len(self.result.results) * 100) if self.result.results else 0
@@ -250,7 +253,7 @@ class ChineseReportGenerator:
         lines.append(f"- **成功率**: {success_rate:.1f}%")
         lines.append("")
         
-        # 性能排名
+        # Performance rankings
         successful_results = [r for r in self.result.results if r.success]
         if successful_results:
             lines.append("## 性能排名（按转换时间）")
@@ -263,7 +266,7 @@ class ChineseReportGenerator:
                 lines.append(f"   - 资源数量: {result.num_assets}")
                 lines.append("")
         
-        # 详细测试结果表格
+        # Detailed test results table
         lines.append("## 详细测试结果")
         lines.append("")
         lines.append("| 引擎名称 | 模型 | 状态 | 转换时间 | Markdown长度 | 资源数 | 性能评级 |")
@@ -283,7 +286,7 @@ class ChineseReportGenerator:
         
         lines.append("")
         
-        # 错误信息
+        # Error information
         failed_results = [r for r in self.result.results if not r.success]
         if failed_results:
             lines.append("## 失败详情")
@@ -296,7 +299,7 @@ class ChineseReportGenerator:
                 lines.append("```")
                 lines.append("")
         
-        # 引擎特点分析
+        # Engine characteristics analysis
         lines.append("## 引擎特点分析")
         lines.append("")
         
@@ -374,7 +377,7 @@ class ChineseReportGenerator:
                 lines.append(f"**最适合**: {desc['best_for']}")
                 lines.append("")
         
-        # 使用建议
+        # Usage recommendations
         lines.append("## 使用建议")
         lines.append("")
         lines.append("根据测试结果，我们提供以下使用建议：")
@@ -385,9 +388,9 @@ class ChineseReportGenerator:
             lines.append(f"1. **速度优先**: 使用 `{fastest.engine_name}` 引擎（{self._format_time(fastest.conversion_time)}）")
             lines.append("")
             
-            # 找到输出最长的（通常意味着最详细）
+            # Find the engine with longest output (usually means most detailed)
             longest = max(successful_results, key=lambda r: r.markdown_length)
-            lines.append(f"2. **质量优先**: 使用 `{longest.engine_name}` 引擎（输出 {longest.markdown_length:,} 字符）")
+            lines.append(f"2. **输出详细度优先**: 使用 `{longest.engine_name}` 引擎（输出 {longest.markdown_length:,} 字符）")
             lines.append("")
         
         lines.append("3. **成本考虑**:")
@@ -403,7 +406,7 @@ class ChineseReportGenerator:
         lines.append("   - 中文文档: `deepseekocr` 或 `paddleocr`")
         lines.append("")
         
-        # 结论
+        # Conclusion
         lines.append("## 结论")
         lines.append("")
         lines.append(f"本次测试共评估了 {len(self.result.results)} 个文档转换引擎，"
@@ -415,7 +418,7 @@ class ChineseReportGenerator:
             lines.append("")
             lines.append("- 文档类型和复杂度")
             lines.append("- 处理速度要求")
-            lines.append("- 输出质量要求")
+            lines.append("- 输出详细度要求")
             lines.append("- 成本预算")
             lines.append("- 是否需要离线处理")
             lines.append("- 语言支持（特别是中文）")
@@ -432,46 +435,43 @@ class ChineseReportGenerator:
         return "\n".join(lines)
     
     def save_report(self, output_path: Path) -> None:
-        """保存报告到文件"""
+        """Save report to file"""
         report = self.generate_markdown_report()
         output_path.write_text(report, encoding="utf-8")
-        print(f"\n✅ 报告已保存到: {output_path}")
+        print(f"\n✅ Report saved to: {output_path}")
 
 
 def create_sample_test_file(output_dir: Path) -> Path:
-    """创建示例测试文件"""
+    """Create sample test file"""
     output_dir.mkdir(parents=True, exist_ok=True)
     test_file = output_dir / "sample_test.txt"
     
-    content = """# 测试文档 - Document Conversion Test
+    content = """# Test Document - Document Conversion Test
 
-这是一个用于测试文档转换引擎的示例文件。
 This is a sample file for testing document conversion engines.
 
-## 功能特点 / Features
+## Features
 
-1. 多引擎支持 - Multiple engine support
-2. 性能对比 - Performance comparison
-3. 质量评估 - Quality assessment
+1. Multiple engine support
+2. Performance comparison
+3. Quality assessment
 
-## 技术栈 / Tech Stack
+## Tech Stack
 
 - Python 3.10+
 - Typer (CLI framework)
 - Pydantic (Configuration management)
 - Multiple OCR/ML engines
 
-## 中英文混合内容 / Mixed Chinese-English Content
+## Mixed Chinese-English Content
 
-文档转换是一个复杂的任务，需要考虑多个因素：
 Document conversion is a complex task that requires considering multiple factors:
 
-1. 准确性 (Accuracy)
-2. 速度 (Speed)
-3. 成本 (Cost)
-4. 格式支持 (Format support)
+1. Accuracy
+2. Speed
+3. Cost
+4. Format support
 
-测试内容包括纯文本、特殊字符（@#$%^&*）、数字（123456）等。
 Test content includes plain text, special characters (@#$%^&*), numbers (123456), etc.
 """
     
@@ -480,47 +480,52 @@ Test content includes plain text, special characters (@#$%^&*), numbers (123456)
 
 
 def main():
-    """主函数"""
+    """Main function"""
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="文档转换引擎对比测试工具 / Engine Comparison Benchmark Tool"
+        description="Engine Comparison Benchmark Tool"
     )
     parser.add_argument(
         "--test-file",
         type=Path,
-        help="测试文件路径 / Path to test file (will create a sample if not provided)"
+        help="Path to test file (will create a sample if not provided)"
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("benchmark_results"),
-        help="输出目录 / Output directory (default: benchmark_results)"
+        help="Output directory (default: benchmark_results)"
     )
     parser.add_argument(
         "--engines",
         type=str,
         nargs="+",
-        help="要测试的引擎列表 / List of engines to test (e.g., local mistral deepseekocr)"
+        help="List of engines to test (e.g., local mistral deepseekocr)"
     )
     parser.add_argument(
         "--save-json",
         action="store_true",
-        help="同时保存JSON格式结果 / Also save results in JSON format"
+        help="Also save results in JSON format"
     )
     
     args = parser.parse_args()
     
-    # 准备测试文件
+    # Prepare test file
     if args.test_file and args.test_file.exists():
         test_file = args.test_file
-        print(f"使用测试文件: {test_file}")
+        print(f"Using test file: {test_file}")
+    elif args.test_file:
+        # User provided a file path but it doesn't exist - this is an error
+        print(f"Error: Test file '{args.test_file}' does not exist")
+        sys.exit(1)
     else:
-        print("创建示例测试文件...")
+        # No test file provided, create a sample
+        print("Creating sample test file...")
         test_file = create_sample_test_file(args.output_dir)
-        print(f"示例测试文件已创建: {test_file}")
+        print(f"Sample test file created: {test_file}")
     
-    # 准备引擎列表
+    # Prepare engine list
     engines_to_test = None
     if args.engines:
         settings = get_settings()
@@ -532,40 +537,40 @@ def main():
                 engines_to_test.append((engine_name, settings.siliconflow_default_model))
             else:
                 engines_to_test.append((engine_name, None))
-        print(f"将测试引擎: {', '.join(args.engines)}")
+        print(f"Will test engines: {', '.join(args.engines)}")
     else:
-        print("将测试所有可用引擎")
+        print("Will test all available engines")
     
-    # 创建输出目录
+    # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
     
-    # 运行基准测试
+    # Run benchmark test
     benchmark = EngineBenchmark(engines_to_test)
     result = benchmark.run_benchmark(test_file)
     
-    # 生成报告
+    # Generate report
     print(f"\n{'='*60}")
-    print("生成中文对比报告...")
+    print("Generating Chinese comparison report...")
     print(f"{'='*60}")
     
     generator = ChineseReportGenerator(result)
     
-    # 保存Markdown报告
+    # Save Markdown report
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_path = args.output_dir / f"comparison_report_{timestamp}.md"
     generator.save_report(report_path)
     
-    # 可选：保存JSON格式
+    # Optional: Save JSON format
     if args.save_json:
         json_path = args.output_dir / f"benchmark_result_{timestamp}.json"
         json_path.write_text(
             json.dumps(result.to_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
-        print(f"✅ JSON结果已保存到: {json_path}")
+        print(f"✅ JSON results saved to: {json_path}")
     
     print(f"\n{'='*60}")
-    print("基准测试完成！")
+    print("Benchmark test completed!")
     print(f"{'='*60}")
 
 

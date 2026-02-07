@@ -204,10 +204,12 @@ python benchmark.py --save-json --output-dir my_results
 
 ### Features
 - **Automated Testing**: Tests multiple engines with a single command
-- **Performance Metrics**: Measures conversion time, output quality, success rate
+- **Performance Metrics**: Measures conversion time, success rate, and output characteristics (Markdown length and asset count)
 - **Chinese Report**: Generates comprehensive comparison reports in Chinese (中文对比报告)
 - **Engine Analysis**: Provides detailed pros/cons and use case recommendations
 - **Flexible Configuration**: Test specific engines or all available ones
+
+> **Note**: The script `benchmark.py` is for use from a source checkout. Run it from the project root directory.
 
 ### Report Contents / 报告内容
 The generated report includes:

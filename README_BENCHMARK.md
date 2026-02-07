@@ -9,10 +9,12 @@ This is a tool for testing and comparing the performance of different document c
 ## Features
 
 - ✅ **Automated Testing** - Test multiple engines with a single command
-- 📊 **Performance Metrics** - Conversion time, success rate, and output quality
+- 📊 **Performance Metrics** - Conversion time, success rate, and output characteristics (Markdown length and asset count as proxies)
 - 📝 **Detailed Reports** - Generate comprehensive comparison reports
 - 🎯 **Engine Analysis** - Pros/cons and use cases for each engine
 - 🔧 **Flexible Configuration** - Custom test files and engine selection
+
+> **Note**: The `benchmark.py` script is designed for use from a source checkout. Run it from the project root directory.
 
 ## Quick Start
 

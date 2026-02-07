@@ -99,6 +99,6 @@ python examples/benchmark_examples.py
 
 查看完整文档：
 - 主README: `../README.md`
-- 基准测试指南: `../README_BENCHMARK.md`
-- 英文文档: `../README_BENCHMARK.md`
+- 基准测试指南（中文）: `README_BENCHMARK_CN.md`
+- 基准测试指南（英文）: `../README_BENCHMARK.md`
 - 基准测试代码: `../benchmark.py`

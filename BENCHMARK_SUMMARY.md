@@ -86,8 +86,8 @@ Automatic ratings based on conversion time:
 
 ### 4. Bilingual Support
 - All documentation available in English and Chinese
-- Code comments and variable naming in English
-- User interface and reports support both languages
+- Code comments and docstrings in English; variable naming in English
+- Generated reports in Chinese for Chinese-speaking users
 
 ## Usage Examples
 
