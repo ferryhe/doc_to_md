@@ -7,3 +7,4 @@ data/**
 *doc_to_markdown_converter.egg-info
 benchmark_results/
 examples/test_output/
+demo_report/
