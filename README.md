@@ -61,7 +61,7 @@ doc_to_md/
 - Python 3.11.x also usually works
 - Python 3.12 may work, but is less conservative than 3.10/3.11
 
-`pyproject.toml` declares Python `>=3.10,<3.13` so installers can block unsupported newer interpreters earlier. For the full document-conversion stack it is still safest to stay on Python 3.10 or 3.11 instead of the newest interpreter. Python 3.13 and 3.14 can fail because several OCR/ML dependencies lag behind new Python releases. For example, MinerU notes that on Windows its `ray` dependency does not support Python 3.13. If you want the safest baseline, use Python 3.10.11.
+`pyproject.toml` declares Python `>=3.10,<3.13`, so Python 3.13 and newer are intentionally unsupported and standard installers should refuse to install the package on those interpreters. For the full document-conversion stack it is still safest to stay on Python 3.10 or 3.11 instead of the newest interpreter, because several optional OCR/ML dependencies lag behind new Python releases. For example, MinerU notes that on Windows its `ray` dependency does not support Python 3.13. If you want the safest baseline, use Python 3.10.11.
 
 1. **Clone the repository**
    ```bash
@@ -76,16 +76,24 @@ doc_to_md/
    .venv\Scripts\activate        # Windows
    source .venv/bin/activate     # Unix/macOS
    ```
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. **Install the package in editable mode**
+3. **Install the package in editable mode**
    ```bash
    pip install -e .
    ```
 
-If you want a smaller environment, you can start with `pip install -e .` and then add only the engine packages you plan to use.
+4. **Add only the extras or engine packages you actually need**
+   ```bash
+   pip install ".[api]"               # FastAPI + uvicorn
+   pip install ".[markitdown]"        # MarkItDown with PDF support
+   pip install ".[paddleocr,docling]" # Example mixed setup
+   ```
+
+5. **Optional: install the full pinned dependency stack**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+The recommended default path is `pip install -e .` plus selected extras. `requirements.txt` is a heavier, pinned environment and may require manual handling for GPU-specific packages such as PyTorch.
 
 ## Configuration
 1. Copy and edit the example environment file:
@@ -133,7 +141,7 @@ You can also rely on the extras defined in `pyproject.toml`, for example:
 pip install ".[api,paddleocr,docling]"
 ```
 
-For MarkItDown, the upstream PDF extra is important for actuarial PDFs, so prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
+For MarkItDown, the upstream PDF extra is important for actuarial PDFs. The project extra `pip install ".[markitdown]"` now pulls in `markitdown[pdf]`, and direct installs should prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
 
 Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs. Some stacks currently demand incompatible Pillow versions, and some engines have narrower Python-version support than the base project, so install only what you plan to use in a given virtual environment.
 
@@ -249,15 +257,15 @@ All engines implement `Engine.convert(Path) -> EngineResponse`, so adding anothe
 
 ## Troubleshooting
 - **`python -m doc_to_md.cli ...` fails with `ModuleNotFoundError`**: run `pip install -e .` from the repository root first.
-- **Python 3.13 or 3.14 installation fails**: this project declares `>=3.10,<3.13` in `pyproject.toml`. Use Python 3.10.x or 3.11.x instead; if you want the most conservative choice, use Python 3.10.11.
+- **Python 3.13 or 3.14 installation fails**: this project intentionally declares `>=3.10,<3.13` in `pyproject.toml`. Use Python 3.10.x or 3.11.x instead; if you want the most conservative choice, use Python 3.10.11.
 - **Some engines work on one Python version and fail on another**: optional OCR/ML engines have their own dependency trees. For example, MinerU notes that its Windows install is limited to Python 3.10-3.12 because `ray` does not support Python 3.13 there.
 - **MarkItDown cannot read PDFs**: install the PDF extra with `pip install "markitdown[pdf]"`.
 - **Settings crash on startup**: secret checks now happen inside each engine. If a remote engine fails to initialize, either export the matching API key (`MISTRAL_API_KEY`, `SILICONFLOW_API_KEY`, etc.) or run `convert --engine local` until the keys are available.
 - **Engine import errors**: optional stacks (Marker, MinerU, PaddleOCR, Docling, MarkItDown) are not installed automatically. Install the specific packages or use extras such as `pip install ".[marker,mineru]"` before invoking that engine.
 - **Remote OCR timeouts**: tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and token/chunk settings in `.env` (for example `SILICONFLOW_MAX_INPUT_TOKENS`, `MISTRAL_MAX_PDF_TOKENS`) to match document sizes; each maps directly to validators in `config/settings.py`.
 
-## Engine Benchmarking / 引擎对比测试
-The project includes a comprehensive benchmarking tool to compare different engines. It generates detailed reports in Chinese (中文对比报告).
+## Engine Benchmarking
+The project includes a benchmarking tool for comparing engines on representative documents. The generated comparison report is currently written in Chinese, while the maintained usage guide lives in [README_BENCHMARK.md](README_BENCHMARK.md).
 
 ### Quick Start
 ```bash
@@ -283,13 +291,13 @@ python benchmark.py --save-json --output-dir my_results
 
 > **Note**: The script `benchmark.py` is for use from a source checkout. Run it from the project root directory.
 
-### Report Contents / 报告内容
+### Report Contents
 The generated report includes:
-- Overall statistics and success rates (整体统计和成功率)
-- Performance rankings by conversion time (按转换时间的性能排名)
-- Detailed engine characteristics analysis (详细引擎特点分析)
-- Recommendations for different use cases (不同使用场景的建议)
-- Error diagnostics for failed conversions (失败转换的错误诊断)
+- Overall statistics and success rates
+- Performance rankings by conversion time
+- Detailed engine characteristics analysis
+- Recommendations for different use cases
+- Error diagnostics for failed conversions
 
 ### Example Usage Scenarios
 1. **Choosing the right engine**: compare all engines to find the best one for your documents

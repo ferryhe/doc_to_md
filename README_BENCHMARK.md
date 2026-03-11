@@ -4,8 +4,6 @@
 
 This is a tool for testing and comparing the performance of different document conversion engines. It automatically tests multiple engines and generates detailed comparison reports.
 
-> **Chinese Documentation**: For Chinese documentation, see [readme_cn/README_BENCHMARK_CN.md](readme_cn/README_BENCHMARK_CN.md)
-
 ## Features
 
 - ✅ **Automated Testing** - Test multiple engines with a single command
@@ -183,6 +181,5 @@ Suggested improvements:
 
 **More Information**:
 - Main README: `README.md`
-- Chinese Docs: `readme_cn/README_BENCHMARK_CN.md`
 - Configuration: `.env.example`
 - Code: `benchmark.py`
