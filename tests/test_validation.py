@@ -82,13 +82,22 @@ def test_validate_file_too_large(tmp_path: Path) -> None:
         pytest.skip("Cannot create large file for testing")
 
 
-def test_validate_file_not_readable() -> None:
+def test_validate_file_not_readable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test validation handles unreadable files."""
-    # This is hard to test portably without mocking
-    # The validation code handles this case, but testing it requires
-    # platform-specific permission changes
-    # We'll trust the error handling is correct as written
-    pytest.skip("Platform-specific test, requires permission manipulation")
+    file_path = tmp_path / "unreadable.txt"
+    file_path.write_text("content", encoding="utf-8")
+
+    original_open = Path.open
+
+    def fake_open(self: Path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if self == file_path:
+            raise OSError("permission denied")
+        return original_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", fake_open)
+
+    with pytest.raises(FileValidationError, match="File is not readable"):
+        validate_file(file_path)
 
 
 def test_is_likely_corrupted_pdf_valid(tmp_path: Path) -> None:
