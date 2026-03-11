@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Modular CLI for converting documentation to Markdown using multiple engines"
 authors = [{name = "Your Name", email = "you@example.com"}]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "typer==0.12.5",
     "rich==13.7.1",

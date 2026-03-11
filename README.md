@@ -1,5 +1,10 @@
 # doc-to-markdown-converter
-CLI tool that ingests documents, runs them through pluggable OCR/LLM engines (Mistral, DeepSeek-OCR, or a local extractor), and emits normalized Markdown plus optional assets.
+Convert actuarial papers, SFCRs, policy documents, and other source files into LLM-ready Markdown using pluggable OCR and extraction engines. The main purpose is to turn PDFs, scans, and office documents into text that is easier for large language models to read, chunk, index, review, and load into downstream actuarial knowledge bases or RAG workflows.
+
+## Why this is useful for actuaries
+- Prepare IAA papers, SFCRs, ORSAs, valuation reports, reserving memos, and internal guidance for LLM workflows.
+- Compare multiple extraction engines because actuarial documents often mix prose, tables, appendices, and scanned pages.
+- Keep Markdown and extracted assets on disk so a human can inspect the result before it is ingested elsewhere.
 
 ## Feature highlights
 - Typer-based CLI with `convert` and `list-engines` commands.
@@ -11,7 +16,7 @@ CLI tool that ingests documents, runs them through pluggable OCR/LLM engines (Mi
 
 ## Architecture at a glance
 - `src/doc_to_md/cli.py` wires together configuration, document discovery, engine dispatch, post-processing, and writers.
-- `src/doc_to_md/engines/` houses engine implementations (`mistral`, `deepseekocr`, `local`) that all return `EngineResponse` objects.
+- `src/doc_to_md/engines/` houses the pluggable engine implementations, all of which return `EngineResponse` objects.
 - `src/doc_to_md/pipeline/` contains reusable helpers: `loader`, `text_extraction`, `postprocessor`, `writer`, and `preprocessor`.
 - `src/doc_to_md/utils/` holds shared logging and token utilities.
 - `config/settings.py` (Pydantic) centralizes environment loading and validation so every module can call `get_settings()`.
@@ -40,25 +45,44 @@ doc_to_md/
 ```
 
 ## Installation
-1. **Create environment**
+
+### Prerequisites
+- Git
+- Python 3.10.x recommended
+- Python 3.11.x also usually works
+- Python 3.12 may work, but is less conservative than 3.10/3.11
+
+`pyproject.toml` declares Python `>=3.10,<3.13` so installers can block unsupported newer interpreters earlier. For the full document-conversion stack it is still safest to stay on Python 3.10 or 3.11 instead of the newest interpreter. Python 3.13 and 3.14 can fail because several OCR/ML dependencies lag behind new Python releases. For example, MinerU notes that on Windows its `ray` dependency does not support Python 3.13. If you want the safest baseline, use Python 3.10.11.
+
+1. **Clone the repository**
    ```bash
-   python -m venv .venv
-   .venv\Scripts\activate  # Windows
-   source .venv/bin/activate  # Unix
+   git clone https://github.com/ferryhe/doc_to_md.git
+   cd doc_to_md
    ```
-2. **Install dependencies**
+2. **Create and activate a virtual environment**
+   ```bash
+   py -3.10 -m venv .venv        # Windows
+   python3.10 -m venv .venv      # Unix/macOS
+
+   .venv\Scripts\activate        # Windows
+   source .venv/bin/activate     # Unix/macOS
+   ```
+3. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-3. (Optional) Install the package in editable mode for the console script:
+4. **Install the package in editable mode**
    ```bash
    pip install -e .
    ```
 
+If you want a smaller environment, you can start with `pip install -e .` and then add only the engine packages you plan to use.
+
 ## Configuration
 1. Copy and edit the example environment file:
    ```bash
-   cp .env.example .env
+   copy .env.example .env      # Windows
+   cp .env.example .env        # Unix/macOS
    ```
 2. Populate API keys and overrides. Key variables:
 
@@ -74,33 +98,43 @@ doc_to_md/
 | `MISTRAL_MAX_PDF_TOKENS`, `MISTRAL_MAX_PAGES_PER_CHUNK` | Controls PDF slicing before OCR. | See `.env.example` |
 | `SILICONFLOW_MAX_INPUT_TOKENS`, `SILICONFLOW_CHUNK_OVERLAP_TOKENS` | Controls text chunking before LLM calls. | See `.env.example` |
 | `MARKITDOWN_*` | Toggles for MarkItDown's plugin/builtin usage. | Enabled |
-| `PADDLEOCR_*` | Language and PDF render DPI. | `en`, 220 DPI |
+| `PADDLEOCR_*` | Language and PDF render DPI. | `en`, 220 DPI |
 | `DOCLING_*` | Page limits / error handling. | Unlimited, strict |
 | `MINERU_*` | Backend selection, parse method, language, page range. | `pipeline`, `auto`, `en` |
 | `MARKER_*` | Whether to enable LLM processors, extra processors, image extraction. | LLM off, processors unset |
 
-> ℹ️ **Optional dependencies**  
-> New engines pull in sizeable third-party stacks. Install only what you need:
-> ```bash
-> # Pick any subset
-> pip install markitdown            # MarkItDownEngine
-> pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
-> pip install docling               # DoclingEngine
-> pip install mineru                # MinerUEngine (GPU strongly recommended)
-> pip install marker-pdf            # MarkerEngine
-> pip install pypdfium2             # DeepSeek-OCR PDF rendering
-> ```
-> Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs.
-> Some stacks (e.g., MinerU vs. Marker) currently demand incompatible Pillow versions—install only what you plan to use in a given virtualenv.
-> You can also rely on the extras defined in `pyproject.toml`, for example: `pip install ".[markitdown,paddleocr]"`, to pull in only the engines you need in a single command.
+**Optional engine dependencies**
 
-> ⚠️ **Remote engines vs. secrets**
-> API keys are validated when their engine spins up (either because it is the default or because you explicitly pass `--engine`). You can leave `DEFAULT_ENGINE` pointing at a remote engine without its keys, but any conversion that uses that engine will still fail fast with a friendly error until the secrets are set.
+New engines pull in sizeable third-party stacks. Install only what you need:
+
+```bash
+# Pick any subset
+pip install "markitdown[pdf]"     # MarkItDownEngine for PDF-heavy workflows
+pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
+pip install docling               # DoclingEngine
+pip install mineru                # MinerUEngine (GPU strongly recommended)
+pip install marker-pdf            # MarkerEngine
+pip install pypdfium2             # DeepSeek-OCR PDF rendering
+```
+
+You can also rely on the extras defined in `pyproject.toml`, for example:
+
+```bash
+pip install ".[paddleocr,docling]"
+```
+
+For MarkItDown, the upstream PDF extra is important for actuarial PDFs, so prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
+
+Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs. Some stacks currently demand incompatible Pillow versions, and some engines have narrower Python-version support than the base project, so install only what you plan to use in a given virtual environment.
+
+**Remote engines vs. secrets**
+
+API keys are validated when their engine spins up (either because it is the default or because you explicitly pass `--engine`). You can leave `DEFAULT_ENGINE` pointing at a remote engine without its keys, but any conversion that uses that engine will still fail fast with a friendly error until the secrets are set.
 
 `config/settings.py` automatically creates the configured `input_dir` and `output_dir` if they do not exist.
 
 ## Usage
-You can invoke the CLI either through the module (`python -m doc_to_md.cli ...`) or via the console script (`doc-to-md ...` if installed with `pip install -e .`).
+Because this project uses a `src/` layout, run `pip install -e .` first. After that, you can invoke the CLI either through the module (`python -m doc_to_md.cli ...`) or via the console script (`doc-to-md ...`).
 
 ### Convert documents
 ```bash
@@ -122,22 +156,51 @@ python -m doc_to_md.cli list-engines
 ```
 
 ### File Size and Format Limits
-
 - **Maximum file size:** 100MB per file
 - **Maximum image size:** 100 megapixels
 - **Supported formats:** `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
-- **Not supported:** Legacy `.doc` format (please convert to `.docx` first)
+- **Not supported:** legacy `.doc` format (please convert to `.docx` first)
 
-### List available engines
-```bash
-python -m doc_to_md.cli list-engines
+## Actuarial example: one IAA paper, two very different outputs
+The [IAA Artificial Intelligence Governance Framework paper](https://actuaries.org/app/uploads/2025/12/AITF_Governance_Framework_Paper_Final_Approved.pdf) is a good test document because it looks like many real actuarial inputs: a long PDF with headings, tables of contents, page furniture, and layout-sensitive content.
+
+1. Save the PDF as `data/examples/iaa-ai-governance-framework.pdf`.
+2. Convert it with two engines:
+   ```bash
+   python -m doc_to_md.cli convert --input-path data/examples --output-path data/output_markitdown --engine markitdown
+   python -m doc_to_md.cli convert --input-path data/examples --output-path data/output_mistral --engine mistral --model mistral-ocr-latest
+   ```
+3. Compare the two Markdown files.
+
+In a real run on that paper:
+- `markitdown` produced flatter, text-first Markdown with fewer structural markers and no extracted page images.
+- `mistral` produced page-aware Markdown with explicit page headings, stronger heading recovery, and image assets beside the `.md` file.
+
+Example snippets:
+
+```md
+# MarkItDown-style excerpt
+Artificial Intelligence Governance Framework
+
+Table of Contents
+1. Introduction ...
 ```
+
+```md
+# Mistral-style excerpt
+## Page 2
+# IAA Paper
+# Artificial Intelligence Governance Framework
+![Page 2 Image 1](...)
+```
+
+For actuarial work, that difference matters. If your downstream task is mostly semantic search over narrative text, a flatter output may be enough. If page structure, embedded figures, or layout fidelity matter, test a layout-aware engine such as `mistral` on a representative sample before bulk-converting SFCRs or internal reports.
 
 ## Engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
 - **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
 - **DeepSeek OCR** (`deepseekocr`): renders PDFs/images and streams them to the DeepSeek-OCR vision model (falls back to local text extraction for unsupported formats).
-- **MarkItDown** (`markitdown`): invokes Microsoft's MarkItDown library for high fidelity conversions across office formats without leaving your machine.
+- **MarkItDown** (`markitdown`): invokes Microsoft's MarkItDown library for local conversions across office formats and PDFs.
 - **PaddleOCR** (`paddleocr`): runs PaddleOCR locally (CPU or GPU) against PDFs or images to reconstruct page-by-page Markdown summaries.
 - **MinerU** (`mineru`): wraps the MinerU CLI pipeline, capturing the generated Markdown plus image assets from its output folders.
 - **Docling** (`docling`): feeds documents into IBM's Docling pipeline and exports the resulting structured document back to Markdown.
@@ -146,12 +209,15 @@ python -m doc_to_md.cli list-engines
 All engines implement `Engine.convert(Path) -> EngineResponse`, so adding another engine only requires subclassing the `Engine` protocol.
 
 ## Troubleshooting
-- **Settings crash on startup**: Secret checks now happen inside each engine. If a remote engine fails to initialize, either export the matching API key (`MISTRAL_API_KEY`, `SILICONFLOW_API_KEY`, etc.) or run `convert --engine local` until the keys are available.
-- **Engine import errors**: Optional stacks (Marker, MinerU, PaddleOCR, Docling, MarkItDown) are not installed automatically. Install the specific packages or use extras such as `pip install ".[marker,mineru]"` before invoking that engine.
-- **Remote OCR timeouts**: Tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and token/chunk settings in `.env` (e.g., `SILICONFLOW_MAX_INPUT_TOKENS`, `MISTRAL_MAX_PDF_TOKENS`) to match document sizes; each maps directly to validators in `config/settings.py`.
+- **`python -m doc_to_md.cli ...` fails with `ModuleNotFoundError`**: run `pip install -e .` from the repository root first.
+- **Python 3.13 or 3.14 installation fails**: this project declares `>=3.10,<3.13` in `pyproject.toml`. Use Python 3.10.x or 3.11.x instead; if you want the most conservative choice, use Python 3.10.11.
+- **Some engines work on one Python version and fail on another**: optional OCR/ML engines have their own dependency trees. For example, MinerU notes that its Windows install is limited to Python 3.10-3.12 because `ray` does not support Python 3.13 there.
+- **MarkItDown cannot read PDFs**: install the PDF extra with `pip install "markitdown[pdf]"`.
+- **Settings crash on startup**: secret checks now happen inside each engine. If a remote engine fails to initialize, either export the matching API key (`MISTRAL_API_KEY`, `SILICONFLOW_API_KEY`, etc.) or run `convert --engine local` until the keys are available.
+- **Engine import errors**: optional stacks (Marker, MinerU, PaddleOCR, Docling, MarkItDown) are not installed automatically. Install the specific packages or use extras such as `pip install ".[marker,mineru]"` before invoking that engine.
+- **Remote OCR timeouts**: tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and token/chunk settings in `.env` (for example `SILICONFLOW_MAX_INPUT_TOKENS`, `MISTRAL_MAX_PDF_TOKENS`) to match document sizes; each maps directly to validators in `config/settings.py`.
 
 ## Engine Benchmarking / 引擎对比测试
-
 The project includes a comprehensive benchmarking tool to compare different engines. It generates detailed reports in Chinese (中文对比报告).
 
 ### Quick Start
@@ -170,11 +236,11 @@ python benchmark.py --save-json --output-dir my_results
 ```
 
 ### Features
-- **Automated Testing**: Tests multiple engines with a single command
-- **Performance Metrics**: Measures conversion time, success rate, and output characteristics (Markdown length and asset count)
-- **Chinese Report**: Generates comprehensive comparison reports in Chinese (中文对比报告)
-- **Engine Analysis**: Provides detailed pros/cons and use case recommendations
-- **Flexible Configuration**: Test specific engines or all available ones
+- **Automated Testing**: tests multiple engines with a single command
+- **Performance Metrics**: measures conversion time, success rate, and output characteristics (Markdown length and asset count)
+- **Chinese Report**: generates comprehensive comparison reports in Chinese (中文对比报告)
+- **Engine Analysis**: provides detailed pros/cons and use case recommendations
+- **Flexible Configuration**: test specific engines or all available ones
 
 > **Note**: The script `benchmark.py` is for use from a source checkout. Run it from the project root directory.
 
@@ -187,17 +253,16 @@ The generated report includes:
 - Error diagnostics for failed conversions (失败转换的错误诊断)
 
 ### Example Usage Scenarios
-1. **Choosing the right engine**: Compare all engines to find the best one for your documents
-2. **Performance validation**: Verify engine performance before production deployment
-3. **Quality assessment**: Compare output quality across different engines
-4. **Cost analysis**: Evaluate free vs. paid engine options
+1. **Choosing the right engine**: compare all engines to find the best one for your documents
+2. **Performance validation**: verify engine performance before production deployment
+3. **Quality assessment**: compare output quality across different engines
+4. **Cost analysis**: evaluate free vs. paid engine options
 
 ## Development & tests
 - Run the unit tests: `pytest`
 - Run engine benchmarks: `python benchmark.py`
-- Lint/format according to your preferred tooling (e.g., `ruff`, `black`) if you add them.
+- Lint/format according to your preferred tooling (for example `ruff`, `black`) if you add them.
 - When creating new engines, update `.env.example`, `ENGINE_REGISTRY` in `cli.py`, and extend the README/usage docs.
 
 ## Outputs
-Converted Markdown files land in the `output_dir` you pass (or the default from `.env`). Binary artifacts (e.g., images rendered by Mistral) are written into `<stem>_assets/` subfolders beside the Markdown file so they can be embedded via relative links.
-
+Converted Markdown files land in the `output_dir` you pass (or the default from `.env`). Binary artifacts (for example images rendered by Mistral) are written into `<stem>_assets/` subfolders beside the Markdown file so they can be embedded via relative links.
