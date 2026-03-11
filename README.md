@@ -36,6 +36,13 @@ doc_to_md/
 |   `-- output_deepseekocr/
 |-- src/
 |   `-- doc_to_md/
+|       |-- api.py
+|       |-- apps/
+|       |   `-- conversion/
+|       |       |-- logic.py
+|       |       |-- cli.py
+|       |       |-- router.py
+|       |       `-- schemas.py
 |       |-- cli.py
 |       |-- engines/
 |       |-- pipeline/
@@ -178,6 +185,15 @@ Available endpoints:
 - `GET /apps/conversion/engines`
 - `POST /apps/conversion/convert`
 
+### CLI + FastAPI app structure
+The conversion app is intentionally split so the same business logic can be reused from both terminal and HTTP entrypoints:
+
+- `src/doc_to_md/apps/conversion/logic.py`: shared conversion workflow, engine resolution, metrics, and file processing
+- `src/doc_to_md/apps/conversion/cli.py`: Typer wrapper around the shared conversion logic
+- `src/doc_to_md/apps/conversion/router.py`: FastAPI router exposing the same conversion workflow over HTTP
+- `src/doc_to_md/api.py`: FastAPI application bootstrap
+- `src/doc_to_md/cli.py`: backward-compatible CLI entrypoint
+
 ### File Size and Format Limits
 - **Maximum file size:** 100MB per file
 - **Maximum image size:** 100 megapixels
@@ -282,7 +298,9 @@ The generated report includes:
 4. **Cost analysis**: evaluate free vs. paid engine options
 
 ## Development & tests
-- Run the unit tests: `pytest`
+- Run the full test suite: `pytest`
+- Current baseline in this branch: `36 passed`
+- Test coverage currently includes CLI behavior, FastAPI endpoints, shared conversion logic, settings validation, file validation, and extraction/pipeline helpers
 - Run engine benchmarks: `python benchmark.py`
 - Run the API locally: `uvicorn doc_to_md.api:app --reload` after `pip install ".[api]"`
 - Lint/format according to your preferred tooling (for example `ruff`, `black`) if you add them.
