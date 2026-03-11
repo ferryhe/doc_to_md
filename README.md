@@ -58,8 +58,7 @@ doc_to_md/
 ### Prerequisites
 - Git
 - Python 3.10.x recommended
-- Python 3.11.x also usually works
-- Python 3.12 may work, but is less conservative than 3.10/3.11
+- Python 3.11.x 3.12 also works
 
 `pyproject.toml` declares Python `>=3.10,<3.13`, so Python 3.13 and newer are intentionally unsupported and standard installers should refuse to install the package on those interpreters. For the full document-conversion stack it is still safest to stay on Python 3.10 or 3.11 instead of the newest interpreter, because several optional OCR/ML dependencies lag behind new Python releases. For example, MinerU notes that on Windows its `ray` dependency does not support Python 3.13. If you want the safest baseline, use Python 3.10.11.
 
