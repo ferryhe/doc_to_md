@@ -16,48 +16,46 @@ EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr
 
 
 class Settings(BaseSettings):
-    mistral_api_key: str | None = Field(default=None, alias="MISTRAL_API_KEY")
-    siliconflow_api_key: str | None = Field(default=None, alias="SILICONFLOW_API_KEY")
+    mistral_api_key: str | None = Field(default=None)
+    siliconflow_api_key: str | None = Field(default=None)
 
-    default_engine: EngineName = Field(default="local", alias="DEFAULT_ENGINE")
-    mistral_default_model: str = Field(default="mistral-ocr-latest", alias="MISTRAL_DEFAULT_MODEL")
-    siliconflow_default_model: str = Field(default="deepseek-ai/DeepSeek-OCR", alias="SILICONFLOW_DEFAULT_MODEL")
-    siliconflow_base_url: str = Field(
-        default="https://api.siliconflow.cn/v1", alias="SILICONFLOW_BASE_URL"
-    )
-    mistral_timeout_seconds: float = Field(default=60.0, alias="MISTRAL_TIMEOUT_SECONDS")
-    mistral_retry_attempts: int = Field(default=3, alias="MISTRAL_RETRY_ATTEMPTS")
-    mistral_max_pdf_tokens: int = Field(default=9000, alias="MISTRAL_MAX_PDF_TOKENS")
-    mistral_max_pages_per_chunk: int = Field(default=25, alias="MISTRAL_MAX_PAGES_PER_CHUNK")
+    default_engine: EngineName = Field(default="local")
+    mistral_default_model: str = Field(default="mistral-ocr-latest")
+    siliconflow_default_model: str = Field(default="deepseek-ai/DeepSeek-OCR")
+    siliconflow_base_url: str = Field(default="https://api.siliconflow.cn/v1")
+    mistral_timeout_seconds: float = Field(default=60.0)
+    mistral_retry_attempts: int = Field(default=3)
+    mistral_max_pdf_tokens: int = Field(default=9000)
+    mistral_max_pages_per_chunk: int = Field(default=25)
 
-    siliconflow_timeout_seconds: float = Field(default=60.0, alias="SILICONFLOW_TIMEOUT_SECONDS")
-    siliconflow_retry_attempts: int = Field(default=3, alias="SILICONFLOW_RETRY_ATTEMPTS")
-    siliconflow_max_input_tokens: int = Field(default=3500, alias="SILICONFLOW_MAX_INPUT_TOKENS")
-    siliconflow_chunk_overlap_tokens: int = Field(default=200, alias="SILICONFLOW_CHUNK_OVERLAP_TOKENS")
+    siliconflow_timeout_seconds: float = Field(default=60.0)
+    siliconflow_retry_attempts: int = Field(default=3)
+    siliconflow_max_input_tokens: int = Field(default=3500)
+    siliconflow_chunk_overlap_tokens: int = Field(default=200)
 
-    markitdown_enable_plugins: bool | None = Field(default=True, alias="MARKITDOWN_ENABLE_PLUGINS")
-    markitdown_enable_builtins: bool | None = Field(default=True, alias="MARKITDOWN_ENABLE_BUILTINS")
+    markitdown_enable_plugins: bool | None = Field(default=True)
+    markitdown_enable_builtins: bool | None = Field(default=True)
 
-    paddleocr_lang: str = Field(default="en", alias="PADDLEOCR_LANG")
-    paddleocr_render_dpi: int = Field(default=220, alias="PADDLEOCR_RENDER_DPI")
-    paddleocr_max_pages: int | None = Field(default=None, alias="PADDLEOCR_MAX_PAGES")
+    paddleocr_lang: str = Field(default="en")
+    paddleocr_render_dpi: int = Field(default=220)
+    paddleocr_max_pages: int | None = Field(default=None)
 
-    docling_max_pages: int | None = Field(default=None, alias="DOCLING_MAX_PAGES")
-    docling_raise_on_error: bool = Field(default=True, alias="DOCLING_RAISE_ON_ERROR")
+    docling_max_pages: int | None = Field(default=None)
+    docling_raise_on_error: bool = Field(default=True)
 
-    mineru_backend: str = Field(default="pipeline", alias="MINERU_BACKEND")
-    mineru_parse_method: str = Field(default="auto", alias="MINERU_PARSE_METHOD")
-    mineru_lang: str = Field(default="en", alias="MINERU_LANG")
-    mineru_formula_enable: bool = Field(default=True, alias="MINERU_FORMULA_ENABLE")
-    mineru_table_enable: bool = Field(default=True, alias="MINERU_TABLE_ENABLE")
-    mineru_start_page: int = Field(default=0, alias="MINERU_START_PAGE")
-    mineru_end_page: int | None = Field(default=None, alias="MINERU_END_PAGE")
+    mineru_backend: str = Field(default="pipeline")
+    mineru_parse_method: str = Field(default="auto")
+    mineru_lang: str = Field(default="en")
+    mineru_formula_enable: bool = Field(default=True)
+    mineru_table_enable: bool = Field(default=True)
+    mineru_start_page: int = Field(default=0)
+    mineru_end_page: int | None = Field(default=None)
 
-    marker_use_llm: bool = Field(default=False, alias="MARKER_USE_LLM")
-    marker_processors: str | None = Field(default=None, alias="MARKER_PROCESSORS")
-    marker_page_range: str | None = Field(default=None, alias="MARKER_PAGE_RANGE")
-    marker_extract_images: bool = Field(default=True, alias="MARKER_EXTRACT_IMAGES")
-    marker_llm_service: str | None = Field(default=None, alias="MARKER_LLM_SERVICE")
+    marker_use_llm: bool = Field(default=False)
+    marker_processors: str | None = Field(default=None)
+    marker_page_range: str | None = Field(default=None)
+    marker_extract_images: bool = Field(default=True)
+    marker_llm_service: str | None = Field(default=None)
 
     input_dir: Path = Field(default=DEFAULT_INPUT_DIR)
     output_dir: Path = Field(default=DEFAULT_OUTPUT_DIR)
@@ -66,6 +64,8 @@ class Settings(BaseSettings):
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         populate_by_name=True,  # Allow both field names and aliases
+        validate_by_name=True,
+        validate_by_alias=True,
     )
 
     @field_validator("input_dir", "output_dir", mode="before")
