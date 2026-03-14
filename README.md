@@ -15,7 +15,8 @@ Convert actuarial papers, SFCRs, policy documents, and other source files into L
 - Deterministic logging and metrics that summarize every conversion run.
 - **Format-aware `auto` engine** that dispatches each file to its best sub-engine based on file extension — configure per-format engine selection via `.env`.
 - **`html_local` engine** for extracting the main readable content from HTML pages (strips navigation, ads, and footers) using trafilatura → BeautifulSoup → regex fallback chain.
-- HTML and HTM files are now fully supported throughout the pipeline (loader, validation, extraction).
+- HTML, HTM, PPTX, and XLSX files are now fully supported throughout the pipeline (loader, validation, extraction).
+- PowerPoint (`.pptx`) converted slide-by-slide to Markdown sections; Excel (`.xlsx`) converted sheet-by-sheet to Markdown tables. Install via `pip install ".[office]"`.
 
 ## Architecture at a glance
 - `src/doc_to_md/apps/` is where reusable application modules live; each app can expose its own `logic.py`, `cli.py`, and `router.py`.
@@ -87,6 +88,7 @@ doc_to_md/
    ```bash
    pip install ".[api]"               # FastAPI + uvicorn
    pip install ".[html]"              # trafilatura for best-quality HTML content extraction
+   pip install ".[office]"            # python-pptx + openpyxl for PPTX and XLSX support
    pip install ".[markitdown]"        # MarkItDown with PDF support
    pip install ".[paddleocr,docling]" # Example mixed setup
    ```
@@ -124,6 +126,8 @@ The recommended default path is `pip install -e .` plus selected extras. `requir
 | `MARKER_*` | Whether to enable LLM processors, extra processors, image extraction. | LLM off, processors unset |
 | `AUTO_PDF_ENGINE` | Sub-engine used by `auto` for `.pdf` files. | `local` |
 | `AUTO_DOCX_ENGINE` | Sub-engine used by `auto` for `.docx` files. | `local` |
+| `AUTO_PPTX_ENGINE` | Sub-engine used by `auto` for `.pptx` files. | `local` |
+| `AUTO_SPREADSHEET_ENGINE` | Sub-engine used by `auto` for `.xlsx` files. | `local` |
 | `AUTO_HTML_ENGINE` | Sub-engine used by `auto` for `.html`/`.htm` files. | `html_local` |
 | `AUTO_IMAGE_ENGINE` | Sub-engine used by `auto` for `.png`/`.jpg`/`.jpeg` files. | `local` |
 | `AUTO_TEXT_ENGINE` | Sub-engine used by `auto` for `.txt`/`.md` files. | `local` |
@@ -136,6 +140,7 @@ New engines pull in sizeable third-party stacks. Install only what you need:
 # Pick any subset
 pip install ".[api]"               # FastAPI + uvicorn HTTP interface
 pip install ".[html]"              # trafilatura for richer HTML content extraction
+pip install ".[office]"            # python-pptx + openpyxl for PPTX and XLSX
 pip install "markitdown[pdf]"     # MarkItDownEngine for PDF-heavy workflows
 pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
 pip install docling               # DoclingEngine
@@ -149,6 +154,7 @@ You can also rely on the extras defined in `pyproject.toml`, for example:
 ```bash
 pip install ".[api,paddleocr,docling]"
 pip install ".[api,html]"         # API server + best-quality HTML extraction
+pip install ".[api,office]"       # API server + PPTX/XLSX support
 ```
 
 For MarkItDown, the upstream PDF extra is important for actuarial PDFs. The project extra `pip install ".[markitdown]"` now pulls in `markitdown[pdf]`, and direct installs should prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
@@ -214,6 +220,8 @@ DEFAULT_ENGINE=auto
 AUTO_PDF_ENGINE=mistral
 AUTO_HTML_ENGINE=html_local
 AUTO_DOCX_ENGINE=markitdown
+AUTO_PPTX_ENGINE=local
+AUTO_SPREADSHEET_ENGINE=local
 AUTO_IMAGE_ENGINE=local
 AUTO_TEXT_ENGINE=local
 ```
@@ -280,8 +288,9 @@ The conversion app is intentionally split so the same business logic can be reus
 ### File Size and Format Limits
 - **Maximum file size:** 100MB per file
 - **Maximum image size:** 100 megapixels
-- **Supported formats:** `.pdf`, `.docx`, `.html`, `.htm`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
-- **Not supported:** legacy `.doc` format (please convert to `.docx` first)
+- **Supported formats:** `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.html`, `.htm`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
+- **Not supported:** legacy `.doc` and `.xls` formats (please convert to `.docx` / `.xlsx` first)
+- **Optional extras needed:** `.pptx` and `.xlsx` require `pip install ".[office]"`; `.html`/`.htm` uses built-in bs4 by default (install `".[html]"` for best-quality extraction with trafilatura)
 
 ## Actuarial example: one IAA paper, two very different outputs
 The [IAA Artificial Intelligence Governance Framework paper](https://actuaries.org/app/uploads/2025/12/AITF_Governance_Framework_Paper_Final_Approved.pdf) is a good test document because it looks like many real actuarial inputs: a long PDF with headings, tables of contents, page furniture, and layout-sensitive content.
@@ -328,7 +337,7 @@ For actuarial work, that difference matters. If your downstream task is mostly s
 - **Docling** (`docling`): feeds documents into IBM's Docling pipeline and exports the resulting structured document back to Markdown.
 - **Marker** (`marker`): drives the Marker PDF stack (without touching disk) and exposes its Markdown renderer alongside extracted images.
 - **HTML Local** (`html_local`): purpose-built HTML content extractor. Extracts the main readable body of a web page, discarding navigation, sidebars, ads, and footers. Uses a three-tier fallback — trafilatura (best, optional) → BeautifulSoup (built-in) → regex tag-stripper (zero-dep). Install `trafilatura` via `pip install ".[html]"` for highest-quality article extraction.
-- **Auto** (`auto`): format-aware dispatcher that routes each file to the best-configured sub-engine based on its extension. Defaults: HTML/HTM → `html_local`, all others → `local`. Fully configurable via `AUTO_*_ENGINE` settings in `.env`.
+- **Auto** (`auto`): format-aware dispatcher that routes each file to the best-configured sub-engine based on its extension. Defaults: HTML/HTM → `html_local`, all others → `local`. Fully configurable via `AUTO_*_ENGINE` settings in `.env` (including `AUTO_PPTX_ENGINE` and `AUTO_SPREADSHEET_ENGINE`).
 
 All engines implement `Engine.convert(Path) -> EngineResponse`, so adding another engine only requires subclassing the `Engine` protocol.
 
@@ -384,8 +393,8 @@ The generated report includes:
 
 ## Development & tests
 - Run the full test suite: `pytest`
-- Current baseline in this branch: `69 passed, 2 skipped`
-- Test coverage currently includes CLI behavior, FastAPI endpoints, shared conversion logic, settings validation, file validation, extraction/pipeline helpers, HTML engine, and auto-routing engine
+- Current baseline in this branch: `85 passed, 2 skipped`
+- Test coverage currently includes CLI behavior, FastAPI endpoints, shared conversion logic, settings validation, file validation, extraction/pipeline helpers, HTML engine, auto-routing engine, and PPTX/XLSX extraction
 - Run engine benchmarks: `python benchmark.py`
 - Run the API locally: `uvicorn doc_to_md.api:app --reload` after `pip install ".[api]"`
 - Lint/format according to your preferred tooling (for example `ruff`, `black`) if you add them.

@@ -60,11 +60,13 @@ class Settings(BaseSettings):
     # ---------------------------------------------------------------------------
     # Auto-engine per-format routing
     # ---------------------------------------------------------------------------
-    auto_pdf_engine: str = Field(default="local")
-    auto_docx_engine: str = Field(default="local")
-    auto_html_engine: str = Field(default="html_local")
-    auto_image_engine: str = Field(default="local")
-    auto_text_engine: str = Field(default="local")
+    auto_pdf_engine: EngineName = Field(default="local")
+    auto_docx_engine: EngineName = Field(default="local")
+    auto_html_engine: EngineName = Field(default="html_local")
+    auto_image_engine: EngineName = Field(default="local")
+    auto_text_engine: EngineName = Field(default="local")
+    auto_pptx_engine: EngineName = Field(default="local")
+    auto_spreadsheet_engine: EngineName = Field(default="local")
 
     input_dir: Path = Field(default=DEFAULT_INPUT_DIR)
     output_dir: Path = Field(default=DEFAULT_OUTPUT_DIR)

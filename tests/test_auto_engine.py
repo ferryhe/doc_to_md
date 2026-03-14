@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -62,6 +62,8 @@ def test_auto_engine_model_attribute() -> None:
     [
         ("doc.pdf", "local"),
         ("doc.docx", "local"),
+        ("deck.pptx", "local"),
+        ("data.xlsx", "local"),
         ("page.html", "html_local"),
         ("page.htm", "html_local"),
         ("photo.png", "local"),
@@ -118,18 +120,11 @@ def test_auto_engine_respects_settings_override(tmp_path: Path, monkeypatch) -> 
     mock_settings.auto_html_engine = "local"  # overridden to local
     mock_settings.auto_image_engine = "local"
     mock_settings.auto_text_engine = "local"
+    mock_settings.auto_pptx_engine = "local"
+    mock_settings.auto_spreadsheet_engine = "local"
 
     monkeypatch.setattr(settings_mod, "get_settings", lambda: mock_settings)
 
-    # Clear lru_cache so the monkeypatched version is used
-    with patch("doc_to_md.engines.auto.AutoEngine.__init__.__wrapped__", create=True):
-        # Rebuild engine inside patched context
-        import importlib
-        import doc_to_md.engines.auto as auto_mod
-        importlib.reload(auto_mod)
-        AutoEnginePatched = auto_mod.AutoEngine
-
-    # Simpler approach: instantiate and manually override format map
     engine = AutoEngine()
     engine._format_map[".html"] = "local"
 
@@ -223,3 +218,40 @@ def test_run_conversion_auto_engine_html(tmp_path: Path) -> None:
     assert result.results[0].output_path.exists()
     content = result.results[0].output_path.read_text(encoding="utf-8")
     assert "Auto conversion test" in content
+
+
+# ---------------------------------------------------------------------------
+# PPTX / XLSX in loader and validation
+# ---------------------------------------------------------------------------
+
+
+def test_iter_documents_includes_pptx_xlsx(tmp_path: Path) -> None:
+    from doc_to_md.pipeline.loader import iter_documents
+
+    (tmp_path / "deck.pptx").write_bytes(b"PK\x03\x04")  # minimal zip-based marker
+    (tmp_path / "data.xlsx").write_bytes(b"PK\x03\x04")
+    (tmp_path / "ignore.bin").write_text("x", encoding="utf-8")
+
+    found = {p.name for p in iter_documents(tmp_path)}
+    assert "deck.pptx" in found
+    assert "data.xlsx" in found
+    assert "ignore.bin" not in found
+
+
+# ---------------------------------------------------------------------------
+# Sub-engine instance caching
+# ---------------------------------------------------------------------------
+
+
+def test_auto_engine_caches_sub_engine_instance(tmp_path: Path) -> None:
+    """The same sub-engine instance should be reused for repeated calls."""
+    f1 = tmp_path / "a.txt"
+    f2 = tmp_path / "b.txt"
+    f1.write_text("first", encoding="utf-8")
+    f2.write_text("second", encoding="utf-8")
+
+    engine = AutoEngine()
+    sub1 = engine._get_sub_engine(f1)
+    sub2 = engine._get_sub_engine(f2)
+    # Same format → same cached instance
+    assert sub1 is sub2

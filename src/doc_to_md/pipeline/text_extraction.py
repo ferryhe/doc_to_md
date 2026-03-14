@@ -62,6 +62,10 @@ def extract_text(path: Path) -> str:
             return _extract_html(path)
         if suffix in {".png", ".jpg", ".jpeg"}:
             return _extract_image(path)
+        if suffix == ".pptx":
+            return _extract_pptx(path)
+        if suffix == ".xlsx":
+            return _extract_xlsx(path)
         return _extract_text_file(path)
     except Exception as exc:
         # Provide helpful error message
@@ -282,6 +286,105 @@ def _extract_html(path: Path) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
     return text or "[No textual content found in HTML]"
+
+
+def _extract_pptx(path: Path) -> str:
+    """
+    Extract text from a PowerPoint presentation (.pptx) slide-by-slide.
+
+    Requires ``python-pptx`` (install with ``pip install 'doc-to-md[office]'``).
+
+    Args:
+        path: Path to .pptx file
+
+    Returns:
+        Extracted slide text formatted as Markdown sections
+    """
+    try:
+        from pptx import Presentation  # type: ignore[import]
+    except ImportError:
+        raise RuntimeError(
+            "PPTX extraction requires 'python-pptx'. "
+            "Install it with: pip install 'doc-to-md[office]'"
+        )
+
+    try:
+        prs = Presentation(str(path))
+    except Exception as exc:  # noqa: BLE001
+        return f"[PPTX reading failed: {exc}]"
+
+    slides_text: list[str] = []
+    for i, slide in enumerate(prs.slides, start=1):
+        parts: list[str] = []
+        for shape in slide.shapes:
+            if hasattr(shape, "text") and shape.text.strip():
+                parts.append(shape.text.strip())
+        if parts:
+            slides_text.append(f"## Slide {i}\n\n" + "\n\n".join(parts))
+
+    if not slides_text:
+        return "[No textual content found in PPTX]"
+
+    return "\n\n".join(slides_text)
+
+
+def _extract_xlsx(path: Path) -> str:
+    """
+    Extract data from an Excel workbook (.xlsx) as Markdown tables.
+
+    Each sheet becomes its own section with the data formatted as a
+    Markdown table.  Requires ``openpyxl`` (install with
+    ``pip install 'doc-to-md[office]'``).
+
+    Args:
+        path: Path to .xlsx file
+
+    Returns:
+        Workbook data formatted as Markdown tables, one per sheet
+    """
+    try:
+        import openpyxl  # type: ignore[import]
+    except ImportError:
+        raise RuntimeError(
+            "XLSX extraction requires 'openpyxl'. "
+            "Install it with: pip install 'doc-to-md[office]'"
+        )
+
+    try:
+        wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+    except Exception as exc:  # noqa: BLE001
+        return f"[XLSX reading failed: {exc}]"
+
+    def _cell(value: object) -> str:
+        return "" if value is None else str(value).strip()
+
+    sheets_text: list[str] = []
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        rows = [
+            [_cell(c) for c in row]
+            for row in ws.iter_rows(values_only=True)
+            if any(c is not None for c in row)
+        ]
+        if not rows:
+            continue
+
+        max_cols = max(len(r) for r in rows)
+        # Pad all rows to the same width
+        rows = [r + [""] * (max_cols - len(r)) for r in rows]
+
+        lines = [f"## {sheet_name}"]
+        lines.append("| " + " | ".join(rows[0]) + " |")
+        lines.append("| " + " | ".join(["---"] * max_cols) + " |")
+        for row in rows[1:]:
+            lines.append("| " + " | ".join(row) + " |")
+
+        sheets_text.append("\n".join(lines))
+
+    if not sheets_text:
+        return "[No data found in XLSX]"
+
+    return "\n\n".join(sheets_text)
 
 
 def _extract_image(path: Path) -> str:
