@@ -1,0 +1,95 @@
+"""Format-aware engine that dispatches to the best sub-engine for each file type."""
+from __future__ import annotations
+
+import importlib
+from pathlib import Path
+from typing import Mapping
+
+from .base import Engine, EngineResponse
+
+# ---------------------------------------------------------------------------
+# Sub-engine registry for the auto dispatcher
+# Each entry: engine_name -> (module_path, class_name, requires_model)
+# ---------------------------------------------------------------------------
+_AUTO_REGISTRY: Mapping[str, tuple[str, str, bool]] = {
+    "local": ("doc_to_md.engines.local", "LocalEngine", False),
+    "html_local": ("doc_to_md.engines.html", "HtmlLocalEngine", False),
+    "markitdown": ("doc_to_md.engines.markitdown", "MarkItDownEngine", True),
+    "mistral": ("doc_to_md.engines.mistral", "MistralEngine", True),
+    "deepseekocr": ("doc_to_md.engines.deepseekocr", "DeepSeekOCREngine", True),
+    "paddleocr": ("doc_to_md.engines.paddleocr", "PaddleOCREngine", True),
+    "docling": ("doc_to_md.engines.docling", "DoclingEngine", True),
+    "marker": ("doc_to_md.engines.marker", "MarkerEngine", True),
+    "mineru": ("doc_to_md.engines.mineru", "MinerUEngine", True),
+}
+
+# Map file suffix -> default sub-engine name
+_DEFAULT_FORMAT_ENGINES: Mapping[str, str] = {
+    ".pdf": "local",
+    ".docx": "local",
+    ".html": "html_local",
+    ".htm": "html_local",
+    ".png": "local",
+    ".jpg": "local",
+    ".jpeg": "local",
+    ".txt": "local",
+    ".md": "local",
+}
+
+
+def _instantiate(engine_name: str, model: str | None = None) -> Engine:
+    """Create an engine instance by name, using lazy imports to avoid circular deps."""
+    entry = _AUTO_REGISTRY.get(engine_name)
+    if entry is None:
+        raise ValueError(
+            f"Engine '{engine_name}' is not supported in auto mode. "
+            f"Supported engines: {sorted(_AUTO_REGISTRY)}"
+        )
+    module_path, class_name, requires_model = entry
+    module = importlib.import_module(module_path)
+    cls = getattr(module, class_name)
+    return cls(model=model) if requires_model else cls()
+
+
+class AutoEngine(Engine):
+    """Format-aware dispatcher that selects the best sub-engine per file type.
+
+    The sub-engine used for each format is configured via ``Settings``:
+
+    * ``AUTO_PDF_ENGINE``   — engine for .pdf files  (default: ``local``)
+    * ``AUTO_DOCX_ENGINE``  — engine for .docx files (default: ``local``)
+    * ``AUTO_HTML_ENGINE``  — engine for .html/.htm  (default: ``html_local``)
+    * ``AUTO_IMAGE_ENGINE`` — engine for image files (default: ``local``)
+    * ``AUTO_TEXT_ENGINE``  — engine for .txt/.md    (default: ``local``)
+
+    Any engine supported by the main ``ENGINE_REGISTRY`` can be used as a
+    format sub-engine, as long as it is listed in ``_AUTO_REGISTRY`` above.
+    """
+
+    name = "auto"
+
+    def __init__(self) -> None:  # no ``model`` param — auto uses per-format defaults
+        from config.settings import get_settings
+
+        settings = get_settings()
+        self.model = "auto"
+        self._format_map: dict[str, str] = {
+            ".pdf": settings.auto_pdf_engine,
+            ".docx": settings.auto_docx_engine,
+            ".html": settings.auto_html_engine,
+            ".htm": settings.auto_html_engine,
+            ".png": settings.auto_image_engine,
+            ".jpg": settings.auto_image_engine,
+            ".jpeg": settings.auto_image_engine,
+            ".txt": settings.auto_text_engine,
+            ".md": settings.auto_text_engine,
+        }
+
+    def _get_sub_engine(self, path: Path) -> Engine:
+        suffix = path.suffix.lower()
+        engine_name = self._format_map.get(suffix, "local")
+        return _instantiate(engine_name)
+
+    def convert(self, path: Path) -> EngineResponse:
+        sub_engine = self._get_sub_engine(path)
+        return sub_engine.convert(path)

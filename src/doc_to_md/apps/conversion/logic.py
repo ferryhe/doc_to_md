@@ -9,8 +9,10 @@ from typing import Dict, Optional, Type, cast
 
 from config.settings import EngineName, Settings, get_settings
 from doc_to_md.engines.base import Engine
+from doc_to_md.engines.auto import AutoEngine
 from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.engines.docling import DoclingEngine
+from doc_to_md.engines.html import HtmlLocalEngine
 from doc_to_md.engines.local import LocalEngine
 from doc_to_md.engines.marker import MarkerEngine
 from doc_to_md.engines.markitdown import MarkItDownEngine
@@ -32,6 +34,8 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "mineru": MinerUEngine,
     "docling": DoclingEngine,
     "marker": MarkerEngine,
+    "html_local": HtmlLocalEngine,
+    "auto": AutoEngine,
 }
 
 ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}

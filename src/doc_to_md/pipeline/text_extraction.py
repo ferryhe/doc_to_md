@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import re
 from pathlib import Path
 
 from pypdf import PdfReader
@@ -28,6 +29,12 @@ except ImportError:  # pragma: no cover - handled in runtime guard
     pytesseract = None  # type: ignore[assignment]
 
 
+try:  # Optional dependency for HTML parsing
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - handled in runtime guard
+    BeautifulSoup = None  # type: ignore[assignment]
+
+
 def extract_text(path: Path) -> str:
     """
     Extract text from various document formats with validation and error handling.
@@ -51,6 +58,8 @@ def extract_text(path: Path) -> str:
             return _extract_pdf(path)
         if suffix == ".docx":
             return _extract_docx(path)
+        if suffix in {".html", ".htm"}:
+            return _extract_html(path)
         if suffix in {".png", ".jpg", ".jpeg"}:
             return _extract_image(path)
         return _extract_text_file(path)
@@ -240,6 +249,39 @@ def _format_table_as_markdown(table) -> str:
         md_lines.append("| " + " | ".join(row[:len(header)]) + " |")
     
     return "\n".join(md_lines)
+
+
+def _extract_html(path: Path) -> str:
+    """
+    Extract readable text from an HTML file.
+
+    Uses BeautifulSoup when available to remove script/style/nav elements and
+    return clean text.  Falls back to a simple regex tag-stripper otherwise.
+
+    Args:
+        path: Path to HTML file
+
+    Returns:
+        Plain text extracted from the HTML body
+    """
+    raw = path.read_text(encoding="utf-8", errors="replace")
+
+    if BeautifulSoup is not None:
+        try:
+            soup = BeautifulSoup(raw, "html.parser")
+            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+                tag.decompose()
+            text = soup.get_text(separator="\n")
+            cleaned = re.sub(r"\n{3,}", "\n\n", text).strip()
+            return cleaned or "[No textual content found in HTML]"
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Regex fallback
+    text = re.sub(r"<[^>]+>", " ", raw)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text or "[No textual content found in HTML]"
 
 
 def _extract_image(path: Path) -> str:

@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "input"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
-EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr", "mineru", "docling", "marker"]
+EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr", "mineru", "docling", "marker", "html_local", "auto"]
 
 
 class Settings(BaseSettings):
@@ -56,6 +56,15 @@ class Settings(BaseSettings):
     marker_page_range: str | None = Field(default=None)
     marker_extract_images: bool = Field(default=True)
     marker_llm_service: str | None = Field(default=None)
+
+    # ---------------------------------------------------------------------------
+    # Auto-engine per-format routing
+    # ---------------------------------------------------------------------------
+    auto_pdf_engine: str = Field(default="local")
+    auto_docx_engine: str = Field(default="local")
+    auto_html_engine: str = Field(default="html_local")
+    auto_image_engine: str = Field(default="local")
+    auto_text_engine: str = Field(default="local")
 
     input_dir: Path = Field(default=DEFAULT_INPUT_DIR)
     output_dir: Path = Field(default=DEFAULT_OUTPUT_DIR)
