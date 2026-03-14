@@ -54,7 +54,8 @@ doc_to_md/
 |-- tests/
 |-- .env.example
 |-- pyproject.toml
-`-- requirements.txt
+|-- requirements-core.txt    ← core + docling + mistral (CPU torch, no GPU extras)
+`-- requirements.txt         ← full GPU stack (+ PaddleOCR / MinerU / Marker)
 ```
 
 ## Installation
@@ -93,12 +94,31 @@ doc_to_md/
    pip install ".[paddleocr,docling]" # Example mixed setup
    ```
 
-5. **Optional: install the full pinned dependency stack**
+5. **Optional: install a pinned dependency stack**
+
+   Two pre-built requirement files are provided so you can pin the full transitive
+   dependency tree without resolving it yourself:
+
+   | File | Engines covered | Torch variant |
+   |------|-----------------|---------------|
+   | `requirements-core.txt` | `local` · `mistral` · `deepseekocr` · `markitdown` · `html_local` · `auto` · `office` · **`docling`** | CPU (`torch==2.2.2`) |
+   | `requirements.txt` | Everything above + `paddleocr` · `mineru` · `marker` | CUDA 12.1 (`torch==2.2.2+cu121`) |
+
    ```bash
+   # Lightweight — no CUDA required (docling works on CPU)
+   pip install -r requirements-core.txt
+
+   # Full GPU stack — PaddleOCR / MinerU / Marker + CUDA 12.1 torch
    pip install -r requirements.txt
    ```
 
-The recommended default path is `pip install -e .` plus selected extras. `requirements.txt` is a heavier, pinned environment and may require manual handling for GPU-specific packages such as PyTorch.
+   Both files are annotated with comments that show which engine each package belongs
+   to, so you can easily identify what you can omit if you are building a custom
+   environment.
+
+The recommended default path is `pip install -e .` plus selected extras. The pinned
+requirements files are provided for reproducible environments; for GPU machines you may
+need to adjust the `torch` wheel URL to match your CUDA version.
 
 ## Configuration
 1. Copy and edit the example environment file:
@@ -132,34 +152,36 @@ The recommended default path is `pip install -e .` plus selected extras. `requir
 | `AUTO_IMAGE_ENGINE` | Sub-engine used by `auto` for `.png`/`.jpg`/`.jpeg` files. | `local` |
 | `AUTO_TEXT_ENGINE` | Sub-engine used by `auto` for `.txt`/`.md` files. | `local` |
 
-**Optional engine dependencies**
+**Per-engine dependencies — install only what you use**
 
-New engines pull in sizeable third-party stacks. Install only what you need:
+Each engine requires its own set of packages. Install only the ones you plan to use:
+
+| Engine | Install command | Notes |
+|--------|----------------|-------|
+| `local` | _(included in base install)_ | PDF · DOCX · images · text; pytesseract for OCR |
+| `html_local` | `pip install ".[html]"` | trafilatura for best-quality extraction; falls back to bs4 (built-in) |
+| `office` extra | `pip install ".[office]"` | python-pptx (PPTX) + openpyxl (XLSX) |
+| `auto` | _(no extra packages)_ | Routes files to the engine above per format |
+| `mistral` | _(included in base install)_ | API key: `MISTRAL_API_KEY` |
+| `deepseekocr` | `pip install pypdfium2` | API key: `SILICONFLOW_API_KEY`; pypdfium2 renders PDFs |
+| `markitdown` | `pip install ".[markitdown]"` | Pulls in `markitdown[pdf]` |
+| `docling` | `pip install ".[docling]"` | Heavy transformer stack; CPU torch works, GPU optional |
+| `paddleocr` | `pip install ".[paddleocr]"` | Requires CUDA GPU; installs opencv + pyclipper |
+| `mineru` | `pip install ".[mineru]"` | GPU strongly recommended |
+| `marker` | `pip install ".[marker]"` | GPU strongly recommended |
+| `api` server | `pip install ".[api]"` | FastAPI + uvicorn |
+
+Quick pick-and-mix examples:
 
 ```bash
-# Pick any subset
 pip install ".[api]"               # FastAPI + uvicorn HTTP interface
 pip install ".[html]"              # trafilatura for richer HTML content extraction
 pip install ".[office]"            # python-pptx + openpyxl for PPTX and XLSX
-pip install "markitdown[pdf]"     # MarkItDownEngine for PDF-heavy workflows
-pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
-pip install docling               # DoclingEngine
-pip install mineru                # MinerUEngine (GPU strongly recommended)
-pip install marker-pdf            # MarkerEngine
-pip install pypdfium2             # DeepSeek-OCR PDF rendering
+pip install ".[markitdown]"        # MarkItDown with PDF support
+pip install ".[paddleocr,docling]" # PaddleOCR + Docling together
+pip install ".[api,html]"          # API server + best-quality HTML extraction
+pip install ".[api,office]"        # API server + PPTX/XLSX support
 ```
-
-You can also rely on the extras defined in `pyproject.toml`, for example:
-
-```bash
-pip install ".[api,paddleocr,docling]"
-pip install ".[api,html]"         # API server + best-quality HTML extraction
-pip install ".[api,office]"       # API server + PPTX/XLSX support
-```
-
-For MarkItDown, the upstream PDF extra is important for actuarial PDFs. The project extra `pip install ".[markitdown]"` now pulls in `markitdown[pdf]`, and direct installs should prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
-
-Each of these packages may have additional requirements (CUDA, LLM API keys, etc.); consult their upstream READMEs. Some stacks currently demand incompatible Pillow versions, and some engines have narrower Python-version support than the base project, so install only what you plan to use in a given virtual environment.
 
 **Remote engines vs. secrets**
 
