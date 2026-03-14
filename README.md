@@ -13,6 +13,9 @@ Convert actuarial papers, SFCRs, policy documents, and other source files into L
 - PDF chunking/token accounting for Mistral OCR, token-based text chunking for DeepSeek-OCR.
 - Lightweight local fallback that relies on the built-in text extraction pipeline.
 - Deterministic logging and metrics that summarize every conversion run.
+- **Format-aware `auto` engine** that dispatches each file to its best sub-engine based on file extension — configure per-format engine selection via `.env`.
+- **`html_local` engine** for extracting the main readable content from HTML pages (strips navigation, ads, and footers) using trafilatura → BeautifulSoup → regex fallback chain.
+- HTML and HTM files are now fully supported throughout the pipeline (loader, validation, extraction).
 
 ## Architecture at a glance
 - `src/doc_to_md/apps/` is where reusable application modules live; each app can expose its own `logic.py`, `cli.py`, and `router.py`.
@@ -83,6 +86,7 @@ doc_to_md/
 4. **Add only the extras or engine packages you actually need**
    ```bash
    pip install ".[api]"               # FastAPI + uvicorn
+   pip install ".[html]"              # trafilatura for best-quality HTML content extraction
    pip install ".[markitdown]"        # MarkItDown with PDF support
    pip install ".[paddleocr,docling]" # Example mixed setup
    ```
@@ -118,6 +122,11 @@ The recommended default path is `pip install -e .` plus selected extras. `requir
 | `DOCLING_*` | Page limits / error handling. | Unlimited, strict |
 | `MINERU_*` | Backend selection, parse method, language, page range. | `pipeline`, `auto`, `en` |
 | `MARKER_*` | Whether to enable LLM processors, extra processors, image extraction. | LLM off, processors unset |
+| `AUTO_PDF_ENGINE` | Sub-engine used by `auto` for `.pdf` files. | `local` |
+| `AUTO_DOCX_ENGINE` | Sub-engine used by `auto` for `.docx` files. | `local` |
+| `AUTO_HTML_ENGINE` | Sub-engine used by `auto` for `.html`/`.htm` files. | `html_local` |
+| `AUTO_IMAGE_ENGINE` | Sub-engine used by `auto` for `.png`/`.jpg`/`.jpeg` files. | `local` |
+| `AUTO_TEXT_ENGINE` | Sub-engine used by `auto` for `.txt`/`.md` files. | `local` |
 
 **Optional engine dependencies**
 
@@ -126,6 +135,7 @@ New engines pull in sizeable third-party stacks. Install only what you need:
 ```bash
 # Pick any subset
 pip install ".[api]"               # FastAPI + uvicorn HTTP interface
+pip install ".[html]"              # trafilatura for richer HTML content extraction
 pip install "markitdown[pdf]"     # MarkItDownEngine for PDF-heavy workflows
 pip install paddleocr pypdfium2   # PaddleOCREngine (PDF support)
 pip install docling               # DoclingEngine
@@ -138,6 +148,7 @@ You can also rely on the extras defined in `pyproject.toml`, for example:
 
 ```bash
 pip install ".[api,paddleocr,docling]"
+pip install ".[api,html]"         # API server + best-quality HTML extraction
 ```
 
 For MarkItDown, the upstream PDF extra is important for actuarial PDFs. The project extra `pip install ".[markitdown]"` now pulls in `markitdown[pdf]`, and direct installs should prefer `pip install "markitdown[pdf]"` over plain `pip install markitdown` when you want to convert PDF papers or reports.
@@ -167,9 +178,50 @@ Common flags:
 - `--dry-run`: list candidates without converting or writing files.
 - `--engine` / `--model`: override the defaults defined in `.env`.
 
+### Convert HTML files
+
+Use `html_local` to extract the main readable content from a web page, stripping navigation, footers, and ads:
+
+```bash
+# Extract core content from a saved HTML file
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output_html \
+  --engine html_local
+
+# Optionally install trafilatura for best-quality article extraction
+pip install ".[html]"
+```
+
+### Use the auto engine (format-aware routing)
+
+The `auto` engine inspects each file's extension and dispatches it to the best sub-engine automatically:
+
+```bash
+# Convert a mixed folder (PDFs, DOCX, HTML, images) in one command
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine auto
+```
+
+You can customise per-format routing in `.env`:
+
+```bash
+DEFAULT_ENGINE=auto
+
+# Use Mistral OCR for all PDFs, html_local for HTML, MarkItDown for DOCX
+AUTO_PDF_ENGINE=mistral
+AUTO_HTML_ENGINE=html_local
+AUTO_DOCX_ENGINE=markitdown
+AUTO_IMAGE_ENGINE=local
+AUTO_TEXT_ENGINE=local
+```
+
 ### List available engines
 ```bash
 python -m doc_to_md.cli list-engines
+# Output: local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker, html_local, auto
 ```
 
 ### Run the FastAPI server
@@ -192,6 +244,30 @@ Available endpoints:
 - `GET /apps/conversion/engines`
 - `POST /apps/conversion/convert`
 
+Example: convert a folder with the `auto` engine via the HTTP API:
+
+```bash
+curl -X POST http://localhost:8000/apps/conversion/convert \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_path": "data/input",
+    "output_path": "data/output",
+    "engine": "auto"
+  }'
+```
+
+Example: extract HTML content via the API:
+
+```bash
+curl -X POST http://localhost:8000/apps/conversion/convert \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_path": "data/input",
+    "output_path": "data/output_html",
+    "engine": "html_local"
+  }'
+```
+
 ### CLI + FastAPI app structure
 The conversion app is intentionally split so the same business logic can be reused from both terminal and HTTP entrypoints:
 
@@ -204,7 +280,7 @@ The conversion app is intentionally split so the same business logic can be reus
 ### File Size and Format Limits
 - **Maximum file size:** 100MB per file
 - **Maximum image size:** 100 megapixels
-- **Supported formats:** `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
+- **Supported formats:** `.pdf`, `.docx`, `.html`, `.htm`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
 - **Not supported:** legacy `.doc` format (please convert to `.docx` first)
 
 ## Actuarial example: one IAA paper, two very different outputs
@@ -251,6 +327,8 @@ For actuarial work, that difference matters. If your downstream task is mostly s
 - **MinerU** (`mineru`): wraps the MinerU CLI pipeline, capturing the generated Markdown plus image assets from its output folders.
 - **Docling** (`docling`): feeds documents into IBM's Docling pipeline and exports the resulting structured document back to Markdown.
 - **Marker** (`marker`): drives the Marker PDF stack (without touching disk) and exposes its Markdown renderer alongside extracted images.
+- **HTML Local** (`html_local`): purpose-built HTML content extractor. Extracts the main readable body of a web page, discarding navigation, sidebars, ads, and footers. Uses a three-tier fallback — trafilatura (best, optional) → BeautifulSoup (built-in) → regex tag-stripper (zero-dep). Install `trafilatura` via `pip install ".[html]"` for highest-quality article extraction.
+- **Auto** (`auto`): format-aware dispatcher that routes each file to the best-configured sub-engine based on its extension. Defaults: HTML/HTM → `html_local`, all others → `local`. Fully configurable via `AUTO_*_ENGINE` settings in `.env`.
 
 All engines implement `Engine.convert(Path) -> EngineResponse`, so adding another engine only requires subclassing the `Engine` protocol.
 
@@ -306,12 +384,12 @@ The generated report includes:
 
 ## Development & tests
 - Run the full test suite: `pytest`
-- Current baseline in this branch: `36 passed`
-- Test coverage currently includes CLI behavior, FastAPI endpoints, shared conversion logic, settings validation, file validation, and extraction/pipeline helpers
+- Current baseline in this branch: `69 passed, 2 skipped`
+- Test coverage currently includes CLI behavior, FastAPI endpoints, shared conversion logic, settings validation, file validation, extraction/pipeline helpers, HTML engine, and auto-routing engine
 - Run engine benchmarks: `python benchmark.py`
 - Run the API locally: `uvicorn doc_to_md.api:app --reload` after `pip install ".[api]"`
 - Lint/format according to your preferred tooling (for example `ruff`, `black`) if you add them.
-- When creating new engines, update `.env.example`, `ENGINE_REGISTRY` in `cli.py`, and extend the README/usage docs.
+- When creating new engines, update `.env.example`, `ENGINE_REGISTRY` in `logic.py`, and extend the README/usage docs.
 
 ## Outputs
 Converted Markdown files land in the `output_dir` you pass (or the default from `.env`). Binary artifacts (for example images rendered by Mistral) are written into `<stem>_assets/` subfolders beside the Markdown file so they can be embedded via relative links.
