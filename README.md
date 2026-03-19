@@ -201,6 +201,7 @@ Common flags:
 - `--since 2025-05-01T00:00:00`: skip files modified before the timestamp.
 - `--dry-run`: list candidates without converting or writing files.
 - `--engine` / `--model`: override the defaults defined in `.env`.
+- `--no-page-info`: omit `## Page N` headings and strip page-number footers from the output (currently supported by the Mistral engine).
 
 ### Convert HTML files
 
@@ -347,7 +348,7 @@ For actuarial work, that difference matters. If your downstream task is mostly s
 
 ## Engines
 - **Local** (`local`): wraps the internal text extraction pipeline and produces simple Markdown; great for smoke tests when APIs are unavailable.
-- **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images.
+- **Mistral** (`mistral`): uploads PDFs (optionally split to stay under token limits) and images to the Mistral OCR API, returning Markdown plus extracted page images. Pass `--no-page-info` to produce cleaner output without per-page headings or page-number footers.
 - **DeepSeek OCR** (`deepseekocr`): renders PDFs/images and streams them to the DeepSeek-OCR vision model (falls back to local text extraction for unsupported formats).
 - **MarkItDown** (`markitdown`): invokes Microsoft's MarkItDown library for local conversions across office formats and PDFs.
 - **PaddleOCR** (`paddleocr`): runs PaddleOCR locally (CPU or GPU) against PDFs or images to reconstruct page-by-page Markdown summaries.

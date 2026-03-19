@@ -34,13 +34,14 @@ class _DocumentChunk:
 class MistralEngine(Engine):
     name = "mistral"
 
-    def __init__(self, model: str | None = None, include_images: bool = True, **kwargs) -> None:
+    def __init__(self, model: str | None = None, include_images: bool = True, include_page_headers: bool = True, **kwargs) -> None:
         settings = get_settings()
         if not settings.mistral_api_key:
             raise RuntimeError("MISTRAL_API_KEY missing")
         self.api_key = settings.mistral_api_key
         self.model = model or settings.mistral_default_model
         self.include_images = include_images
+        self.include_page_headers = include_page_headers
         self.timeout_ms = int(settings.mistral_timeout_seconds * 1000)
         self.retry_attempts = settings.mistral_retry_attempts
         self.max_pdf_tokens = settings.mistral_max_pdf_tokens
@@ -189,8 +190,11 @@ class MistralEngine(Engine):
         normalized_stem = self._normalize_stem(title)
 
         for page in pages:
-            sections.append(f"## Page {page.index + 1}")
+            if self.include_page_headers:
+                sections.append(f"## Page {page.index + 1}")
             cleaned_page = self._strip_placeholder_images(page.markdown)
+            if not self.include_page_headers:
+                cleaned_page = self._strip_page_footers(cleaned_page)
             sections.append(cleaned_page or "_No text extracted on this page._")
 
             image_snippets, page_assets = self._render_images(normalized_stem, page.images, page.index)
@@ -244,6 +248,23 @@ class MistralEngine(Engine):
         if binary.startswith(b'BM'):
             return "bmp"
         return "bin"
+
+    @staticmethod
+    def _strip_page_footers(markdown: str) -> str:
+        """Remove standalone page numbers and common footer lines from page text."""
+        lines = (markdown or "").splitlines()
+        # Strip trailing lines that are just page numbers or common footer patterns
+        while lines:
+            candidate = lines[-1].strip()
+            if not candidate:
+                lines.pop()
+                continue
+            # Match standalone page numbers: "5", "- 5 -", "Page 5", "Seite 5", "page 5 of 20", etc.
+            if re.match(r'^[-–—]*\s*(?:page|seite|p\.?)?\s*\d+(?:\s*(?:of|von)\s*\d+)?\s*[-–—]*$', candidate, re.IGNORECASE):
+                lines.pop()
+                continue
+            break
+        return "\n".join(lines)
 
     @staticmethod
     def _strip_placeholder_images(markdown: str) -> str:

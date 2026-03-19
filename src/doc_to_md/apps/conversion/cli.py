@@ -25,6 +25,7 @@ def convert(
             help="Process only files modified on/after this timestamp (ISO 8601, e.g. 2025-05-01T00:00:00).",
         ),
     ] = None,
+    no_page_info: Annotated[bool, typer.Option("--no-page-info", help="Omit page headers and strip page footers from output")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="List eligible files without converting or writing output")] = False,
 ) -> None:
     try:
@@ -34,6 +35,7 @@ def convert(
             engine=engine,
             model=model,
             since=since,
+            no_page_info=no_page_info,
             dry_run=dry_run,
         )
     except ValueError as exc:
