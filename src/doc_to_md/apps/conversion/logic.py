@@ -37,6 +37,9 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
 ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
 
 
+ENGINES_SUPPORTING_PAGE_OPTIONS = {"mistral"}
+
+
 @dataclass(slots=True)
 class RunMetrics:
     total_candidates: int = 0
@@ -74,13 +77,16 @@ def list_engine_names() -> list[str]:
     return list(ENGINE_REGISTRY)
 
 
-def _resolve_engine(engine: EngineName, model: str | None) -> Engine:
+def _resolve_engine(engine: EngineName, model: str | None, **engine_kwargs) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise ValueError(f"Unknown engine '{engine}'")
     engine_cls = ENGINE_REGISTRY[engine]
+    # Only pass page-related kwargs to engines that support them
+    if engine not in ENGINES_SUPPORTING_PAGE_OPTIONS:
+        engine_kwargs.pop("include_page_headers", None)
     if engine in ENGINES_REQUIRING_MODEL:
-        return engine_cls(model=model)
-    return engine_cls()
+        return engine_cls(model=model, **engine_kwargs)
+    return engine_cls(**engine_kwargs)
 
 
 def _normalize_engine(input_value: Optional[str], default: EngineName) -> EngineName:
@@ -123,6 +129,7 @@ def run_conversion(
     engine: str | None = None,
     model: str | None = None,
     since: datetime | None = None,
+    no_page_info: bool = False,
     dry_run: bool = False,
     settings: Settings | None = None,
 ) -> ConversionRun:
@@ -130,7 +137,12 @@ def run_conversion(
     input_dir = Path(input_path) if input_path else active_settings.input_dir
     output_dir = Path(output_path) if output_path else active_settings.output_dir
     engine_name = _normalize_engine(engine, active_settings.default_engine)
-    engine_instance = _resolve_engine(engine_name, model)
+
+    engine_kwargs: dict = {}
+    if no_page_info:
+        engine_kwargs["include_page_headers"] = False
+
+    engine_instance = _resolve_engine(engine_name, model, **engine_kwargs)
 
     log_info(f"Using engine '{engine_name}' (model: {getattr(engine_instance, 'model', 'n/a')})")
 
