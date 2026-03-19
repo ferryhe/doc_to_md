@@ -1,7 +1,13 @@
 __pycache__/
+.pytest_cache/
 .env
 data/**
 *.pyc
 .venv
 .venv_gpu
-*doc_to_markdown_converter.egg-info
+*.egg-info/
+benchmark_results/
+examples/test_output/
+demo_report/
+final_test/
+test_run/
