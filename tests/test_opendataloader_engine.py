@@ -79,6 +79,50 @@ def test_opendataloader_missing_package_raises() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Java runtime checks
+# ---------------------------------------------------------------------------
+
+
+def test_ensure_java_not_on_path_raises() -> None:
+    engine = OpenDataLoaderEngine()
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value=None):
+        with pytest.raises(RuntimeError, match="java.*was not found on PATH"):
+            engine._ensure_java()
+
+
+def test_ensure_java_old_version_raises() -> None:
+    engine = OpenDataLoaderEngine()
+    # Simulate Java 8 (old versioning scheme: "1.8.0_321")
+    mock_result = MagicMock()
+    mock_result.stderr = 'java version "1.8.0_321"\n'
+    mock_result.stdout = ""
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
+         patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
+        with pytest.raises(RuntimeError, match="Java 11\\+.*Java 8 was found"):
+            engine._ensure_java()
+
+
+def test_ensure_java_version_17_ok() -> None:
+    engine = OpenDataLoaderEngine()
+    mock_result = MagicMock()
+    mock_result.stderr = 'openjdk version "17.0.1" 2021-10-19\n'
+    mock_result.stdout = ""
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
+         patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
+        engine._ensure_java()  # should not raise
+
+
+def test_ensure_java_version_11_ok() -> None:
+    engine = OpenDataLoaderEngine()
+    mock_result = MagicMock()
+    mock_result.stderr = 'openjdk version "11.0.17" 2022-10-18\n'
+    mock_result.stdout = ""
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
+         patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
+        engine._ensure_java()  # should not raise
+
+
+# ---------------------------------------------------------------------------
 # Non-PDF input raises ValueError
 # ---------------------------------------------------------------------------
 
@@ -88,7 +132,8 @@ def test_opendataloader_rejects_non_pdf(tmp_path: Path) -> None:
     txt_file.write_text("hello", encoding="utf-8")
 
     engine = OpenDataLoaderEngine()
-    # Patch _ensure_package so we don't need the actual library installed
+    # Patch both guards so we don't need the actual library or Java installed
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     engine._ensure_package = lambda: None  # type: ignore[method-assign]
 
     # Test the suffix guard by calling convert with a mocked package
@@ -120,6 +165,7 @@ def test_opendataloader_convert_success(tmp_path: Path) -> None:
     fake_module.convert = fake_convert
 
     engine = OpenDataLoaderEngine()
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         response = engine.convert(pdf_file)
 
@@ -146,6 +192,7 @@ def test_opendataloader_convert_with_image_assets(tmp_path: Path) -> None:
     fake_module.convert = fake_convert
 
     engine = OpenDataLoaderEngine()
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         response = engine.convert(pdf_file)
 
@@ -170,6 +217,7 @@ def test_opendataloader_convert_no_markdown_raises(tmp_path: Path) -> None:
     fake_module.convert = fake_convert
 
     engine = OpenDataLoaderEngine()
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         with pytest.raises(RuntimeError, match="did not produce a Markdown file"):
             engine.convert(pdf_file)
@@ -201,6 +249,7 @@ def test_opendataloader_hybrid_kwargs(tmp_path: Path) -> None:
     with patch("doc_to_md.engines.opendataloader.get_settings", return_value=mock_settings):
         engine = OpenDataLoaderEngine()
 
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         engine.convert(pdf_file)
 
@@ -229,6 +278,7 @@ def test_opendataloader_struct_tree_kwargs(tmp_path: Path) -> None:
     with patch("doc_to_md.engines.opendataloader.get_settings", return_value=mock_settings):
         engine = OpenDataLoaderEngine()
 
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         engine.convert(pdf_file)
 

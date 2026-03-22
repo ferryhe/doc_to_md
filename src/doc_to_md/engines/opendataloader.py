@@ -1,6 +1,9 @@
 """Engine adapter for the OpenDataLoader PDF parser."""
 from __future__ import annotations
 
+import re
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -29,16 +32,52 @@ class OpenDataLoaderEngine(Engine):
         self._use_struct_tree: bool = settings.opendataloader_use_struct_tree
         self.model = model or (f"opendataloader-hybrid:{self._hybrid}" if self._hybrid else "opendataloader")
 
+    def _ensure_java(self) -> None:
+        """Verify that a Java 11+ runtime is available on the system PATH."""
+        if shutil.which("java") is None:
+            raise RuntimeError(
+                "OpenDataLoader engine requires Java 11+ but 'java' was not found on PATH. "
+                "Install a JDK/JRE and ensure it is on your PATH, for example:\n"
+                "  • Ubuntu/Debian: sudo apt install default-jre\n"
+                "  • macOS (Homebrew): brew install openjdk@17\n"
+                "  • Windows: https://adoptium.net/\n"
+                "Then verify with: java -version"
+            )
+        result = subprocess.run(
+            ["java", "-version"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        version_output = result.stderr or result.stdout
+        # Version string is on stderr for most JVMs (e.g. 'openjdk version "17.0.1"')
+        match = re.search(r'"(\d+)(?:\.(\d+))?', version_output)
+        if match:
+            major = int(match.group(1))
+            # Old versioning: "1.8.0" → major=1, minor=8 → effective 8
+            if major == 1:
+                minor = int(match.group(2) or "0")
+                effective = minor
+            else:
+                effective = major
+            if effective < 11:
+                raise RuntimeError(
+                    f"OpenDataLoader engine requires Java 11+, but Java {effective} was found. "
+                    "Please upgrade your Java installation."
+                )
+
     def _ensure_package(self) -> None:
         try:
             import opendataloader_pdf  # noqa: F401
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
-                "OpenDataLoader engine requires the `opendataloader-pdf` package and Java 11+. "
-                "Install it via `pip install opendataloader-pdf` before using this engine."
+                "OpenDataLoader engine requires the `opendataloader-pdf` package. "
+                "Install it via `pip install 'doc-to-markdown-converter[opendataloader]'` "
+                "or `pip install opendataloader-pdf` and ensure Java 11+ is available."
             ) from exc
 
     def convert(self, path: Path) -> EngineResponse:  # pragma: no cover - heavy dependency
+        self._ensure_java()
         self._ensure_package()
         import opendataloader_pdf
 

@@ -169,6 +169,7 @@ Each engine requires its own set of packages. Install only the ones you plan to 
 | `paddleocr` | `pip install ".[paddleocr]"` | Requires CUDA GPU; installs opencv + pyclipper |
 | `mineru` | `pip install ".[mineru]"` | GPU strongly recommended |
 | `marker` | `pip install ".[marker]"` | GPU strongly recommended |
+| `opendataloader` | `pip install ".[opendataloader]"` | **Requires Java 11+** on PATH; PDF-only; Java-backed layout analysis |
 | `api` server | `pip install ".[api]"` | FastAPI + uvicorn |
 
 Quick pick-and-mix examples:
@@ -248,8 +249,36 @@ AUTO_TEXT_ENGINE=local
 ### List available engines
 ```bash
 python -m doc_to_md.cli list-engines
-# Output: local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker, html_local, auto
+# Output: local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker, html_local, auto, opendataloader
 ```
+
+### Use the opendataloader engine (Java-backed PDF parser)
+
+> **Prerequisite:** Java 11+ must be installed and available on your `PATH`.  
+> Verify with `java -version`. Install guides:
+> - Ubuntu/Debian: `sudo apt install default-jre`
+> - macOS (Homebrew): `brew install openjdk@17`
+> - Windows: <https://adoptium.net/>
+
+```bash
+# Install the engine extra
+pip install "doc-to-markdown-converter[opendataloader]"
+
+# Fast local mode (no GPU or API key needed)
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine opendataloader
+
+# Hybrid AI mode for complex tables / scanned pages / formulas
+# Set OPENDATALOADER_HYBRID in .env or as an environment variable
+OPENDATALOADER_HYBRID=docling-fast python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine opendataloader
+```
+
+The engine will raise a clear error with install instructions if Java is missing or below version 11.
 
 ### Run the FastAPI server
 Install the API extra first:
