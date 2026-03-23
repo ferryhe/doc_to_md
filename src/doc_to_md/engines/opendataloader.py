@@ -49,22 +49,33 @@ class OpenDataLoaderEngine(Engine):
             text=True,
             check=False,
         )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "OpenDataLoader engine requires a working Java runtime, but "
+                f"`java -version` failed with exit code {result.returncode}.\n"
+                f"stdout: {result.stdout or '<empty>'}\n"
+                f"stderr: {result.stderr or '<empty>'}"
+            )
         version_output = result.stderr or result.stdout
         # Version string is on stderr for most JVMs (e.g. 'openjdk version "17.0.1"')
         match = re.search(r'"(\d+)(?:\.(\d+))?', version_output)
-        if match:
-            major = int(match.group(1))
-            # Old versioning: "1.8.0" → major=1, minor=8 → effective 8
-            if major == 1:
-                minor = int(match.group(2) or "0")
-                effective = minor
-            else:
-                effective = major
-            if effective < 11:
-                raise RuntimeError(
-                    f"OpenDataLoader engine requires Java 11+, but Java {effective} was found. "
-                    "Please upgrade your Java installation."
-                )
+        if not match:
+            raise RuntimeError(
+                "OpenDataLoader engine could not determine the Java version from "
+                f"`java -version` output:\n{version_output}"
+            )
+        major = int(match.group(1))
+        # Old versioning: "1.8.0" → major=1, minor=8 → effective 8
+        if major == 1:
+            minor = int(match.group(2) or "0")
+            effective = minor
+        else:
+            effective = major
+        if effective < 11:
+            raise RuntimeError(
+                f"OpenDataLoader engine requires Java 11+, but Java {effective} was found. "
+                "Please upgrade your Java installation."
+            )
 
     def _ensure_package(self) -> None:
         try:
@@ -101,11 +112,23 @@ class OpenDataLoaderEngine(Engine):
 
             opendataloader_pdf.convert(**convert_kwargs)
 
-            # The library writes <stem>.md (and optionally image assets) under output_dir.
-            md_files = list(Path(temp_dir).rglob("*.md"))
-            if not md_files:
-                raise RuntimeError("OpenDataLoader did not produce a Markdown file.")
-            markdown = md_files[0].read_text(encoding="utf-8")
+            # Prefer the expected <stem>.md output; fall back to sorted rglob
+            # to avoid nondeterministic selection when multiple .md files exist.
+            output_root = Path(temp_dir)
+            expected_md = output_root / f"{path.stem}.md"
+            if expected_md.is_file():
+                md_path = expected_md
+            else:
+                md_files = sorted(output_root.rglob("*.md"))
+                if not md_files:
+                    raise RuntimeError("OpenDataLoader did not produce a Markdown file.")
+                if len(md_files) > 1:
+                    raise RuntimeError(
+                        "OpenDataLoader produced multiple Markdown files; cannot determine "
+                        f"which to use: {', '.join(str(p) for p in md_files)}"
+                    )
+                md_path = md_files[0]
+            markdown = md_path.read_text(encoding="utf-8")
 
             assets: list[EngineAsset] = []
             for img_path in Path(temp_dir).rglob("*"):

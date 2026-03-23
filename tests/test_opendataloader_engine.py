@@ -94,6 +94,7 @@ def test_ensure_java_old_version_raises() -> None:
     engine = OpenDataLoaderEngine()
     # Simulate Java 8 (old versioning scheme: "1.8.0_321")
     mock_result = MagicMock()
+    mock_result.returncode = 0
     mock_result.stderr = 'java version "1.8.0_321"\n'
     mock_result.stdout = ""
     with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
@@ -105,6 +106,7 @@ def test_ensure_java_old_version_raises() -> None:
 def test_ensure_java_version_17_ok() -> None:
     engine = OpenDataLoaderEngine()
     mock_result = MagicMock()
+    mock_result.returncode = 0
     mock_result.stderr = 'openjdk version "17.0.1" 2021-10-19\n'
     mock_result.stdout = ""
     with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
@@ -115,11 +117,36 @@ def test_ensure_java_version_17_ok() -> None:
 def test_ensure_java_version_11_ok() -> None:
     engine = OpenDataLoaderEngine()
     mock_result = MagicMock()
+    mock_result.returncode = 0
     mock_result.stderr = 'openjdk version "11.0.17" 2022-10-18\n'
     mock_result.stdout = ""
     with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
          patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
         engine._ensure_java()  # should not raise
+
+
+def test_ensure_java_nonzero_exit_raises() -> None:
+    engine = OpenDataLoaderEngine()
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stderr = "Error: Could not create the Java Virtual Machine."
+    mock_result.stdout = ""
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
+         patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
+        with pytest.raises(RuntimeError, match="java -version.*failed with exit code 1"):
+            engine._ensure_java()
+
+
+def test_ensure_java_unparseable_version_raises() -> None:
+    engine = OpenDataLoaderEngine()
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stderr = "some unexpected output with no version string"
+    mock_result.stdout = ""
+    with patch("doc_to_md.engines.opendataloader.shutil.which", return_value="/usr/bin/java"), \
+         patch("doc_to_md.engines.opendataloader.subprocess.run", return_value=mock_result):
+        with pytest.raises(RuntimeError, match="could not determine the Java version"):
+            engine._ensure_java()
 
 
 # ---------------------------------------------------------------------------
@@ -220,6 +247,27 @@ def test_opendataloader_convert_no_markdown_raises(tmp_path: Path) -> None:
     engine._ensure_java = lambda: None  # type: ignore[method-assign]
     with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
         with pytest.raises(RuntimeError, match="did not produce a Markdown file"):
+            engine.convert(pdf_file)
+
+
+def test_opendataloader_convert_multiple_markdown_raises(tmp_path: Path) -> None:
+    pdf_file = tmp_path / "sample.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4 fake content")
+
+    def fake_convert(input_path, output_dir, format, **kwargs):
+        # Simulate library writing two unexpected .md files (not matching the input stem)
+        out = Path(output_dir)
+        (out / "partA.md").write_text("# Part A", encoding="utf-8")
+        (out / "partB.md").write_text("# Part B", encoding="utf-8")
+
+    import sys
+    fake_module = MagicMock()
+    fake_module.convert = fake_convert
+
+    engine = OpenDataLoaderEngine()
+    engine._ensure_java = lambda: None  # type: ignore[method-assign]
+    with patch.dict(sys.modules, {"opendataloader_pdf": fake_module}):
+        with pytest.raises(RuntimeError, match="multiple Markdown files"):
             engine.convert(pdf_file)
 
 
