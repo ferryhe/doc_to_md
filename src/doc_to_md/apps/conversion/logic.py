@@ -18,6 +18,7 @@ from doc_to_md.engines.marker import MarkerEngine
 from doc_to_md.engines.markitdown import MarkItDownEngine
 from doc_to_md.engines.mineru import MinerUEngine
 from doc_to_md.engines.mistral import MistralEngine
+from doc_to_md.engines.opendataloader import OpenDataLoaderEngine
 from doc_to_md.engines.paddleocr import PaddleOCREngine
 from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
@@ -36,6 +37,7 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "marker": MarkerEngine,
     "html_local": HtmlLocalEngine,
     "auto": AutoEngine,
+    "opendataloader": OpenDataLoaderEngine,
 }
 
 ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
