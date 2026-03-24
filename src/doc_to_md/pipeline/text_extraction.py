@@ -154,7 +154,7 @@ def _extract_text_file(path: Path) -> str:
         File contents
     """
     try:
-        return path.read_text(encoding="utf-8", errors="ignore")
+        return path.read_text(encoding="utf-8-sig", errors="ignore")
     except Exception as exc:
         return f"[Text file reading failed: {exc}]"
 
@@ -292,7 +292,7 @@ def _extract_pptx(path: Path) -> str:
     """
     Extract text from a PowerPoint presentation (.pptx) slide-by-slide.
 
-    Requires ``python-pptx`` (install with ``pip install 'doc-to-md[office]'``).
+    Requires ``python-pptx`` (install with ``pip install 'doc-to-markdown-converter[office]'``).
 
     Args:
         path: Path to .pptx file
@@ -305,7 +305,7 @@ def _extract_pptx(path: Path) -> str:
     except ImportError:
         raise RuntimeError(
             "PPTX extraction requires 'python-pptx'. "
-            "Install it with: pip install 'doc-to-md[office]'"
+            "Install it with: pip install 'doc-to-markdown-converter[office]'"
         )
 
     try:
@@ -334,7 +334,7 @@ def _extract_xlsx(path: Path) -> str:
 
     Each sheet becomes its own section with the data formatted as a
     Markdown table.  Requires ``openpyxl`` (install with
-    ``pip install 'doc-to-md[office]'``).
+    ``pip install 'doc-to-markdown-converter[office]'``).
 
     Args:
         path: Path to .xlsx file
@@ -347,7 +347,7 @@ def _extract_xlsx(path: Path) -> str:
     except ImportError:
         raise RuntimeError(
             "XLSX extraction requires 'openpyxl'. "
-            "Install it with: pip install 'doc-to-md[office]'"
+            "Install it with: pip install 'doc-to-markdown-converter[office]'"
         )
 
     try:

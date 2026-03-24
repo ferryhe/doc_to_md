@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Iterable, List
+from typing import List
 
 import tiktoken
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 from typing import Dict, Optional, Type, cast
 
-from config.settings import EngineName, Settings, get_settings
+from doc_to_md.config.settings import EngineName, Settings, get_settings
 from doc_to_md.engines.base import Engine
 from doc_to_md.engines.auto import AutoEngine
 from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
@@ -40,7 +40,7 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "opendataloader": OpenDataLoaderEngine,
 }
 
-ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker"}
+ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker", "opendataloader"}
 
 
 ENGINES_SUPPORTING_PAGE_OPTIONS = {"mistral"}

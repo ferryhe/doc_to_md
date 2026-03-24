@@ -355,7 +355,7 @@ def test_list_engine_names_includes_opendataloader() -> None:
 
 
 def test_settings_opendataloader_defaults() -> None:
-    from config.settings import Settings
+    from doc_to_md.config.settings import Settings
     s = Settings()
     assert s.opendataloader_hybrid is None
     assert s.opendataloader_use_struct_tree is False
@@ -363,13 +363,13 @@ def test_settings_opendataloader_defaults() -> None:
 
 def test_settings_opendataloader_hybrid_from_env(monkeypatch) -> None:
     monkeypatch.setenv("OPENDATALOADER_HYBRID", "docling-fast")
-    from config.settings import Settings
+    from doc_to_md.config.settings import Settings
     s = Settings()
     assert s.opendataloader_hybrid == "docling-fast"
 
 
 def test_settings_opendataloader_struct_tree_from_env(monkeypatch) -> None:
     monkeypatch.setenv("OPENDATALOADER_USE_STRUCT_TREE", "true")
-    from config.settings import Settings
+    from doc_to_md.config.settings import Settings
     s = Settings()
     assert s.opendataloader_use_struct_tree is True

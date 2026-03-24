@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from doc_to_md.cli import RunMetrics, _format_summary, _should_process
+from doc_to_md.apps.conversion.logic import RunMetrics, _format_summary, _should_process
 
 
 def test_should_process_without_since(tmp_path: Path) -> None:

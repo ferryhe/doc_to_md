@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Callable, Tuple
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.utils.hardware import ensure_mineru_accelerator_env
 from .base import Engine, EngineAsset, EngineResponse
 

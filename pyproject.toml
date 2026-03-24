@@ -1,10 +1,26 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "doc-to-markdown-converter"
 version = "0.1.0"
 description = "Modular CLI for converting documentation to Markdown using multiple engines"
-authors = [{name = "Your Name", email = "you@example.com"}]
+authors = [{name = "Ferry He", email = "ferry.he@gmail.com"}]
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
+keywords = ["markdown", "ocr", "pdf", "document-conversion", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markup",
+]
 dependencies = [
     "typer==0.12.5",
     "rich==13.7.1",
@@ -22,6 +38,11 @@ dependencies = [
     "tiktoken==0.7.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/ferryhe/doc_to_md"
+Repository = "https://github.com/ferryhe/doc_to_md"
+Issues = "https://github.com/ferryhe/doc_to_md/issues"
+
 [project.scripts]
 doc-to-md = "doc_to_md.cli:app"
 doc-to-md-api = "doc_to_md.api:run"
@@ -36,6 +57,14 @@ mineru = ["mineru>=2.6.4"]
 docling = ["docling>=2.61.1"]
 marker = ["marker-pdf>=1.10.1"]
 opendataloader = ["opendataloader-pdf>=2.0.0"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["doc_to_md*"]
 
 [tool.setuptools.package-data]
 doc_to_md = ["py.typed"]

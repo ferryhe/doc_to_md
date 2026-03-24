@@ -1,22 +1,19 @@
 # Engine Benchmark Tool Guide
 
-## Introduction
+## Overview
 
-This is a tool for testing and comparing the performance of different document conversion engines. It automatically tests multiple engines and generates detailed comparison reports.
+`benchmark.py` compares document conversion engines on a sample input and generates Markdown and optional JSON reports.
 
-## Features
+Use it when you want to:
 
-- ✅ **Automated Testing** - Test multiple engines with a single command
-- 📊 **Performance Metrics** - Conversion time, success rate, and output characteristics (Markdown length and asset count as proxies)
-- 📝 **Detailed Reports** - Generate comprehensive comparison reports
-- 🎯 **Engine Analysis** - Pros/cons and use cases for each engine
-- 🔧 **Flexible Configuration** - Custom test files and engine selection
+- compare output behavior across engines
+- measure conversion time and success rate
+- validate a production-like sample before bulk conversion
+- evaluate free, local, and API-based engines side by side
 
-> **Note**: The `benchmark.py` script is designed for use from a source checkout. Run it from the project root directory.
+> Note: `benchmark.py` is intended for use from a source checkout. Run it from the project root.
 
-## Quick Start
-
-### Basic Usage
+## Quick start
 
 ```bash
 # Test all available engines
@@ -25,76 +22,77 @@ python benchmark.py
 # Test specific engines
 python benchmark.py --engines local markitdown
 
-# Use custom test file
+# Use a custom test file
 python benchmark.py --test-file path/to/your/document.pdf
 
-# Save results in JSON format
+# Save JSON output too
 python benchmark.py --save-json
 ```
 
-### Advanced Usage
+## More examples
 
 ```bash
-# Test multiple engines and save to specific directory
+# Save results to a custom directory
 python benchmark.py \
   --engines local markitdown paddleocr docling \
   --output-dir my_test_results \
   --save-json
 
-# Test OCR engines with PDF file
+# Compare OCR-oriented engines on a PDF
 python benchmark.py \
   --test-file document.pdf \
   --engines mistral deepseekocr paddleocr
 
-# Test all local engines (no API keys required)
+# Test only local engines
 python benchmark.py \
   --engines local markitdown paddleocr docling marker mineru
 ```
 
-## Supported Engines
+## Supported engines
 
-### Local Engines (No API Key Required)
+### Local engines
 
-1. **local** - Basic text extraction
-2. **markitdown** - Microsoft MarkItDown (Install: `pip install markitdown`)
-3. **paddleocr** - PaddleOCR (Install: `pip install ".[paddleocr]"`)
-4. **docling** - IBM Docling (Install: `pip install ".[docling]"`)
-5. **marker** - Marker PDF (Install: `pip install ".[marker]"`)
-6. **mineru** - MinerU (Install: `pip install ".[mineru]"`)
+1. `local`
+2. `markitdown`
+3. `paddleocr`
+4. `docling`
+5. `marker`
+6. `mineru`
 
-### Cloud Engines (API Key Required)
+### API-based engines
 
-7. **mistral** - Mistral OCR API (Set `MISTRAL_API_KEY` in `.env`)
-8. **deepseekocr** - DeepSeek OCR API (Set `SILICONFLOW_API_KEY` in `.env`)
+7. `mistral`
+8. `deepseekocr`
 
-## Report Contents
+## Output files
+
+Generated in the output directory, which defaults to `benchmark_results/`:
+
+1. `comparison_report_YYYYMMDD_HHMMSS.md`
+2. `benchmark_result_YYYYMMDD_HHMMSS.json` when `--save-json` is used
+3. `sample_test.txt` if no custom file is provided
+
+## Report contents
 
 The generated report includes:
 
-1. **Test Information** - Timestamp, file info, size
-2. **Overall Statistics** - Success/failure counts, success rate
-3. **Performance Rankings** - Sorted by conversion time
-4. **Detailed Results Table** - Status, time, output length, assets, ratings
-5. **Engine Analysis** - Pros, cons, best use cases
-6. **Usage Recommendations** - Speed vs quality, cost, document type suggestions
-7. **Failure Details** - Error messages and troubleshooting
+1. test metadata such as timestamp and file size
+2. overall statistics and success rate
+3. performance ranking by conversion time
+4. per-engine details such as output length and asset count
+5. engine pros, cons, and suggested use cases
+6. failure details and troubleshooting hints
 
-## Output Files
+## Common scenarios
 
-Generated in the output directory (default: `benchmark_results/`):
+### Choose the best engine for a document type
 
-1. `comparison_report_YYYYMMDD_HHMMSS.md` - Comparison report
-2. `benchmark_result_YYYYMMDD_HHMMSS.json` - Raw data (with `--save-json`)
-3. `sample_test.txt` - Sample test file (if no custom file provided)
-
-## Use Cases
-
-### Scenario 1: Choosing the Right Engine
 ```bash
 python benchmark.py --test-file your_document.pdf --save-json
 ```
 
-### Scenario 2: Performance Validation
+### Validate production performance
+
 ```bash
 python benchmark.py \
   --test-file production_sample.pdf \
@@ -102,84 +100,74 @@ python benchmark.py \
   --output-dir validation_results
 ```
 
-### Scenario 3: Quality Assessment
+### Compare quality across engines
+
 ```bash
 python benchmark.py \
   --test-file complex_document.pdf \
   --engines local markitdown mistral paddleocr docling marker
 ```
 
-### Scenario 4: Cost Analysis
+### Compare free and paid options
+
 ```bash
-# Free engines
+# Free / local
 python benchmark.py --engines local markitdown paddleocr docling marker mineru
 
-# Paid engines
+# API-based
 python benchmark.py --engines mistral deepseekocr
 ```
 
 ## FAQ
 
 ### Why do some engines fail?
-- Missing dependencies
-- Unconfigured API keys
-- Unsupported file format
-- Insufficient resources
 
-**Solutions**: Check report's "Failure Details", install dependencies, configure API keys.
+Common reasons:
 
-### How to test only installed engines?
-```bash
-python benchmark.py --engines local markitdown
-```
+- missing dependencies
+- missing API keys
+- unsupported file format
+- insufficient system resources
 
 ### Where are results saved?
-Default: `benchmark_results/`. Customize with `--output-dir`.
 
-### Performance ratings?
-- ⭐⭐⭐⭐⭐ Excellent: < 5s
-- ⭐⭐⭐⭐ Good: 5-15s
-- ⭐⭐⭐ Average: 15-30s
-- ⭐⭐ Slow: 30-60s
-- ⭐ Very Slow: > 60s
+By default: `benchmark_results/`
 
-### Can I test with my own documents?
+### How should I interpret performance ratings?
+
+- Excellent: under 5 seconds
+- Good: 5 to 15 seconds
+- Average: 15 to 30 seconds
+- Slow: 30 to 60 seconds
+- Very slow: over 60 seconds
+
+### Can I test my own documents?
+
+Yes:
+
 ```bash
 python benchmark.py --test-file path/to/your/document.pdf
 ```
-Supported: .pdf, .docx, .png, .jpg, .jpeg, .txt, .md
 
-### Chinese document processing?
-```bash
-python benchmark.py \
-  --test-file chinese_document.pdf \
-  --engines deepseekocr paddleocr docling mistral
-```
+Supported input types include `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.txt`, and `.md`.
 
-## Technical Details
+## Technical notes
 
-### Test Metrics
-- **Conversion Time**: Start to completion (seconds)
-- **Markdown Length**: Character count in output
-- **Asset Count**: Number of extracted images/resources
-- **Success Rate**: Percentage of successful conversions
+Metrics currently include:
 
-### Performance Optimization
-- PaddleOCR: Use GPU (`use_gpu=True`)
-- MinerU: Better with GPU
-- Cloud engines: Adjust `*_TIMEOUT_SECONDS` and `*_RETRY_ATTEMPTS` in `.env`
+- conversion time
+- Markdown output length
+- extracted asset count
+- success or failure status
 
-## Contributing
+Optimization hints:
 
-Suggested improvements:
-- More metrics (memory, CPU)
-- Batch testing
-- Visualization charts
-- More output formats (HTML, Excel)
+- PaddleOCR benefits from GPU acceleration when available
+- MinerU generally performs better on GPU-equipped machines
+- API engines may need higher timeout and retry values for large documents
 
----
+## Related files
 
-**More Information**:
-- Main README: `README.md`
-- Configuration: `.env.example`
-- Code: `benchmark.py`
+- Main guide: [README.md](README.md)
+- Configuration template: [.env.example](.env.example)
+- Benchmark script: [benchmark.py](benchmark.py)

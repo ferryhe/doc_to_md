@@ -17,7 +17,7 @@ from mistralai.models.ocrpageobject import OCRPageObject
 from mistralai.models.ocrresponse import OCRResponse
 from pypdf import PdfReader, PdfWriter
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.utils.tokens import count_tokens
 from .base import Engine, EngineAsset, EngineResponse
 

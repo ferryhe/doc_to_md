@@ -112,8 +112,6 @@ def test_html_engine_strips_nav_and_footer(tmp_path: Path) -> None:
 
 def test_html_engine_bs4_strips_boilerplate_tags(tmp_path: Path) -> None:
     """bs4 fallback: script/style content should be excluded from the output."""
-    from unittest.mock import MagicMock
-
     # Create a minimal BS4 mock that behaves like the real thing for this test
     html_file = tmp_path / "page.html"
     html_file.write_text(

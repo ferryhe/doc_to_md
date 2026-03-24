@@ -33,6 +33,11 @@ def test_instantiate_html_local() -> None:
     assert engine.name == "html_local"
 
 
+def test_instantiate_opendataloader() -> None:
+    engine = _instantiate("opendataloader")
+    assert engine.name == "opendataloader"
+
+
 def test_instantiate_unknown_raises() -> None:
     with pytest.raises(ValueError, match="not supported in auto mode"):
         _instantiate("unknown_engine_xyz")
@@ -112,7 +117,7 @@ def test_auto_engine_respects_settings_override(tmp_path: Path, monkeypatch) -> 
     html_file.write_text("<html><body><p>Overridden</p></body></html>", encoding="utf-8")
 
     # Monkey-patch settings so html uses "local" instead of "html_local"
-    from config import settings as settings_mod
+    from doc_to_md.config import settings as settings_mod
 
     mock_settings = MagicMock()
     mock_settings.auto_pdf_engine = "local"

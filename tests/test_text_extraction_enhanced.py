@@ -36,6 +36,15 @@ def test_extract_text_handles_extraction_error(tmp_path: Path, monkeypatch) -> N
         extract_text(file_path)
 
 
+def test_extract_text_file_strips_utf8_bom(tmp_path: Path) -> None:
+    file_path = tmp_path / "bom.txt"
+    file_path.write_bytes(b"\xef\xbb\xbfhello world")
+
+    result = extract_text(file_path)
+
+    assert result == "hello world"
+
+
 def test_extract_pdf_corrupted_file(tmp_path: Path) -> None:
     """Test PDF extraction handles corrupted files."""
     file_path = tmp_path / "corrupted.pdf"
@@ -70,9 +79,9 @@ def test_extract_docx_with_headings(tmp_path: Path) -> None:
     docx = pytest.importorskip("docx")
     
     doc = docx.Document()
-    heading1 = doc.add_heading("Main Title", level=1)
+    doc.add_heading("Main Title", level=1)
     doc.add_paragraph("Some content")
-    heading2 = doc.add_heading("Subsection", level=2)
+    doc.add_heading("Subsection", level=2)
     doc.add_paragraph("More content")
     
     file_path = tmp_path / "test.docx"
@@ -180,8 +189,6 @@ def test_extract_image_too_large(tmp_path: Path, monkeypatch) -> None:
     img.save(image_path)
     
     # Mock the image dimensions to be huge
-    original_open = PIL.open
-    
     class MockImage:
         width = 20000
         height = 20000

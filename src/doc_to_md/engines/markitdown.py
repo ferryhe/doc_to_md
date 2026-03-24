@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from .base import Engine, EngineResponse
 
 

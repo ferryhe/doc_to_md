@@ -9,7 +9,7 @@ from typing import List, Sequence, Tuple, TypeVar
 
 from openai import OpenAI
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.pipeline.text_extraction import extract_text
 from doc_to_md.utils.tokens import split_by_tokens
 from .base import Engine, EngineResponse, RetryableRequestMixin

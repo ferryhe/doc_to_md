@@ -1,13 +1,8 @@
 from pathlib import Path
-import sys
 
 import pytest
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
-
-from config.settings import Settings
+from doc_to_md.config.settings import Settings
 
 
 def test_settings_allows_remote_default_without_secret(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -24,3 +19,9 @@ def test_settings_allows_remote_default_without_secret(tmp_path: Path, monkeypat
     assert settings.default_engine == "mistral"
     assert settings.input_dir.exists()
     assert settings.output_dir.exists()
+
+
+def test_package_settings_module_is_importable() -> None:
+    from doc_to_md.config import settings
+
+    assert settings.Settings.__name__ == "Settings"

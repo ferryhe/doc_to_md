@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.utils.hardware import ensure_docling_accelerator_env
 from .base import Engine, EngineResponse
 

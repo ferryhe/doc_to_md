@@ -7,7 +7,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
+
 from .base import Engine, EngineAsset, EngineResponse
 
 
@@ -16,7 +17,7 @@ class OpenDataLoaderEngine(Engine):
 
     This engine wraps the ``opendataloader-pdf`` Python package, which uses a
     Java-based layout analysis pipeline and an optional AI hybrid backend for
-    complex pages (tables, scanned documents, formulas).
+    complex pages such as tables, scanned documents, and formulas.
 
     .. note::
         Java 11+ must be available on the system ``PATH``.
@@ -38,9 +39,9 @@ class OpenDataLoaderEngine(Engine):
             raise RuntimeError(
                 "OpenDataLoader engine requires Java 11+ but 'java' was not found on PATH. "
                 "Install a JDK/JRE and ensure it is on your PATH, for example:\n"
-                "  • Ubuntu/Debian: sudo apt install default-jre\n"
-                "  • macOS (Homebrew): brew install openjdk@17\n"
-                "  • Windows: https://adoptium.net/\n"
+                "  - Ubuntu/Debian: sudo apt install default-jre\n"
+                "  - macOS (Homebrew): brew install openjdk@17\n"
+                "  - Windows: https://adoptium.net/\n"
                 "Then verify with: java -version"
             )
         result = subprocess.run(
@@ -57,7 +58,6 @@ class OpenDataLoaderEngine(Engine):
                 f"stderr: {result.stderr or '<empty>'}"
             )
         version_output = result.stderr or result.stdout
-        # Version string is on stderr for most JVMs (e.g. 'openjdk version "17.0.1"')
         match = re.search(r'"(\d+)(?:\.(\d+))?', version_output)
         if not match:
             raise RuntimeError(
@@ -65,7 +65,6 @@ class OpenDataLoaderEngine(Engine):
                 f"`java -version` output:\n{version_output}"
             )
         major = int(match.group(1))
-        # Old versioning: "1.8.0" → major=1, minor=8 → effective 8
         if major == 1:
             minor = int(match.group(2) or "0")
             effective = minor
@@ -93,14 +92,11 @@ class OpenDataLoaderEngine(Engine):
         import opendataloader_pdf
 
         if path.suffix.lower() != ".pdf":
-            raise ValueError(
-                f"OpenDataLoader engine only supports PDF files; got '{path.suffix}'."
-            )
+            raise ValueError(f"OpenDataLoader engine only supports PDF files; got '{path.suffix}'.")
 
         with tempfile.TemporaryDirectory(prefix="opendataloader_") as temp_dir:
             convert_kwargs: dict = {
-                # The library's API accepts a list of paths (for batch processing);
-                # wrap the single file path accordingly.
+                # The library's API accepts a list of paths for batch processing.
                 "input_path": [str(path)],
                 "output_dir": temp_dir,
                 "format": "markdown",

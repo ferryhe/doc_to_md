@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E402
 """
 Engine Comparison Benchmark Tool
 
@@ -13,17 +14,26 @@ import sys
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-# Ensure project root is importable
+# Ensure the package under src/ is importable when running from a source checkout.
 PROJECT_ROOT = Path(__file__).resolve().parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
+SRC_ROOT = PROJECT_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-from config.settings import EngineName, get_settings
-from doc_to_md.cli import ENGINE_REGISTRY, ENGINES_REQUIRING_MODEL
-from doc_to_md.engines.base import Engine, EngineResponse
+settings_module = import_module("doc_to_md.config.settings")
+logic_module = import_module("doc_to_md.apps.conversion.logic")
+base_module = import_module("doc_to_md.engines.base")
+
+EngineName = settings_module.EngineName
+get_settings = settings_module.get_settings
+ENGINE_REGISTRY = logic_module.ENGINE_REGISTRY
+ENGINES_REQUIRING_MODEL = logic_module.ENGINES_REQUIRING_MODEL
+Engine = base_module.Engine
+EngineResponse = base_module.EngineResponse
 
 
 @dataclass
@@ -172,7 +182,7 @@ class EngineBenchmark:
             BenchmarkResult: Complete test results
         """
         print(f"\n{'='*60}")
-        print(f"Starting benchmark test")
+        print("Starting benchmark test")
         print(f"Test file: {test_file}")
         print(f"File size: {test_file.stat().st_size / 1024:.2f} KB")
         print(f"{'='*60}")

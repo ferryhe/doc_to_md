@@ -5,7 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.utils.hardware import ensure_marker_accelerator_env
 from .base import Engine, EngineAsset, EngineResponse
 

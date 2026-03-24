@@ -34,6 +34,7 @@ def convert_documents(payload: ConvertRequest) -> ConvertResponse:
             engine=payload.engine,
             model=payload.model,
             since=payload.since,
+            no_page_info=payload.no_page_info,
             dry_run=payload.dry_run,
         )
     except ValueError as exc:

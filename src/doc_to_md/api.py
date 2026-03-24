@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from doc_to_md import __version__
+
 _FASTAPI_IMPORT_ERROR: ImportError | None = None
 
 try:
@@ -23,7 +25,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="doc_to_md API",
-        version="0.1.0",
+        version=__version__,
         description="HTTP interface for document-to-markdown conversion apps.",
     )
     app.include_router(conversion_router)

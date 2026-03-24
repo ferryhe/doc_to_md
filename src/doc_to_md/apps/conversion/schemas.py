@@ -11,6 +11,7 @@ class ConvertRequest(BaseModel):
     engine: str | None = Field(default=None, description="Engine name override")
     model: str | None = Field(default=None, description="Model override for engines that support it")
     since: datetime | None = Field(default=None, description="Process only files modified on or after this timestamp")
+    no_page_info: bool = Field(default=False, description="Disable page headings and footer cleanup when supported by the engine")
     dry_run: bool = Field(default=False, description="List eligible files without converting or writing output")
 
 

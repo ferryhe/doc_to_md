@@ -7,10 +7,6 @@ from typing import Mapping
 
 from .base import Engine, EngineResponse
 
-# ---------------------------------------------------------------------------
-# Sub-engine registry for the auto dispatcher
-# Each entry: engine_name -> (module_path, class_name, requires_model)
-# ---------------------------------------------------------------------------
 _AUTO_REGISTRY: Mapping[str, tuple[str, str, bool]] = {
     "local": ("doc_to_md.engines.local", "LocalEngine", False),
     "html_local": ("doc_to_md.engines.html", "HtmlLocalEngine", False),
@@ -21,9 +17,9 @@ _AUTO_REGISTRY: Mapping[str, tuple[str, str, bool]] = {
     "docling": ("doc_to_md.engines.docling", "DoclingEngine", True),
     "marker": ("doc_to_md.engines.marker", "MarkerEngine", True),
     "mineru": ("doc_to_md.engines.mineru", "MinerUEngine", True),
+    "opendataloader": ("doc_to_md.engines.opendataloader", "OpenDataLoaderEngine", False),
 }
 
-# Map file suffix -> default sub-engine name.
 # Keys must stay in sync with SUPPORTED_EXTENSIONS in utils/validation.py.
 _DEFAULT_FORMAT_ENGINES: Mapping[str, str] = {
     ".pdf": "local",
@@ -41,7 +37,7 @@ _DEFAULT_FORMAT_ENGINES: Mapping[str, str] = {
 
 
 def _instantiate(engine_name: str, model: str | None = None) -> Engine:
-    """Create an engine instance by name, using lazy imports to avoid circular deps."""
+    """Create an engine instance by name using lazy imports to avoid circular deps."""
     entry = _AUTO_REGISTRY.get(engine_name)
     if entry is None:
         raise ValueError(
@@ -59,26 +55,26 @@ class AutoEngine(Engine):
 
     The sub-engine used for each format is configured via ``Settings``:
 
-    * ``AUTO_PDF_ENGINE``          — engine for .pdf files   (default: ``local``)
-    * ``AUTO_DOCX_ENGINE``         — engine for .docx files  (default: ``local``)
-    * ``AUTO_PPTX_ENGINE``         — engine for .pptx files  (default: ``local``)
-    * ``AUTO_SPREADSHEET_ENGINE``  — engine for .xlsx files  (default: ``local``)
-    * ``AUTO_HTML_ENGINE``         — engine for .html/.htm   (default: ``html_local``)
-    * ``AUTO_IMAGE_ENGINE``        — engine for image files  (default: ``local``)
-    * ``AUTO_TEXT_ENGINE``         — engine for .txt/.md     (default: ``local``)
+    * ``AUTO_PDF_ENGINE``          - engine for .pdf files   (default: ``local``)
+    * ``AUTO_DOCX_ENGINE``         - engine for .docx files  (default: ``local``)
+    * ``AUTO_PPTX_ENGINE``         - engine for .pptx files  (default: ``local``)
+    * ``AUTO_SPREADSHEET_ENGINE``  - engine for .xlsx files  (default: ``local``)
+    * ``AUTO_HTML_ENGINE``         - engine for .html/.htm   (default: ``html_local``)
+    * ``AUTO_IMAGE_ENGINE``        - engine for image files  (default: ``local``)
+    * ``AUTO_TEXT_ENGINE``         - engine for .txt/.md     (default: ``local``)
 
     Any engine supported by the main ``ENGINE_REGISTRY`` can be used as a
-    format sub-engine, as long as it is listed in ``_AUTO_REGISTRY`` above.
+    format sub-engine as long as it is listed in ``_AUTO_REGISTRY`` above.
 
     Sub-engine instances are cached per engine name so that engines which
-    perform model/library initialisation are only set up once per conversion
+    perform model or library initialization are only set up once per conversion
     run, not once per file.
     """
 
     name = "auto"
 
-    def __init__(self) -> None:  # no ``model`` param — auto uses per-format defaults
-        from config.settings import get_settings
+    def __init__(self) -> None:
+        from doc_to_md.config.settings import get_settings
 
         settings = get_settings()
         self.model = "auto"
@@ -99,7 +95,7 @@ class AutoEngine(Engine):
 
     def _get_sub_engine(self, path: Path) -> Engine:
         suffix = path.suffix.lower()
-        engine_name = self._format_map.get(suffix, "local")
+        engine_name = self._format_map.get(suffix, _DEFAULT_FORMAT_ENGINES.get(suffix, "local"))
         if engine_name not in self._engine_cache:
             self._engine_cache[engine_name] = _instantiate(engine_name)
         return self._engine_cache[engine_name]

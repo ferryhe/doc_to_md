@@ -6,7 +6,7 @@ from typing import Iterable, List
 
 from PIL import Image
 
-from config.settings import get_settings
+from doc_to_md.config.settings import get_settings
 from doc_to_md.utils.hardware import paddle_supports_cuda
 from .base import Engine, EngineResponse
 
