@@ -24,7 +24,6 @@ benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*
 !benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/
 benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/*
 !benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/output.md
-examples/test_output/
 demo_report/
 final_test/
 test_run/

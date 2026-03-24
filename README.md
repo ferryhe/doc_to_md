@@ -23,9 +23,6 @@ doc_to_md/
 |   `-- workflows/
 |-- benchmark_results/
 |-- config/                      # compatibility shim for legacy imports
-|-- examples/
-|-- final_validation/
-|-- readme_cn/
 |-- src/
 |   `-- doc_to_md/
 |       |-- api.py
