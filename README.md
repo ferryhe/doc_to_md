@@ -19,9 +19,13 @@ This repository is aimed at source documents such as actuarial papers, SFCRs, OR
 
 ```text
 doc_to_md/
-|-- data/
-|   |-- input/
-|   `-- output/
+|-- .github/
+|   `-- workflows/
+|-- benchmark_results/
+|-- config/                      # compatibility shim for legacy imports
+|-- examples/
+|-- final_validation/
+|-- readme_cn/
 |-- src/
 |   `-- doc_to_md/
 |       |-- api.py
@@ -38,11 +42,19 @@ doc_to_md/
 |       |-- pipeline/
 |       `-- utils/
 |-- tests/
+|-- tools/
 |-- benchmark.py
+|-- PDF_ENGINE_EVALUATION.md
 |-- README.md
 |-- README_BENCHMARK.md
+|-- requirements-recommended-pdf.txt
+|-- requirements-core.txt
+|-- requirements-dev.txt
+|-- requirements.txt
 `-- pyproject.toml
 ```
+
+Local working directories such as `data/`, `.venv/`, and temporary `tmp_*` folders are created during use and are not part of the tracked repository layout.
 
 ## Python support
 
@@ -97,6 +109,7 @@ There are now three clear install targets:
 | Current recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` | `local`, `markitdown`, `opendataloader`, `docling`, `mistral` |
 | Pinned broad CPU environment | `pip install -r requirements-core.txt` | A wider non-GPU stack including `deepseekocr`, `html_local`, `office`, and `docling` |
 | Heavy full stack | `pip install -r requirements.txt` | Adds the GPU-oriented / harder-to-install engines |
+| Repo development and tests | `pip install -r requirements-dev.txt` | `pytest`, `fastapi`, `uvicorn`, `ruff`, `build`, `twine` on top of one runtime install |
 
 The current recommended PDF setup is the one that matches the evaluation report.
 
@@ -189,6 +202,9 @@ pip install -r requirements-core.txt
 
 # Heavy full stack
 pip install -r requirements.txt
+
+# Development and test overlay
+pip install -r requirements-dev.txt
 ```
 
 ## Configuration
@@ -426,6 +442,8 @@ python benchmark.py --test-file path/to/document.pdf --save-json
 - If remote OCR times out, tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and chunk or token settings in `.env`.
 
 ## Development and release checks
+
+For full local test and release checks, install `requirements-dev.txt` after your chosen runtime environment.
 
 Typical local checks:
 

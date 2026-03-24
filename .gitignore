@@ -1,5 +1,7 @@
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .env
 .coverage
 .coverage.*
@@ -10,6 +12,8 @@ data/**
 *.egg-info/
 build/
 dist/
+build_*/
+dist_*/
 benchmark_results/*
 !benchmark_results/ait170_ai_bulletin_january_2026_sample/
 benchmark_results/ait170_ai_bulletin_january_2026_sample/*
@@ -24,6 +28,4 @@ examples/test_output/
 demo_report/
 final_test/
 test_run/
-dist_check/
-build_check/
 tmp_*/

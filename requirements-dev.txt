@@ -1,23 +1,36 @@
-# Development dependencies for doc-to-markdown-converter
+# ============================================================
+# requirements-dev.txt
+#
+# Development and test overlay for this repository.
+#
+# Use this AFTER installing one runtime environment, for example:
+#   pip install -r requirements-recommended-pdf.txt
+# or
+#   pip install -r requirements-core.txt
+# or
+#   pip install -r requirements.txt
+#
+# Then install this file:
+#   pip install -r requirements-dev.txt
+#
+# What this adds:
+#   - pytest / pytest-cov for local test runs
+#   - fastapi so tests/test_api.py does not get skipped
+#   - uvicorn for local API smoke tests
+#   - ruff, build, twine for release checks
+#
+# This file is intentionally not a runtime profile.
+# ============================================================
 
 # Testing
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-mock>=3.10.0
+pytest>=9.0.0
+pytest-cov>=7.0.0
 
-# Code quality
-ruff>=0.1.0
-black>=23.0.0
-mypy>=1.0.0
+# API test dependency
+fastapi>=0.115,<1
+uvicorn>=0.34,<1
 
-# Type stubs
-types-requests
-types-Pillow
-
-# Documentation
-sphinx>=7.0.0
-sphinx-rtd-theme>=1.2.0
-
-# Build tools
+# Quality and release checks
+ruff>=0.15.0
 build>=1.0.0
-twine>=4.0.0
+twine>=6.0.0
