@@ -1,3 +1,8 @@
+# NOTE
+# This file is the heavy full-stack environment.
+# It includes the GPU-oriented and harder-to-install engines.
+# It is not the default recommendation for ordinary PDF use.
+#
 # ============================================================
 # requirements.txt — full GPU stack (all engines)
 #

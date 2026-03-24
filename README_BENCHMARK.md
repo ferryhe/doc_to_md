@@ -2,7 +2,9 @@
 
 ## Overview
 
-`benchmark.py` compares document conversion engines on a sample input and generates Markdown and optional JSON reports.
+`benchmark.py` compares document conversion engines on a chosen input file and generates Markdown and optional JSON reports, plus per-engine output artifacts.
+
+If you want recommendation conclusions, install-cost analysis, or dependency-conflict notes, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md). This guide is only about how to run the benchmark tool itself.
 
 Use it when you want to:
 
@@ -16,17 +18,14 @@ Use it when you want to:
 ## Quick start
 
 ```bash
-# Test all available engines
-python benchmark.py
-
 # Test specific engines
-python benchmark.py --engines local markitdown
+python benchmark.py --test-file path/to/document.pdf --engines local markitdown
 
 # Use a custom test file
 python benchmark.py --test-file path/to/your/document.pdf
 
 # Save JSON output too
-python benchmark.py --save-json
+python benchmark.py --test-file path/to/your/document.pdf --save-json
 ```
 
 ## More examples
@@ -34,6 +33,7 @@ python benchmark.py --save-json
 ```bash
 # Save results to a custom directory
 python benchmark.py \
+  --test-file path/to/document.pdf \
   --engines local markitdown paddleocr docling \
   --output-dir my_test_results \
   --save-json
@@ -41,10 +41,11 @@ python benchmark.py \
 # Compare OCR-oriented engines on a PDF
 python benchmark.py \
   --test-file document.pdf \
-  --engines mistral deepseekocr paddleocr
+  --engines mistral deepseekocr paddleocr opendataloader
 
 # Test only local engines
 python benchmark.py \
+  --test-file document.pdf \
   --engines local markitdown paddleocr docling marker mineru
 ```
 
@@ -58,19 +59,22 @@ python benchmark.py \
 4. `docling`
 5. `marker`
 6. `mineru`
+7. `opendataloader`
 
 ### API-based engines
 
-7. `mistral`
-8. `deepseekocr`
+8. `mistral`
+9. `deepseekocr`
 
 ## Output files
 
 Generated in the output directory, which defaults to `benchmark_results/`:
 
-1. `comparison_report_YYYYMMDD_HHMMSS.md`
-2. `benchmark_result_YYYYMMDD_HHMMSS.json` when `--save-json` is used
-3. `sample_test.txt` if no custom file is provided
+1. `report.md`
+2. `result.json` when `--save-json` is used
+3. `outputs/<engine>/output.md` for successful engines
+4. `outputs/<engine>/assets/` when the engine extracts assets
+5. `outputs/<engine>/error.txt` for failed engines
 
 ## Report contents
 
@@ -112,10 +116,10 @@ python benchmark.py \
 
 ```bash
 # Free / local
-python benchmark.py --engines local markitdown paddleocr docling marker mineru
+python benchmark.py --test-file document.pdf --engines local markitdown paddleocr docling marker mineru opendataloader
 
 # API-based
-python benchmark.py --engines mistral deepseekocr
+python benchmark.py --test-file document.pdf --engines mistral deepseekocr
 ```
 
 ## FAQ
@@ -164,6 +168,7 @@ Optimization hints:
 
 - PaddleOCR benefits from GPU acceleration when available
 - MinerU generally performs better on GPU-equipped machines
+- OpenDataLoader requires Java 11+ on `PATH` and the optional `opendataloader-pdf` package
 - API engines may need higher timeout and retry values for large documents
 
 ## Related files

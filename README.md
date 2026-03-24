@@ -84,27 +84,110 @@ pip install ".[docling]"
 pip install ".[paddleocr]"
 pip install ".[mineru]"
 pip install ".[marker]"
-pip install ".[opendataloader]"
 ```
 
 If you are installing from a published package instead of a source checkout, replace `".[extra]"` with `doc-to-markdown-converter[extra]`.
 
-### Pinned dependency sets
+### Install paths
 
-Two requirement files are included for reproducible environments:
+There are now three clear install targets:
 
-| File | Coverage |
-| --- | --- |
-| `requirements-core.txt` | Core stack plus `docling` |
-| `requirements.txt` | Full stack including GPU-oriented engines |
+| What you want | Use this | Includes |
+| --- | --- | --- |
+| Current recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` | `local`, `markitdown`, `opendataloader`, `docling`, `mistral` |
+| Pinned broad CPU environment | `pip install -r requirements-core.txt` | A wider non-GPU stack including `deepseekocr`, `html_local`, `office`, and `docling` |
+| Heavy full stack | `pip install -r requirements.txt` | Adds the GPU-oriented / harder-to-install engines |
 
-Examples:
+The current recommended PDF setup is the one that matches the evaluation report.
+
+It keeps:
+
+- `local`
+- `markitdown`
+- `opendataloader`
+- `docling`
+- `mistral`
+
+Equivalent direct command:
 
 ```bash
-# CPU-oriented setup
+# From a source checkout
+pip install -e ".[markitdown,docling,opendataloader]"
+
+# From a published package
+pip install "doc-to-markdown-converter[markitdown,docling,opendataloader]"
+```
+
+Notes for the recommended setup:
+
+- `local` and `mistral` are already included in the base package
+- `mistral` does not need an extra, but it does need `MISTRAL_API_KEY`
+- `opendataloader` still needs Java 11+ on the system
+- on the Windows / Python 3.12 test machine used here, this setup occupied about `1.32 GB` for `.venv` plus about `303 MB` for the JDK
+
+### OpenDataLoader setup
+
+`opendataloader` needs Java 11+ in addition to the Python extra.
+
+1. Install Java 11+.
+   Ubuntu or Debian: `sudo apt install default-jre`
+   macOS with Homebrew: `brew install openjdk@17`
+   Windows: <https://adoptium.net/>
+
+2. Open a new terminal, then verify Java:
+
+```bash
+java -version
+```
+
+3. Install the Python extra:
+
+```bash
+# From a source checkout
+pip install -e ".[opendataloader]"
+
+# From a published package
+pip install "doc-to-markdown-converter[opendataloader]"
+```
+
+4. Run a smoke test:
+
+```bash
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine opendataloader
+```
+
+For harder PDFs, set `OPENDATALOADER_HYBRID=docling-fast` before running the same command:
+
+```bash
+# Windows PowerShell
+$env:OPENDATALOADER_HYBRID="docling-fast"
+python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
+
+# Unix/macOS
+OPENDATALOADER_HYBRID=docling-fast \
+python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
+```
+
+Common failures:
+
+- `java` not found: restart the terminal or fix Java on `PATH`
+- `No module named 'opendataloader_pdf'`: reinstall the extra in the active environment
+
+### Requirements files
+
+Use the requirements files as follows:
+
+```bash
+# Current recommended PDF setup
+pip install -r requirements-recommended-pdf.txt
+
+# Pinned broad CPU environment
 pip install -r requirements-core.txt
 
-# Full stack
+# Heavy full stack
 pip install -r requirements.txt
 ```
 
@@ -209,19 +292,7 @@ python -m doc_to_md.cli list-engines
 
 ### Use the OpenDataLoader engine
 
-`opendataloader` is a Java-backed PDF parser. Java 11 or newer must be installed and available on `PATH`.
-
-Check Java:
-
-```bash
-java -version
-```
-
-Typical installation commands:
-
-- Ubuntu or Debian: `sudo apt install default-jre`
-- macOS with Homebrew: `brew install openjdk@17`
-- Windows: <https://adoptium.net/>
+Complete the install steps in [OpenDataLoader setup](#opendataloader-setup) first.
 
 Examples:
 
@@ -303,15 +374,45 @@ curl -X POST http://localhost:8000/apps/conversion/convert \
 
 All engines implement `Engine.convert(Path) -> EngineResponse`.
 
+## Recommended PDF engines
+
+Detailed scoring, install-cost analysis, dependency conflicts, and full benchmark coverage live in [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
+
+Final score weights are `25%` install cost, `25%` speed, and `50%` quality.
+
+| Engine | Stars | Final score | Best for | Main tradeoff |
+| --- | --- | ---: | --- | --- |
+| `mistral` | `★★★★☆` | `3.9/5` | Best managed-service OCR result | Paid API and network dependency |
+| `opendataloader` | `★★★★☆` | `3.8/5` | Best current local default for PDFs | Needs Java 11+ and can extract many images |
+| `docling` | `★★★☆☆` | `2.9/5` | Best text fidelity on this sample | Too slow on CPU for default use |
+| `markitdown` | `★★★☆☆` | `3.2/5` | Easiest local extra to try | Quality ceiling is limited |
+| `local` | `★★★☆☆` | `3.2/5` | Fastest zero-extra baseline | Not good enough for quality-sensitive PDF work |
+| `marker` | `★★★☆☆` | `2.7/5` | Rich Markdown plus many assets | Very slow and not practical in the main env |
+| `mineru` | `★★☆☆☆` | `2.1/5` | Isolation-only benchmark coverage | Highest setup friction for limited payoff |
+| `paddleocr` | `★☆☆☆☆` | `1.3/5` | Benchmark completeness only | Near-empty output on this sample |
+
+Short reading of the table:
+
+- `opendataloader` is the best local recommendation if Java is acceptable.
+- `mistral` is the best result if a hosted OCR API is acceptable.
+- `docling` is strongest on text quality, but too slow to be the default.
+- `markitdown` is still the easiest local extra to recommend first.
+
+Current sample artifacts:
+
+- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
+- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json`](benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
+- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/`](benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/)
+
 ## Benchmarking
 
-The repository includes `benchmark.py` for comparing engines on representative documents. Usage and examples are documented in [README_BENCHMARK.md](README_BENCHMARK.md).
+The repository includes `benchmark.py` for comparing engines on representative documents. Usage and examples are documented in [README_BENCHMARK.md](README_BENCHMARK.md). For recommendation logic and install-cost analysis, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
 
 Quick examples:
 
 ```bash
-python benchmark.py
-python benchmark.py --engines local markitdown
+python benchmark.py --test-file path/to/document.pdf
+python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 

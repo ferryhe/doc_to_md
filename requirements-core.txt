@@ -1,3 +1,9 @@
+# NOTE
+# This file is a pinned broad CPU-oriented environment.
+# It is NOT the current recommended minimal PDF setup.
+# For the current recommendation, use:
+#   pip install -r requirements-recommended-pdf.txt
+#
 # ============================================================
 # requirements-core.txt
 #

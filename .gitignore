@@ -10,7 +10,16 @@ data/**
 *.egg-info/
 build/
 dist/
-benchmark_results/
+benchmark_results/*
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/
+benchmark_results/ait170_ai_bulletin_january_2026_sample/*
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/
+benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/
+benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/*
+!benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/*/output.md
 examples/test_output/
 demo_report/
 final_test/

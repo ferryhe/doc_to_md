@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
-# ruff: noqa: E402
-"""
-Engine Comparison Benchmark Tool
-
-This script tests and compares the performance of different document conversion engines,
-measuring conversion time, output characteristics (Markdown length and asset count), 
-and success rates.
-"""
+"""Benchmark document conversion engines on a single sample file."""
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-# Ensure the package under src/ is importable when running from a source checkout.
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
@@ -35,10 +28,98 @@ ENGINES_REQUIRING_MODEL = logic_module.ENGINES_REQUIRING_MODEL
 Engine = base_module.Engine
 EngineResponse = base_module.EngineResponse
 
+ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
+    "paddleocr": {
+        "label": "PaddleOCR",
+        "pros": [
+            "Can use a local GPU-backed OCR stack when Paddle is configured correctly.",
+            "Works without an external OCR API.",
+            "Useful when you want a pure OCR-oriented path instead of a full layout pipeline.",
+        ],
+        "cons": [
+            "Runtime setup is heavier than the Python extra alone suggests.",
+            "Windows GPU runs may require explicit CUDA DLL paths for the bundled Paddle runtime.",
+            "This sample produced very little usable text despite a successful run.",
+        ],
+        "best_for": "Cases where you specifically want Paddle's OCR stack and are willing to manage the runtime.",
+    },
+    "docling": {
+        "label": "Docling",
+        "pros": [
+            "Strong document structure recovery on complex PDFs.",
+            "Good fit for enterprise reports and long-form documents.",
+            "Runs locally once dependencies are installed.",
+        ],
+        "cons": [
+            "Heavy dependency stack and slower startup.",
+            "Runtime is usually much higher than API OCR on the same sample.",
+            "Environment setup is less lightweight than core engines.",
+        ],
+        "best_for": "Complex PDFs where local structured extraction matters more than raw speed.",
+    },
+    "marker": {
+        "label": "Marker",
+        "pros": [
+            "Produced the longest Markdown output in this benchmark.",
+            "Recovered rich structure and extracted many page assets.",
+            "Can be very strong when quality matters more than install simplicity.",
+        ],
+        "cons": [
+            "Requires an isolated environment in this project because of dependency conflicts.",
+            "Runtime on this sample was extremely high.",
+            "Still shows OCR and punctuation artifacts in the output.",
+        ],
+        "best_for": "One-off or high-fidelity local conversions where heavy setup and long runtime are acceptable.",
+    },
+    "mineru": {
+        "label": "MinerU",
+        "pros": [
+            "Recovered a usable long-form Markdown document after isolated-environment setup.",
+            "Includes its own layout and OCR pipeline rather than relying on a remote API.",
+            "Extracted a smaller, more restrained asset set than some other local engines.",
+        ],
+        "cons": [
+            "Needed the most manual runtime repair to get working in this repository.",
+            "Runtime was still very high on this sample.",
+            "Output quality did not justify the setup cost compared with the better local alternatives.",
+        ],
+        "best_for": "Research or specialized evaluation work where you explicitly want to test MinerU despite its setup overhead.",
+    },
+    "opendataloader": {
+        "label": "OpenDataLoader",
+        "pros": [
+            "Purpose-built PDF pipeline with Java-backed layout analysis.",
+            "Supports hybrid mode for harder pages.",
+            "Can be a strong local option once prerequisites are satisfied.",
+        ],
+        "cons": [
+            "Requires both Java 11+ and the optional Python package.",
+            "Current environment readiness is a hard prerequisite.",
+            "PDF-only, so it is not a general document engine.",
+        ],
+        "best_for": "PDF-heavy workflows where you can maintain the Java runtime and optional package.",
+    },
+    "mistral": {
+        "label": "Mistral OCR",
+        "pros": [
+            "Usually the easiest way to get high-quality OCR on difficult PDFs.",
+            "No local OCR model installation required.",
+            "Often the best speed-to-quality tradeoff when the API is available.",
+        ],
+        "cons": [
+            "Requires a working API key and outbound network access.",
+            "Usage is not free.",
+            "Remote latency and service availability affect runtime.",
+        ],
+        "best_for": "Production OCR when quality and convenience matter more than avoiding API usage.",
+    },
+}
+
 
 @dataclass
 class EngineResult:
-    """Result from testing a single engine"""
+    """Result from testing a single engine."""
+
     engine_name: str
     model: str
     success: bool
@@ -46,41 +127,34 @@ class EngineResult:
     markdown_length: int = 0
     num_assets: int = 0
     error_message: str | None = None
+    markdown_path: str | None = None
+    asset_dir: str | None = None
 
 
 @dataclass
 class BenchmarkResult:
-    """Complete benchmark test results"""
+    """Complete benchmark test results."""
+
     timestamp: str
     test_file: str
     file_size_bytes: int
     results: list[EngineResult] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary format"""
         return {
-            'timestamp': self.timestamp,
-            'test_file': self.test_file,
-            'file_size_bytes': self.file_size_bytes,
-            'results': [asdict(r) for r in self.results]
+            "timestamp": self.timestamp,
+            "test_file": self.test_file,
+            "file_size_bytes": self.file_size_bytes,
+            "results": [asdict(result) for result in self.results],
         }
 
 
 class EngineBenchmark:
-    """Engine benchmark testing class"""
-    
+    """Run benchmark comparisons across one or more engines."""
+
     def __init__(self, engines_to_test: list[tuple[EngineName, str | None]] | None = None):
-        """
-        Initialize benchmark testing
-        
-        Args:
-            engines_to_test: List of engines to test, format: [(engine_name, model), ...]
-                           If None, will test all available engines
-        """
         self.settings = get_settings()
-        
         if engines_to_test is None:
-            # Default: test all engines
             self.engines_to_test = [
                 ("local", None),
                 ("markitdown", None),
@@ -90,498 +164,343 @@ class EngineBenchmark:
                 ("mineru", None),
                 ("mistral", self.settings.mistral_default_model),
                 ("deepseekocr", self.settings.siliconflow_default_model),
+                ("opendataloader", None),
             ]
         else:
             self.engines_to_test = engines_to_test
-    
+
     def _create_engine(self, engine_name: EngineName, model: str | None) -> tuple[Engine | None, str | None]:
-        """
-        Create engine instance
-        
-        Returns:
-            Tuple of (engine_instance, error_message). If creation succeeds, error_message is None.
-        """
         try:
             engine_cls = ENGINE_REGISTRY.get(engine_name)
             if engine_cls is None:
-                return None, f"Engine '{engine_name}' not found in registry"
-            
-            # Some engines require a model parameter
+                return None, f"Engine '{engine_name}' not found in registry."
             if engine_name in ENGINES_REQUIRING_MODEL:
                 return engine_cls(model=model), None
             return engine_cls(), None
-        except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            print(f"❌ Failed to create engine {engine_name}: {error_msg}")
-            return None, error_msg
-    
-    def test_engine(self, engine_name: EngineName, model: str | None, test_file: Path) -> EngineResult:
-        """
-        Test a single engine
-        
-        Args:
-            engine_name: Engine name
-            model: Model name (optional)
-            test_file: Test file path
-        
-        Returns:
-            EngineResult: Test results
-        """
-        print(f"\n📊 Testing engine: {engine_name} (model: {model or 'default'})")
-        
-        # Create engine instance
+        except Exception as exc:  # noqa: BLE001
+            return None, f"{type(exc).__name__}: {exc}"
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        cleaned = [
+            char.lower() if char.isalnum() else "_"
+            for char in value
+        ]
+        slug = "".join(cleaned)
+        while "__" in slug:
+            slug = slug.replace("__", "_")
+        return slug.strip("_") or "artifact"
+
+    def _write_success_artifacts(
+        self,
+        *,
+        engine_name: str,
+        response: EngineResponse,
+        output_dir: Path,
+    ) -> tuple[str, str | None]:
+        engine_dir = output_dir / "outputs" / self._slugify(engine_name)
+        engine_dir.mkdir(parents=True, exist_ok=True)
+
+        markdown_path = engine_dir / "output.md"
+        markdown_path.write_text(response.markdown, encoding="utf-8")
+
+        asset_root = engine_dir / "assets"
+        asset_dir_path: Path | None = None
+        if response.assets:
+            asset_dir_path = asset_root
+            for asset in response.assets:
+                subdir = asset.subdir or ""
+                target_dir = asset_root / subdir
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target_path = target_dir / asset.filename
+                target_path.write_bytes(asset.data)
+
+        return str(markdown_path.relative_to(output_dir)), (
+            str(asset_dir_path.relative_to(output_dir)) if asset_dir_path else None
+        )
+
+    def _write_failure_artifact(self, *, engine_name: str, error_message: str, output_dir: Path) -> None:
+        engine_dir = output_dir / "outputs" / self._slugify(engine_name)
+        engine_dir.mkdir(parents=True, exist_ok=True)
+        error_path = engine_dir / "error.txt"
+        error_path.write_text(error_message, encoding="utf-8")
+
+    def test_engine(
+        self,
+        engine_name: EngineName,
+        model: str | None,
+        test_file: Path,
+        output_dir: Path,
+    ) -> EngineResult:
+        print(f"Testing engine: {engine_name} (model: {model or 'default'})")
         engine, create_error = self._create_engine(engine_name, model)
         if engine is None:
+            error_message = create_error or "Failed to create engine instance."
+            self._write_failure_artifact(engine_name=engine_name, error_message=error_message, output_dir=output_dir)
+            print(f"  FAILED during initialization: {error_message}")
             return EngineResult(
                 engine_name=engine_name,
                 model=model or "default",
                 success=False,
                 conversion_time=0.0,
-                error_message=create_error or "Failed to create engine instance (missing dependencies or configuration)"
+                error_message=error_message,
             )
-        
-        # Execute conversion and measure time
+
+        started_at = time.perf_counter()
         try:
-            start_time = time.time()
             response: EngineResponse = engine.convert(test_file)
-            conversion_time = time.time() - start_time
-            
-            # Collect results
+            conversion_time = time.perf_counter() - started_at
+            markdown_path, asset_dir = self._write_success_artifacts(
+                engine_name=engine_name,
+                response=response,
+                output_dir=output_dir,
+            )
             result = EngineResult(
                 engine_name=engine_name,
                 model=response.model,
                 success=True,
                 conversion_time=conversion_time,
                 markdown_length=len(response.markdown),
-                num_assets=len(response.assets)
+                num_assets=len(response.assets),
+                markdown_path=markdown_path,
+                asset_dir=asset_dir,
             )
-            
-            print(f"✅ Success - Time: {conversion_time:.2f}s, Markdown length: {result.markdown_length}, Assets: {result.num_assets}")
+            print(
+                "  OK"
+                f" | time={conversion_time:.2f}s"
+                f" | markdown={result.markdown_length}"
+                f" | assets={result.num_assets}"
+            )
             return result
-            
-        except Exception as e:
-            conversion_time = time.time() - start_time
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            print(f"❌ Failed - {error_msg}")
+        except Exception as exc:  # noqa: BLE001
+            conversion_time = time.perf_counter() - started_at
+            error_message = f"{type(exc).__name__}: {exc}"
+            self._write_failure_artifact(engine_name=engine_name, error_message=error_message, output_dir=output_dir)
+            print(f"  FAILED after {conversion_time:.2f}s: {error_message}")
             return EngineResult(
                 engine_name=engine_name,
                 model=model or "default",
                 success=False,
                 conversion_time=conversion_time,
-                error_message=error_msg
+                error_message=error_message,
             )
-    
-    def run_benchmark(self, test_file: Path) -> BenchmarkResult:
-        """
-        Run complete benchmark test
-        
-        Args:
-            test_file: Test file path
-        
-        Returns:
-            BenchmarkResult: Complete test results
-        """
-        print(f"\n{'='*60}")
-        print("Starting benchmark test")
+
+    def run_benchmark(self, test_file: Path, output_dir: Path) -> BenchmarkResult:
+        print("=" * 72)
+        print("Starting benchmark")
         print(f"Test file: {test_file}")
         print(f"File size: {test_file.stat().st_size / 1024:.2f} KB")
-        print(f"{'='*60}")
-        
+        print("=" * 72)
+
         benchmark_result = BenchmarkResult(
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             test_file=str(test_file),
-            file_size_bytes=test_file.stat().st_size
+            file_size_bytes=test_file.stat().st_size,
         )
-        
+
         for engine_name, model in self.engines_to_test:
-            result = self.test_engine(engine_name, model, test_file)
-            benchmark_result.results.append(result)
-        
+            benchmark_result.results.append(
+                self.test_engine(
+                    engine_name=engine_name,
+                    model=model,
+                    test_file=test_file,
+                    output_dir=output_dir,
+                )
+            )
+
         return benchmark_result
 
 
-class ChineseReportGenerator:
-    """Chinese comparison report generator"""
-    
+class MarkdownReportGenerator:
+    """Generate a readable Markdown report from benchmark results."""
+
     def __init__(self, benchmark_result: BenchmarkResult):
         self.result = benchmark_result
-    
-    def _format_time(self, seconds: float) -> str:
-        """Format time"""
-        if seconds < 0.01:
-            return "< 0.01秒"
-        return f"{seconds:.2f}秒"
-    
-    def _format_size(self, bytes_size: int) -> str:
-        """Format file size"""
-        if bytes_size < 1024:
-            return f"{bytes_size} B"
-        elif bytes_size < 1024 * 1024:
-            return f"{bytes_size / 1024:.2f} KB"
-        else:
-            return f"{bytes_size / (1024 * 1024):.2f} MB"
-    
-    def _get_rating(self, time: float, success: bool) -> str:
-        """Get performance rating"""
-        if not success:
-            return "❌ 失败"
-        if time < 5:
-            return "⭐⭐⭐⭐⭐ 优秀"
-        elif time < 15:
-            return "⭐⭐⭐⭐ 良好"
-        elif time < 30:
-            return "⭐⭐⭐ 一般"
-        elif time < 60:
-            return "⭐⭐ 较慢"
-        else:
-            return "⭐ 缓慢"
-    
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        return f"{seconds:.2f}s"
+
+    @staticmethod
+    def _format_size(byte_count: int) -> str:
+        if byte_count < 1024:
+            return f"{byte_count} B"
+        if byte_count < 1024 * 1024:
+            return f"{byte_count / 1024:.2f} KB"
+        return f"{byte_count / (1024 * 1024):.2f} MB"
+
+    def _recommendation_lines(self) -> list[str]:
+        lines: list[str] = []
+        successful = [result for result in self.result.results if result.success]
+        if not successful:
+            lines.append("No engines completed successfully on this sample.")
+            return lines
+
+        fastest = min(successful, key=lambda result: result.conversion_time)
+        richest = max(successful, key=lambda result: result.markdown_length)
+
+        lines.append(
+            f"- Fastest successful engine: `{fastest.engine_name}` at {self._format_duration(fastest.conversion_time)}."
+        )
+        lines.append(
+            f"- Longest Markdown output: `{richest.engine_name}` with {richest.markdown_length:,} characters."
+        )
+
+        failed = [result for result in self.result.results if not result.success]
+        if failed:
+            blocked = ", ".join(f"`{result.engine_name}`" for result in failed)
+            lines.append(f"- Engines blocked by setup or runtime issues on this machine: {blocked}.")
+
+        return lines
+
     def generate_markdown_report(self) -> str:
-        """Generate Chinese comparison report in Markdown format"""
-        lines = []
-        
-        # Title and basic information
-        lines.append("# 文档转换引擎对比测试报告")
+        successful = [result for result in self.result.results if result.success]
+        sorted_successes = sorted(successful, key=lambda result: result.conversion_time)
+
+        lines: list[str] = []
+        lines.append("# Benchmark Report")
         lines.append("")
-        lines.append("## 测试信息")
+        lines.append("## Sample")
         lines.append("")
-        lines.append(f"- **测试时间**: {self.result.timestamp}")
-        lines.append(f"- **测试文件**: `{self.result.test_file}`")
-        lines.append(f"- **文件大小**: {self._format_size(self.result.file_size_bytes)}")
-        lines.append(f"- **测试引擎数量**: {len(self.result.results)}")
+        lines.append(f"- Timestamp: `{self.result.timestamp}`")
+        lines.append(f"- Test file: `{self.result.test_file}`")
+        lines.append(f"- File size: {self._format_size(self.result.file_size_bytes)}")
+        lines.append(f"- Engines tested: {len(self.result.results)}")
         lines.append("")
-        
-        # Success rate statistics
-        successful = sum(1 for r in self.result.results if r.success)
-        failed = len(self.result.results) - successful
-        success_rate = (successful / len(self.result.results) * 100) if self.result.results else 0
-        
-        lines.append("## 整体统计")
+        lines.append("## Summary")
         lines.append("")
-        lines.append(f"- **成功**: {successful} 个引擎")
-        lines.append(f"- **失败**: {failed} 个引擎")
-        lines.append(f"- **成功率**: {success_rate:.1f}%")
+        lines.extend(self._recommendation_lines())
         lines.append("")
-        
-        # Performance rankings
-        successful_results = [r for r in self.result.results if r.success]
-        if successful_results:
-            lines.append("## 性能排名（按转换时间）")
+
+        if sorted_successes:
+            lines.append("## Successful engines ranked by runtime")
             lines.append("")
-            sorted_results = sorted(successful_results, key=lambda r: r.conversion_time)
-            for i, result in enumerate(sorted_results, 1):
-                lines.append(f"{i}. **{result.engine_name}** ({result.model})")
-                lines.append(f"   - 转换时间: {self._format_time(result.conversion_time)}")
-                lines.append(f"   - 输出长度: {result.markdown_length:,} 字符")
-                lines.append(f"   - 资源数量: {result.num_assets}")
-                lines.append("")
-        
-        # Detailed test results table
-        lines.append("## 详细测试结果")
+            for rank, result in enumerate(sorted_successes, start=1):
+                lines.append(
+                    f"{rank}. `{result.engine_name}`"
+                    f" - {self._format_duration(result.conversion_time)},"
+                    f" {result.markdown_length:,} chars,"
+                    f" {result.num_assets} assets"
+                )
+            lines.append("")
+
+        lines.append("## Result table")
         lines.append("")
-        lines.append("| 引擎名称 | 模型 | 状态 | 转换时间 | Markdown长度 | 资源数 | 性能评级 |")
-        lines.append("|---------|------|------|---------|------------|-------|---------|")
-        
+        lines.append("| Engine | Model | Status | Time | Markdown chars | Assets | Artifact |")
+        lines.append("| --- | --- | --- | ---: | ---: | ---: | --- |")
         for result in self.result.results:
-            status = "✅ 成功" if result.success else "❌ 失败"
-            time_str = self._format_time(result.conversion_time) if result.success else "-"
-            md_len = f"{result.markdown_length:,}" if result.success else "-"
-            assets = str(result.num_assets) if result.success else "-"
-            rating = self._get_rating(result.conversion_time, result.success)
-            
+            artifact = result.markdown_path or "outputs/.../error.txt"
+            status = "success" if result.success else "failed"
+            markdown_length = f"{result.markdown_length:,}" if result.success else "-"
+            asset_count = str(result.num_assets) if result.success else "-"
+            duration = self._format_duration(result.conversion_time)
             lines.append(
-                f"| {result.engine_name} | {result.model} | {status} | "
-                f"{time_str} | {md_len} | {assets} | {rating} |"
+                f"| `{result.engine_name}` | `{result.model}` | {status} | "
+                f"{duration} | {markdown_length} | {asset_count} | `{artifact}` |"
             )
-        
         lines.append("")
-        
-        # Error information
-        failed_results = [r for r in self.result.results if not r.success]
-        if failed_results:
-            lines.append("## 失败详情")
+
+        failed = [result for result in self.result.results if not result.success]
+        if failed:
+            lines.append("## Failures")
             lines.append("")
-            for result in failed_results:
-                lines.append(f"### {result.engine_name} ({result.model})")
+            for result in failed:
+                lines.append(f"### `{result.engine_name}`")
                 lines.append("")
-                lines.append("```")
-                lines.append(result.error_message or "未知错误")
+                lines.append("```text")
+                lines.append(result.error_message or "Unknown error")
                 lines.append("```")
                 lines.append("")
-        
-        # Engine characteristics analysis
-        lines.append("## 引擎特点分析")
+
+        lines.append("## Engine notes")
         lines.append("")
-        
-        engine_descriptions = {
-            "local": {
-                "name": "本地引擎",
-                "pros": ["无需外部依赖", "快速简单", "适合纯文本文档", "无网络请求"],
-                "cons": ["OCR能力有限", "格式支持较少", "输出质量一般"],
-                "best_for": "纯文本文件、快速测试、离线环境"
-            },
-            "mistral": {
-                "name": "Mistral OCR",
-                "pros": ["强大的OCR能力", "支持图像提取", "高质量输出", "支持多种格式"],
-                "cons": ["需要API密钥", "有网络延迟", "可能有成本", "依赖外部服务"],
-                "best_for": "复杂PDF文档、高质量OCR需求、有预算的项目"
-            },
-            "deepseekocr": {
-                "name": "DeepSeek OCR",
-                "pros": ["优秀的中文OCR", "视觉理解能力强", "支持复杂布局", "输出质量高"],
-                "cons": ["需要API密钥", "网络依赖", "处理速度可能较慢"],
-                "best_for": "中文文档、复杂排版、需要高精度的场景"
-            },
-            "markitdown": {
-                "name": "MarkItDown",
-                "pros": ["支持多种Office格式", "本地处理", "快速", "保真度高"],
-                "cons": ["对扫描PDF支持有限", "需要安装依赖", "插件可能不稳定"],
-                "best_for": "Office文档（DOCX、PPTX、XLSX）、本地处理需求"
-            },
-            "paddleocr": {
-                "name": "PaddleOCR",
-                "pros": ["本地OCR", "支持多语言", "可GPU加速", "开源免费"],
-                "cons": ["需要大量依赖", "首次使用需下载模型", "准确度中等"],
-                "best_for": "本地OCR需求、批量处理、中文文档"
-            },
-            "docling": {
-                "name": "Docling",
-                "pros": ["IBM企业级方案", "结构化提取", "支持复杂文档", "高质量输出"],
-                "cons": ["依赖较重", "处理速度较慢", "配置复杂"],
-                "best_for": "企业文档、结构化提取、需要高质量的场景"
-            },
-            "marker": {
-                "name": "Marker",
-                "pros": ["专注PDF转换", "保留格式", "支持LLM增强", "图像提取"],
-                "cons": ["依赖重", "可能需要GPU", "处理速度一般"],
-                "best_for": "学术论文、复杂PDF、需要保留格式"
-            },
-            "mineru": {
-                "name": "MinerU",
-                "pros": ["多种解析方法", "GPU加速", "支持复杂布局", "开源"],
-                "cons": ["依赖重", "配置复杂", "资源消耗大"],
-                "best_for": "研究用途、批量处理、有GPU环境"
-            }
-        }
-        
         for result in self.result.results:
-            if result.engine_name in engine_descriptions:
-                desc = engine_descriptions[result.engine_name]
-                lines.append(f"### {desc['name']} (`{result.engine_name}`)")
-                lines.append("")
-                
-                status_emoji = "✅" if result.success else "❌"
-                lines.append(f"**测试状态**: {status_emoji} {'成功' if result.success else '失败'}")
-                lines.append("")
-                
-                lines.append("**优点**:")
-                for pro in desc["pros"]:
-                    lines.append(f"- {pro}")
-                lines.append("")
-                
-                lines.append("**缺点**:")
-                for con in desc["cons"]:
-                    lines.append(f"- {con}")
-                lines.append("")
-                
-                lines.append(f"**最适合**: {desc['best_for']}")
-                lines.append("")
-        
-        # Usage recommendations
-        lines.append("## 使用建议")
-        lines.append("")
-        lines.append("根据测试结果，我们提供以下使用建议：")
-        lines.append("")
-        
-        if successful_results:
-            fastest = min(successful_results, key=lambda r: r.conversion_time)
-            lines.append(f"1. **速度优先**: 使用 `{fastest.engine_name}` 引擎（{self._format_time(fastest.conversion_time)}）")
+            notes = ENGINE_NOTES.get(result.engine_name)
+            if notes is None:
+                continue
+            lines.append(f"### {notes['label']} (`{result.engine_name}`)")
             lines.append("")
-            
-            # Find the engine with longest output (usually means most detailed)
-            longest = max(successful_results, key=lambda r: r.markdown_length)
-            lines.append(f"2. **输出详细度优先**: 使用 `{longest.engine_name}` 引擎（输出 {longest.markdown_length:,} 字符）")
+            lines.append(f"- Best for: {notes['best_for']}")
+            lines.append("- Pros:")
+            for item in notes["pros"]:
+                lines.append(f"  - {item}")
+            lines.append("- Cons:")
+            for item in notes["cons"]:
+                lines.append(f"  - {item}")
+            if result.success:
+                lines.append(
+                    f"- Measured on this sample: {self._format_duration(result.conversion_time)}, "
+                    f"{result.markdown_length:,} Markdown chars, {result.num_assets} assets."
+                )
+            else:
+                lines.append(f"- Measured on this sample: failed with `{result.error_message}`.")
             lines.append("")
-        
-        lines.append("3. **成本考虑**:")
-        lines.append("   - 免费方案: `local`, `markitdown`, `paddleocr`, `docling`, `marker`, `mineru`")
-        lines.append("   - 付费方案: `mistral`, `deepseekocr`（需要API密钥）")
-        lines.append("")
-        
-        lines.append("4. **文档类型建议**:")
-        lines.append("   - 纯文本/简单文档: `local` 或 `markitdown`")
-        lines.append("   - Office文档: `markitdown`")
-        lines.append("   - 扫描PDF/图片: `mistral`, `deepseekocr`, 或 `paddleocr`")
-        lines.append("   - 复杂学术PDF: `marker` 或 `docling`")
-        lines.append("   - 中文文档: `deepseekocr` 或 `paddleocr`")
-        lines.append("")
-        
-        # Conclusion
-        lines.append("## 结论")
-        lines.append("")
-        lines.append(f"本次测试共评估了 {len(self.result.results)} 个文档转换引擎，"
-                    f"成功率为 {success_rate:.1f}%。")
-        lines.append("")
-        
-        if successful_results:
-            lines.append("每个引擎都有其特定的优势和适用场景。选择合适的引擎需要综合考虑：")
-            lines.append("")
-            lines.append("- 文档类型和复杂度")
-            lines.append("- 处理速度要求")
-            lines.append("- 输出详细度要求")
-            lines.append("- 成本预算")
-            lines.append("- 是否需要离线处理")
-            lines.append("- 语言支持（特别是中文）")
-        else:
-            lines.append("⚠️ 所有引擎都失败了。请检查：")
-            lines.append("- 测试文件是否有效")
-            lines.append("- 必要的依赖是否已安装")
-            lines.append("- API密钥是否已配置（对于远程引擎）")
-        
-        lines.append("")
-        lines.append("---")
-        lines.append(f"*报告生成时间: {self.result.timestamp}*")
-        
+
         return "\n".join(lines)
-    
-    def save_report(self, output_path: Path) -> None:
-        """Save report to file"""
-        report = self.generate_markdown_report()
-        output_path.write_text(report, encoding="utf-8")
-        print(f"\n✅ Report saved to: {output_path}")
+
+    def save_report(self, output_dir: Path) -> Path:
+        report_path = output_dir / "report.md"
+        report_path.write_text(self.generate_markdown_report(), encoding="utf-8")
+        return report_path
 
 
-def create_sample_test_file(output_dir: Path) -> Path:
-    """Create sample test file"""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    test_file = output_dir / "sample_test.txt"
-    
-    content = """# Test Document - Document Conversion Test
+def resolve_engines(engine_names: list[str] | None) -> list[tuple[EngineName, str | None]] | None:
+    if not engine_names:
+        return None
 
-This is a sample file for testing document conversion engines.
-
-## Features
-
-1. Multiple engine support
-2. Performance comparison
-3. Quality assessment
-
-## Tech Stack
-
-- Python 3.10+
-- Typer (CLI framework)
-- Pydantic (Configuration management)
-- Multiple OCR/ML engines
-
-## Mixed Chinese-English Content
-
-Document conversion is a complex task that requires considering multiple factors:
-
-1. Accuracy
-2. Speed
-3. Cost
-4. Format support
-
-Test content includes plain text, special characters (@#$%^&*), numbers (123456), etc.
-"""
-    
-    test_file.write_text(content, encoding="utf-8")
-    return test_file
+    settings = get_settings()
+    selected: list[tuple[EngineName, str | None]] = []
+    for engine_name in engine_names:
+        if engine_name == "mistral":
+            selected.append((engine_name, settings.mistral_default_model))
+        elif engine_name == "deepseekocr":
+            selected.append((engine_name, settings.siliconflow_default_model))
+        else:
+            selected.append((engine_name, None))
+    return selected
 
 
-def main():
-    """Main function"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(
-        description="Engine Comparison Benchmark Tool"
-    )
-    parser.add_argument(
-        "--test-file",
-        type=Path,
-        help="Path to test file (will create a sample if not provided)"
-    )
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Benchmark document conversion engines.")
+    parser.add_argument("--test-file", type=Path, required=True, help="Path to the input file to benchmark.")
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("benchmark_results"),
-        help="Output directory (default: benchmark_results)"
+        help="Directory where benchmark artifacts will be written.",
     )
     parser.add_argument(
         "--engines",
         type=str,
         nargs="+",
-        help="List of engines to test (e.g., local mistral deepseekocr)"
+        help="List of engines to test, for example: docling opendataloader mistral",
     )
     parser.add_argument(
         "--save-json",
         action="store_true",
-        help="Also save results in JSON format"
+        help="Write `result.json` alongside the Markdown report.",
     )
-    
     args = parser.parse_args()
-    
-    # Prepare test file
-    if args.test_file and args.test_file.exists():
-        test_file = args.test_file
-        print(f"Using test file: {test_file}")
-    elif args.test_file:
-        # User provided a file path but it doesn't exist - this is an error
-        print(f"Error: Test file '{args.test_file}' does not exist", file=sys.stderr)
-        sys.exit(1)
-    else:
-        # No test file provided, create a sample
-        print("Creating sample test file...")
-        test_file = create_sample_test_file(args.output_dir)
-        print(f"Sample test file created: {test_file}")
-    
-    # Prepare engine list
-    engines_to_test = None
-    if args.engines:
-        settings = get_settings()
-        engines_to_test = []
-        for engine_name in args.engines:
-            if engine_name in {"mistral"}:
-                engines_to_test.append((engine_name, settings.mistral_default_model))
-            elif engine_name in {"deepseekocr"}:
-                engines_to_test.append((engine_name, settings.siliconflow_default_model))
-            else:
-                engines_to_test.append((engine_name, None))
-        print(f"Will test engines: {', '.join(args.engines)}")
-    else:
-        print("Will test all available engines")
-    
-    # Create output directory
+
+    if not args.test_file.exists():
+        raise SystemExit(f"Test file does not exist: {args.test_file}")
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Run benchmark test
+    engines_to_test = resolve_engines(args.engines)
+
     benchmark = EngineBenchmark(engines_to_test)
-    result = benchmark.run_benchmark(test_file)
-    
-    # Generate report
-    print(f"\n{'='*60}")
-    print("Generating Chinese comparison report...")
-    print(f"{'='*60}")
-    
-    generator = ChineseReportGenerator(result)
-    
-    # Save Markdown report
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_path = args.output_dir / f"comparison_report_{timestamp}.md"
-    generator.save_report(report_path)
-    
-    # Optional: Save JSON format
+    result = benchmark.run_benchmark(args.test_file, args.output_dir)
+
+    report_path = MarkdownReportGenerator(result).save_report(args.output_dir)
+    print("=" * 72)
+    print(f"Report written to: {report_path}")
+
     if args.save_json:
-        json_path = args.output_dir / f"benchmark_result_{timestamp}.json"
-        json_path.write_text(
-            json.dumps(result.to_dict(), ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
-        print(f"✅ JSON results saved to: {json_path}")
-    
-    print(f"\n{'='*60}")
-    print("Benchmark test completed!")
-    print(f"{'='*60}")
+        json_path = args.output_dir / "result.json"
+        json_path.write_text(json.dumps(result.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"JSON written to: {json_path}")
+
+    print("=" * 72)
 
 
 if __name__ == "__main__":
