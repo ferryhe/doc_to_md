@@ -236,6 +236,8 @@ Settings are centralized in `doc_to_md.config.settings`.
 | `AUTO_TEXT_ENGINE` | Auto-engine route for TXT and MD | `local` |
 | `OPENDATALOADER_HYBRID` | Optional hybrid backend for complex PDF pages | unset |
 | `OPENDATALOADER_USE_STRUCT_TREE` | Enable structure-tree aware extraction for tagged PDFs | `false` |
+| `FORMULA_OCR_ENABLED` | Run an optional postprocessor that replaces residual formula images with Markdown math | `false` |
+| `FORMULA_OCR_PROVIDER` | Vision OCR backend for formula-image replacement (`mistral` or `deepseekocr`) | `mistral` |
 
 ### Engine dependency notes
 
@@ -253,6 +255,28 @@ Settings are centralized in `doc_to_md.config.settings`.
 | `opendataloader` | `pip install ".[opendataloader]"` | PDF-only, requires Java 11+ on `PATH` |
 | `api` | `pip install ".[api]"` | FastAPI plus uvicorn |
 | `office` support | `pip install ".[office]"` | Installs PPTX and XLSX helpers |
+
+### Formula-image postprocessing
+
+Some PDF engines still leave formulas, matrix headers, or short mathematical labels as image references inside the Markdown.  
+If you want those converted into Markdown math after the main document conversion step, enable the optional formula OCR pass:
+
+```bash
+# Windows PowerShell
+$env:FORMULA_OCR_ENABLED="true"
+$env:FORMULA_OCR_PROVIDER="mistral"
+python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
+
+# Unix/macOS
+FORMULA_OCR_ENABLED=true FORMULA_OCR_PROVIDER=mistral \
+python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
+```
+
+Current recommendation:
+
+- Use `mistral` first for formula-heavy regulatory PDFs.
+- Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
+- Leave the feature off for image-heavy documents where embedded figures should stay as images.
 
 ## CLI usage
 

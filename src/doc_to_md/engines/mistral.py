@@ -34,7 +34,7 @@ class _DocumentChunk:
 class MistralEngine(Engine):
     name = "mistral"
 
-    def __init__(self, model: str | None = None, include_images: bool = True, include_page_headers: bool = True, **kwargs) -> None:
+    def __init__(self, model: str | None = None, include_images: bool = True, include_page_headers: bool = False, **kwargs) -> None:
         settings = get_settings()
         if not settings.mistral_api_key:
             raise RuntimeError("MISTRAL_API_KEY missing")
@@ -192,9 +192,7 @@ class MistralEngine(Engine):
         for page in pages:
             if self.include_page_headers:
                 sections.append(f"## Page {page.index + 1}")
-            cleaned_page = self._strip_placeholder_images(page.markdown)
-            if not self.include_page_headers:
-                cleaned_page = self._strip_page_footers(cleaned_page)
+            cleaned_page = self._strip_page_artifacts(self._strip_placeholder_images(page.markdown))
             sections.append(cleaned_page or "_No text extracted on this page._")
 
             image_snippets, page_assets = self._render_images(normalized_stem, page.images, page.index)
@@ -273,6 +271,23 @@ class MistralEngine(Engine):
             if "](img-" in line:
                 continue
             lines.append(line)
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _strip_page_artifacts(markdown: str) -> str:
+        """Remove injected page headers and standalone page-number lines from OCR text."""
+        lines = []
+        for raw_line in (markdown or "").splitlines():
+            candidate = raw_line.strip()
+            if re.match(r"^##\s+page\s+\d+\s*$", candidate, re.IGNORECASE):
+                continue
+            if re.match(
+                r"^[-–—]*\s*(?:page|seite|p\.?)?\s*\d+(?:\s*(?:of|von)\s*\d+)?\s*[-–—]*$",
+                candidate,
+                re.IGNORECASE,
+            ):
+                continue
+            lines.append(raw_line)
         return "\n".join(lines).strip()
 
     def _decode_image(self, payload: str) -> Tuple[bytes, str]:

@@ -13,6 +13,7 @@ DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "input"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
 EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr", "mineru", "docling", "marker", "html_local", "auto", "opendataloader"]
+FormulaOcrProvider = Literal["mistral", "deepseekocr"]
 
 
 class Settings(BaseSettings):
@@ -59,6 +60,9 @@ class Settings(BaseSettings):
 
     opendataloader_hybrid: str | None = Field(default=None)
     opendataloader_use_struct_tree: bool = Field(default=False)
+
+    formula_ocr_enabled: bool = Field(default=False)
+    formula_ocr_provider: FormulaOcrProvider = Field(default="mistral")
 
     auto_pdf_engine: EngineName = Field(default="local")
     auto_docx_engine: EngineName = Field(default="local")
