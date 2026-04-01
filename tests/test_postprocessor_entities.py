@@ -36,6 +36,22 @@ def test_enforce_markdown_repairs_broken_cjk_subscripts() -> None:
         )
     )
 
-    assert "\\mathrm{OL}_{\\text{巨灾}_i}" in result.markdown
-    assert "\\mathrm{MC}_{\\text{客户}}" in result.markdown
-    assert "\\mathrm{NE}_{\\text{短期寿险}}" in result.markdown
+    assert "\\mathrm{OL} _ {\\text{巨灾} _ i}" in result.markdown
+    assert "\\mathrm{MC} _ {\\text{客户}}" in result.markdown
+    assert "\\mathrm{NE} _ {\\text{短期寿险}}" in result.markdown
+
+
+def test_enforce_markdown_adds_spacing_around_math_subscripts_and_keeps_escaped_underscores() -> None:
+    result = enforce_markdown(
+        ConversionResult(
+            source_name="sample.pdf",
+            markdown="正文保留 foo_bar，公式为 $MC_{非寿险保险}$、$x^2$、$\\text{a\\_b}$。",
+            engine="mistral",
+            assets=[],
+        )
+    )
+
+    assert "foo_bar" in result.markdown
+    assert "$MC _ {非寿险保险}$" in result.markdown
+    assert "$x ^ 2$" in result.markdown
+    assert "$\\text{a\\_b}$" in result.markdown

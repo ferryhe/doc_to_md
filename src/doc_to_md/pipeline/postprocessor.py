@@ -32,6 +32,8 @@ ENTITY_REPLACEMENTS = (
     (re.compile(r"&\s*amp;", re.IGNORECASE), "&"),
 )
 
+MATH_OPERATOR_SPACING_PATTERN = re.compile(r"(?<!\\)[ \t]*([_^])[ \t]*")
+
 BROKEN_CJK_SUBSUP_WITH_INDEX_PATTERN = re.compile(
     r"(?P<op>[_^])\s*\{\s*\\(?P<label>[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+)\s*_(?P<index>[A-Za-z0-9]+)\s*\}"
 )
@@ -77,7 +79,12 @@ def _decode_math_entities(segment: str) -> str:
         cleaned = unescaped
     cleaned = BROKEN_CJK_SUBSUP_WITH_INDEX_PATTERN.sub(_replace_broken_cjk_subsup_with_index, cleaned)
     cleaned = BROKEN_CJK_SUBSUP_PATTERN.sub(_replace_broken_cjk_subsup, cleaned)
+    cleaned = _normalize_math_operator_spacing(cleaned)
     return cleaned.replace("\xa0", " ")
+
+
+def _normalize_math_operator_spacing(segment: str) -> str:
+    return MATH_OPERATOR_SPACING_PATTERN.sub(r" \1 ", segment)
 
 
 def _replace_broken_cjk_subsup_with_index(match: re.Match[str]) -> str:

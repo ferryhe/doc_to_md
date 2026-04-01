@@ -1,8 +1,8 @@
 # doc-to-markdown-converter
 
-Convert PDFs, scans, office documents, HTML, and plain text into LLM-ready Markdown with a Typer CLI, a FastAPI layer, and pluggable extraction engines.
+Convert PDFs, scans, office documents, HTML, and plain text into LLM-ready Markdown for actuarial document workflows, with a Typer CLI, a FastAPI layer, and pluggable extraction engines.
 
-This repository is aimed at source documents such as actuarial papers, SFCRs, ORSAs, valuation reports, internal guidance, policy documents, and other materials that need cleanup before indexing, review, chunking, or downstream RAG use.
+This repository is designed first for actuaries and actuarial teams working with source documents such as actuarial papers, SFCRs, ORSAs, valuation reports, internal guidance, policy documents, and other materials that need cleanup before indexing, review, chunking, or downstream RAG use.
 
 ## Highlights
 
@@ -244,8 +244,8 @@ Settings are centralized in `doc_to_md.config.settings`.
 | Engine | Install note | Notes |
 | --- | --- | --- |
 | `local` | Included in the base install | Internal extraction pipeline for PDF, DOCX, images, text, PPTX, and XLSX |
-| `html_local` | `pip install ".[html]"` for best extraction quality | Uses `trafilatura`, then falls back to built-in HTML parsing |
-| `mistral` | Base install plus `MISTRAL_API_KEY` | Remote OCR API |
+| `html_local` | `pip install ".[html]"` for best extraction quality | Installs `trafilatura` plus BeautifulSoup support, then falls back to regex stripping when needed |
+| `mistral` | Base install plus `MISTRAL_API_KEY` | Remote OCR API; page headers and standalone page-number lines are omitted by default |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | Remote OCR API via SiliconFlow |
 | `markitdown` | `pip install ".[markitdown]"` | Microsoft MarkItDown-based conversion |
 | `docling` | `pip install ".[docling]"` | Heavy transformer stack |
@@ -277,6 +277,8 @@ Current recommendation:
 - Use `mistral` first for formula-heavy regulatory PDFs.
 - Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
 - Leave the feature off for image-heavy documents where embedded figures should stay as images.
+
+Math postprocessing also normalizes spacing around `_` and `^` inside math segments so Markdown renderers are less likely to misread subscripts or superscripts as italics.
 
 ## CLI usage
 

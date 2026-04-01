@@ -24,7 +24,7 @@ class HtmlLocalEngine(Engine):
     1. ``trafilatura`` — purpose-built web content extractor.  Best at stripping
        navigation, ads, footers and returning only the article body.
     2. ``beautifulsoup4`` — generic HTML parser that removes script/style nodes and
-       returns clean text.  Included in the project's base dependencies.
+       returns clean text.  Installed via the ``html`` extra.
     3. Plain regex tag-stripping — last-resort fallback that requires no libraries.
     """
 
