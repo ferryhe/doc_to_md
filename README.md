@@ -366,6 +366,8 @@ Install the API extra first:
 pip install ".[api]"
 ```
 
+The API extra now includes multipart upload support for inline document conversion.
+
 Start the server:
 
 ```bash
@@ -401,7 +403,12 @@ curl -X POST http://localhost:8000/apps/conversion/convert \
 
 Use `POST /apps/conversion/convert-inline` when another service or AI agent wants one request in and one response out without preparing input/output directories.
 
-Request body:
+This endpoint accepts either:
+
+- `application/json` with `content_base64`
+- `multipart/form-data` with an uploaded `file`
+
+JSON request body:
 
 - `source_name`: original filename with extension such as `sample.pdf`
 - `content_base64`: base64-encoded file bytes
@@ -419,6 +426,16 @@ Example payload:
   "formula_ocr_enabled": false,
   "include_assets": false
 }
+```
+
+Multipart example:
+
+```bash
+curl -X POST http://localhost:8000/apps/conversion/convert-inline \
+  -F "file=@data/input/sample.pdf" \
+  -F "engine=opendataloader" \
+  -F "formula_ocr_enabled=true" \
+  -F "formula_ocr_provider=mistral"
 ```
 
 ### Response metadata

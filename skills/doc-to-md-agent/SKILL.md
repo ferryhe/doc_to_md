@@ -18,7 +18,7 @@ Use this skill when the task is any of the following:
 1. Choose the narrowest integration surface that fits the task.
    For in-process single-document use `doc_to_md.apps.conversion.logic.convert_inline_document`.
    For in-process batch use `doc_to_md.apps.conversion.logic.run_conversion`.
-   For service-style single-document orchestration use `POST /apps/conversion/convert-inline`.
+   For service-style single-document orchestration use `POST /apps/conversion/convert-inline` with either JSON base64 or multipart upload.
    For service-style orchestration use `POST /apps/conversion/convert`.
    For workspace-local tasks use `python -m doc_to_md.cli convert`.
 

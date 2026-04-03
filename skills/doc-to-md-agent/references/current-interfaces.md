@@ -32,12 +32,12 @@ The key architectural rule is:
 - Conversion results now include a structured `quality` report per converted document.
 - Conversion results now include postprocessing `trace` metadata per converted document.
 - Single-document inline conversion no longer requires input/output directories.
+- The inline HTTP API now supports both JSON base64 and multipart upload on the same endpoint.
 - The same core already serves both batch workflows and agent-style single-document calls.
 - Batch and inline requests can now override formula OCR settings per request.
 
 ## Current limits
 
-- The inline HTTP API uses JSON base64 payloads rather than multipart upload.
 - Formula quality is still heuristic, not benchmark-backed against a gold dataset.
 - The trace surface is postprocessing-focused and does not yet expose deeper per-engine runtime details.
 
@@ -48,7 +48,7 @@ The key architectural rule is:
 - Another backend service with shared filesystem access:
   use the FastAPI layer.
 - If a caller needs one request in and one response out:
-  use `POST /apps/conversion/convert-inline`.
+  use `POST /apps/conversion/convert-inline`, choosing JSON or multipart based on the client environment.
 
 ## Keep These Stable
 
