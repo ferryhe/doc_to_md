@@ -384,6 +384,8 @@ Available endpoints:
 - `POST /apps/conversion/convert`
 - `POST /apps/conversion/convert-inline`
 
+The stable response field contract for the conversion endpoints is documented in [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md).
+
 ### Batch conversion request
 
 ```bash
@@ -459,6 +461,12 @@ Converted documents now include two machine-friendly sections:
 - whether formula OCR was attempted and whether it actually changed the output
 - formula-image counts before and after postprocessing
 - asset counts before and after postprocessing
+
+The current contract examples are locked with a repository smoke fixture:
+
+- `tests/fixtures/real_smoke.pdf`
+- `tests/test_real_pdf_smoke.py`
+- `tests/test_api_contract.py`
 
 ### Python helpers
 

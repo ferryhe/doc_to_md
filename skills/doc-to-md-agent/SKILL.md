@@ -50,5 +50,6 @@ python tools/evaluate_markdown_quality.py path\to\output.md --json
 ## Read These References
 
 - Read [references/current-interfaces.md](references/current-interfaces.md) when deciding how another project should call this repo today.
+- Read [../../API_RESPONSE_CONTRACT.md](../../API_RESPONSE_CONTRACT.md) when a caller depends on stable HTTP response fields or needs to parse errors safely.
 - Read [references/quality-rubric.md](references/quality-rubric.md) when deciding whether a result is acceptable.
 - Read [references/improvement-plan.md](references/improvement-plan.md) when the task is to make the project more agent-friendly over time.

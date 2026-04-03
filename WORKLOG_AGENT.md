@@ -12,6 +12,7 @@
 - `27b18e5` Add formula OCR request overrides and postprocess trace
 - `09214a2` Add multipart support for inline API
 - `8bb2c7d` Document multipart inline usage and update roadmap
+- `3b1b1c3` Add real PDF smoke fixture and tests
 
 ### Current focus
 
@@ -54,3 +55,23 @@ Observed result:
 
 - Document the stable API response contract for both general callers and AI agents.
 - Add response-contract tests that lock the external JSON shape using the same real PDF fixture.
+
+### Step 2: stable response contract
+
+- Added `API_RESPONSE_CONTRACT.md` as the public JSON field contract for:
+  - `POST /apps/conversion/convert`
+  - `POST /apps/conversion/convert-inline`
+- Added `tests/test_api_contract.py` to lock the success response shape against the real PDF fixture.
+- Linked the contract from `README.md` and skill references.
+
+Verification:
+
+- Real response samples captured from the live FastAPI app using `tests/fixtures/real_smoke.pdf`
+- `.venv\Scripts\python -m pytest tests/test_real_pdf_smoke.py tests/test_api_contract.py tests/test_api.py tests/test_conversion_logic.py -q`
+- `.venv\Scripts\python -m pytest tests/test_quality.py tests/test_formula_ocr.py tests/test_settings.py tests/test_postprocessor_entities.py -q`
+
+Observed result:
+
+- Traditional callers can rely on the documented fields.
+- AI agents can rely on the same fields plus `quality` and `trace` for decision-making.
+- Real-PDF smoke and contract coverage passed together with broader postprocessing regressions.

@@ -47,16 +47,18 @@ Status:
 - request-level formula OCR controls are now in place
 - postprocessing execution trace metadata is now in place
 - multipart upload support for inline conversion is now in place
+- stable response-contract documentation is now in place
+- real-PDF smoke coverage now exists for inline and batch flows
 
 Next actions in this phase:
 
-1. Document the stable response contract.
-   Goal: pin the shape of `quality`, `assets`, and error responses.
-   Why: both agents and traditional programs depend on predictable fields.
-
-2. Extend trace metadata one level deeper when useful.
+1. Extend trace metadata one level deeper when useful.
    Goal: include more engine-facing details later, such as chunking or provider fallback decisions, without breaking the current response shape.
    Why: the current trace is already useful, but it is still focused on postprocessing.
+
+2. Keep contract tests aligned with real fixtures.
+   Goal: require at least one real-PDF smoke path when the external API surface changes.
+   Why: this prevents agent-oriented changes from drifting away from runnable end-to-end behavior.
 
 Acceptance criteria for Phase 1:
 

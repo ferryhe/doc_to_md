@@ -33,6 +33,7 @@ The key architectural rule is:
 - Conversion results now include postprocessing `trace` metadata per converted document.
 - Single-document inline conversion no longer requires input/output directories.
 - The inline HTTP API now supports both JSON base64 and multipart upload on the same endpoint.
+- The HTTP response contract is now documented in `API_RESPONSE_CONTRACT.md`.
 - The same core already serves both batch workflows and agent-style single-document calls.
 - Batch and inline requests can now override formula OCR settings per request.
 
@@ -58,6 +59,7 @@ These should remain first-class and documented:
 - `convert_inline_document(...)`
 - `POST /apps/conversion/convert`
 - `POST /apps/conversion/convert-inline`
+- `quality`, `trace`, and error-response shapes described in `API_RESPONSE_CONTRACT.md`
 
 If new agent-specific behavior is added later, prefer:
 
