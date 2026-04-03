@@ -20,6 +20,7 @@ if str(SRC_ROOT) not in sys.path:
 settings_module = import_module("doc_to_md.config.settings")
 logic_module = import_module("doc_to_md.apps.conversion.logic")
 base_module = import_module("doc_to_md.engines.base")
+postprocess_module = import_module("doc_to_md.pipeline.postprocessor")
 
 EngineName = settings_module.EngineName
 get_settings = settings_module.get_settings
@@ -27,6 +28,8 @@ ENGINE_REGISTRY = logic_module.ENGINE_REGISTRY
 ENGINES_REQUIRING_MODEL = logic_module.ENGINES_REQUIRING_MODEL
 Engine = base_module.Engine
 EngineResponse = base_module.EngineResponse
+ConversionResult = postprocess_module.ConversionResult
+postprocess_conversion_result = postprocess_module.postprocess_conversion_result
 
 ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
     "paddleocr": {
@@ -126,6 +129,11 @@ class EngineResult:
     conversion_time: float
     markdown_length: int = 0
     num_assets: int = 0
+    quality_status: str | None = None
+    formula_status: str | None = None
+    diagnostic_codes: list[str] = field(default_factory=list)
+    quality: dict[str, Any] | None = None
+    trace: dict[str, Any] | None = None
     error_message: str | None = None
     markdown_path: str | None = None
     asset_dir: str | None = None
@@ -195,7 +203,7 @@ class EngineBenchmark:
         self,
         *,
         engine_name: str,
-        response: EngineResponse,
+        response: Any,
         output_dir: Path,
     ) -> tuple[str, str | None]:
         engine_dir = output_dir / "outputs" / self._slugify(engine_name)
@@ -249,10 +257,19 @@ class EngineBenchmark:
         started_at = time.perf_counter()
         try:
             response: EngineResponse = engine.convert(test_file)
+            outcome = postprocess_conversion_result(
+                ConversionResult(
+                    source_name=test_file.name,
+                    markdown=response.markdown,
+                    engine=engine_name,
+                    assets=response.assets,
+                ),
+                settings=self.settings,
+            )
             conversion_time = time.perf_counter() - started_at
             markdown_path, asset_dir = self._write_success_artifacts(
                 engine_name=engine_name,
-                response=response,
+                response=outcome.result,
                 output_dir=output_dir,
             )
             result = EngineResult(
@@ -260,8 +277,13 @@ class EngineBenchmark:
                 model=response.model,
                 success=True,
                 conversion_time=conversion_time,
-                markdown_length=len(response.markdown),
-                num_assets=len(response.assets),
+                markdown_length=len(outcome.result.markdown),
+                num_assets=len(outcome.result.assets),
+                quality_status=outcome.quality.status,
+                formula_status=outcome.quality.formula_status,
+                diagnostic_codes=[item.code for item in outcome.quality.diagnostics],
+                quality=outcome.quality.to_dict(),
+                trace=asdict(outcome.trace),
                 markdown_path=markdown_path,
                 asset_dir=asset_dir,
             )
@@ -270,6 +292,7 @@ class EngineBenchmark:
                 f" | time={conversion_time:.2f}s"
                 f" | markdown={result.markdown_length}"
                 f" | assets={result.num_assets}"
+                f" | quality={result.quality_status}/{result.formula_status}"
             )
             return result
         except Exception as exc:  # noqa: BLE001
@@ -345,6 +368,16 @@ class MarkdownReportGenerator:
         lines.append(
             f"- Longest Markdown output: `{richest.engine_name}` with {richest.markdown_length:,} characters."
         )
+        formula_ready = [
+            result for result in successful
+            if result.formula_status in {"good", "not_applicable"}
+        ]
+        if formula_ready:
+            best_formula = min(formula_ready, key=lambda result: result.conversion_time)
+            lines.append(
+                f"- Fastest engine with acceptable formula judgment: `{best_formula.engine_name}` "
+                f"({best_formula.formula_status})."
+            )
 
         failed = [result for result in self.result.results if not result.success]
         if failed:
@@ -380,25 +413,50 @@ class MarkdownReportGenerator:
                     f"{rank}. `{result.engine_name}`"
                     f" - {self._format_duration(result.conversion_time)},"
                     f" {result.markdown_length:,} chars,"
-                    f" {result.num_assets} assets"
+                    f" {result.num_assets} assets,"
+                    f" quality={result.quality_status}/{result.formula_status}"
                 )
             lines.append("")
 
         lines.append("## Result table")
         lines.append("")
-        lines.append("| Engine | Model | Status | Time | Markdown chars | Assets | Artifact |")
-        lines.append("| --- | --- | --- | ---: | ---: | ---: | --- |")
+        lines.append("| Engine | Model | Status | Time | Markdown chars | Assets | Quality | Formula | Diagnostics | Artifact |")
+        lines.append("| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |")
         for result in self.result.results:
             artifact = result.markdown_path or "outputs/.../error.txt"
             status = "success" if result.success else "failed"
             markdown_length = f"{result.markdown_length:,}" if result.success else "-"
             asset_count = str(result.num_assets) if result.success else "-"
+            quality_status = result.quality_status or "-"
+            formula_status = result.formula_status or "-"
+            diagnostics = ", ".join(f"`{code}`" for code in result.diagnostic_codes) if result.diagnostic_codes else "-"
             duration = self._format_duration(result.conversion_time)
             lines.append(
                 f"| `{result.engine_name}` | `{result.model}` | {status} | "
-                f"{duration} | {markdown_length} | {asset_count} | `{artifact}` |"
+                f"{duration} | {markdown_length} | {asset_count} | {quality_status} | {formula_status} | {diagnostics} | `{artifact}` |"
             )
         lines.append("")
+
+        if sorted_successes:
+            lines.append("## Agent-readiness findings")
+            lines.append("")
+            for result in sorted_successes:
+                lines.append(f"### `{result.engine_name}`")
+                lines.append("")
+                lines.append(f"- Overall quality: `{result.quality_status}`")
+                lines.append(f"- Formula quality: `{result.formula_status}`")
+                if result.diagnostic_codes:
+                    lines.append("- Diagnostic codes: " + ", ".join(f"`{code}`" for code in result.diagnostic_codes))
+                else:
+                    lines.append("- Diagnostic codes: none")
+                if result.trace:
+                    lines.append(
+                        "- Trace highlights: "
+                        f"formula_ocr_enabled=`{result.trace['formula_ocr_enabled']}`, "
+                        f"formula_ocr_attempted=`{result.trace['formula_ocr_attempted']}`, "
+                        f"postprocess_changed=`{result.trace['postprocess_changed']}`"
+                    )
+                lines.append("")
 
         failed = [result for result in self.result.results if not result.success]
         if failed:
