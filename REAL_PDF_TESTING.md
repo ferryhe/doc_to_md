@@ -53,6 +53,7 @@ Then run a focused benchmark:
 .venv\Scripts\python benchmark.py `
   --test-file "data/input/your_document.pdf" `
   --profile preferred-pdf `
+  --reference-markdown "data/output/your_document.md" `
   --output-dir tmp_user_sample_benchmark `
   --save-json
 ```
@@ -69,6 +70,10 @@ Look at:
 
 - `quality_status`
 - `formula_status`
+- `reference_formula_status`
+- `reference_formula_recall`
+- `reference_formula_similarity`
+- `reference_formula_diagnostics`
 - `diagnostic_codes`
 - `trace.formula_ocr_attempted`
 - `trace.postprocess_changed`
@@ -91,36 +96,46 @@ Formula-specific warning signs:
 Sample used on `2026-04-03`:
 
 - `data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf`
+- `data/output/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md`
 
-Observed result with `local`:
+Observed result with `preferred-pdf` plus the reviewed Markdown reference:
 
-- overall quality: `review`
-- formula quality: `review`
-- diagnostic codes: `formula_context_without_math`
-- trace: formula OCR was not attempted and postprocessing did not materially change the output
+- `opendataloader`
+  - overall quality: `review`
+  - formula quality: `review`
+  - reference formula alignment: `poor`
+  - reference formula recall: `0%`
+  - diagnostic codes: `formula_context_without_math`
+- `mistral`
+  - overall quality: `review`
+  - formula quality: `review`
+  - reference formula alignment: `review`
+  - reference formula recall: `96%`
+  - reference formula similarity: `96%`
+  - diagnostic codes: `fragmented_math_tokens`
 
 What this means:
 
-- plain text extraction is usable enough to continue analysis
-- formulas are being flattened into prose-like text instead of recovered as math segments
-- this document is a good representative regression sample for future formula-quality work
+- `opendataloader` is still fast, but it is not restoring formulas into explicit math segments on this sample
+- `mistral` is already close to the reviewed target for AI-readable formulas
+- the remaining gap on `mistral` is mostly fragmented math tokens and a small number of missed formulas
+- this document is now a strong representative regression sample for future formula-quality work
 
 Preferred-path note:
 
 - if your normal workflow prefers `opendataloader` and `mistral`, use `--profile preferred-pdf`
-- before running that profile, inspect `GET /apps/conversion/engine-readiness` to confirm whether the local machine is actually ready for both engines
-- on the current machine, `preferred-pdf` currently means:
-  - `opendataloader` is blocked until Java 11+ and `opendataloader-pdf` are installed
-  - `mistral` is the only ready engine in that preferred pair
+- if you also have a reviewed Markdown sample, always add `--reference-markdown`
+- before running that profile in a fresh shell, inspect `GET /apps/conversion/engine-readiness` or verify `java -version`
 
 ## Environment note
 
 On the current machine:
 
-- `opendataloader` is blocked because `java` is not installed on `PATH`
+- `opendataloader` can run once Java 17 is available on `PATH` in the current shell
+- `mistral` can run when `MISTRAL_API_KEY` is present in `.env`
 - `markitdown` and `docling` are blocked until their optional packages are installed
 
 That means the current representative benchmark is most useful for:
 
-- `local` baseline checks
-- future verification after optional engine dependencies are installed
+- side-by-side `opendataloader` versus `mistral` checks
+- formula-reference checks against reviewed Markdown outputs

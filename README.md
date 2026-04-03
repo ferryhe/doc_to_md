@@ -552,6 +552,7 @@ Quick examples:
 python benchmark.py --test-file path/to/document.pdf
 python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
 python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 

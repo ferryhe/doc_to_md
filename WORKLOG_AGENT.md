@@ -16,6 +16,7 @@
 - `027d5b8` Document API response contract
 - `7b4247b` Add agent quality signals to benchmark
 - `6523281` Add preferred engine readiness endpoint
+- `710b545` Add preferred PDF benchmark profile
 
 ### Current focus
 
@@ -131,3 +132,38 @@ Observed result on the current machine:
   - `mistral quality_status=review`
   - `mistral formula_status=review`
   - `mistral diagnostic_codes=["fragmented_math_tokens"]`
+
+### Step 5: reference-aware formula benchmark
+
+- Extended `benchmark.py` with `--reference-markdown` so a reviewed Markdown file can act as a gold reference for formula readability.
+- Added `doc_to_md.formula_reference.evaluate_formula_reference(...)` to score:
+  - recovered formula recall
+  - average reference similarity
+  - fragmented candidate formula count
+  - reference-aware diagnostics
+- Expanded `doc_to_md.quality` so fenced ````math` blocks count as explicit math segments.
+- Added tests in:
+  - `tests/test_formula_reference.py`
+  - `tests/test_quality.py`
+  - `tests/test_benchmark.py`
+
+Verification:
+
+- `.venv\Scripts\python -m pytest tests/test_formula_reference.py tests/test_quality.py tests/test_benchmark.py tests/test_real_pdf_smoke.py tests/test_api.py tests/test_conversion_logic.py -q`
+- `.venv\Scripts\python benchmark.py --test-file "data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf" --profile preferred-pdf --reference-markdown "data/output/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md" --output-dir tmp_user_reference_formula_benchmark --save-json`
+
+Observed result on the representative sample:
+
+- `opendataloader`
+  - `quality_status=review`
+  - `formula_status=review`
+  - `reference_formula_status=poor`
+  - `reference_formula_recall=0%`
+  - formulas were not recovered as explicit math segments
+- `mistral`
+  - `quality_status=review`
+  - `formula_status=review`
+  - `reference_formula_status=review`
+  - `reference_formula_recall=96%`
+  - `reference_formula_similarity=96%`
+  - the remaining gap is mostly fragmented math tokens plus a small number of missed formulas

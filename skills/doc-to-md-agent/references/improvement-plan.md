@@ -49,6 +49,7 @@ Status:
 - multipart upload support for inline conversion is now in place
 - stable response-contract documentation is now in place
 - real-PDF smoke coverage now exists for inline and batch flows
+- reference-aware formula benchmarking now exists when a reviewed Markdown file is available
 
 Next actions in this phase:
 
@@ -79,15 +80,17 @@ Tasks:
    Include standalone formulas, inline formulas, matrix labels, mixed Chinese-English actuarial notation, table headers, and OCR-noisy scans.
 
 2. Store expected snippet targets.
-   Save short expected Markdown spans rather than entire-file golden outputs.
+   Status: partially started through optional reviewed Markdown references passed to `benchmark.py --reference-markdown`.
+   Next: add smaller tracked snippet fixtures so CI can validate formula fidelity without depending on ignored `data/` files.
 
 3. Add a benchmark runner for formula recovery.
+   Status: started.
    Compare:
    - residual formula image count
    - recovered inline math count
    - recovered block math count
    - fragmented math warning count
-   - exact or fuzzy match on target snippets
+   - exact or fuzzy match on target snippets or reviewed Markdown references
 
 4. Add a manual review sheet for formula fidelity.
    Human reviewers should score:

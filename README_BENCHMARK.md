@@ -11,6 +11,7 @@ Use it when you want to:
 - compare output behavior across engines
 - measure conversion time and success rate
 - compare `quality` and `formula_status` on the final Markdown that agents will actually consume
+- compare recovered formulas against a reviewed Markdown reference when AI formula readability matters
 - validate a production-like sample before bulk conversion
 - evaluate free, local, and API-based engines side by side
 
@@ -24,6 +25,9 @@ python benchmark.py --test-file path/to/document.pdf --engines local markitdown
 
 # Test the preferred PDF profile
 python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
+
+# Score formulas against a reviewed Markdown reference
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
 
 # Use a custom test file
 python benchmark.py --test-file path/to/your/document.pdf
@@ -51,6 +55,12 @@ python benchmark.py \
 python benchmark.py \
   --test-file document.pdf \
   --profile preferred-pdf
+
+# Run the preferred profile and compare formulas to a reviewed Markdown
+python benchmark.py \
+  --test-file document.pdf \
+  --profile preferred-pdf \
+  --reference-markdown reviewed.md
 
 # Test only local engines
 python benchmark.py \
@@ -93,7 +103,8 @@ The generated report includes:
 2. overall statistics and success rate
 3. performance ranking by conversion time
 4. per-engine details such as output length, asset count, `quality`, `formula_status`, and diagnostic codes
-5. agent-readiness findings derived from the postprocessed Markdown
+5. optional reference-formula alignment metrics such as recall and similarity when `--reference-markdown` is provided
+6. agent-readiness findings derived from the postprocessed Markdown
 6. engine pros, cons, and suggested use cases
 7. failure details and troubleshooting hints
 
@@ -105,11 +116,19 @@ The generated report includes:
 python benchmark.py \
   --test-file "data/input/your_document.pdf" \
   --profile preferred-pdf \
+  --reference-markdown "data/output/your_document.md" \
   --output-dir tmp_user_sample_benchmark \
   --save-json
 ```
 
 This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes and your preferred engines are `opendataloader` plus `mistral`.
+
+When a reviewed Markdown file already exists, `--reference-markdown` is the best way to answer the question "can an AI really read the formulas?" because it turns that judgment into repeatable numbers:
+
+- `reference_formula_status`
+- `reference_formula_recall`
+- `reference_formula_similarity`
+- `reference_formula_diagnostics`
 
 ### Choose the best engine for a document type
 
@@ -185,6 +204,7 @@ Metrics currently include:
 - Markdown output length
 - extracted asset count
 - postprocessed `quality` and `formula_status`
+- optional reference-based formula recall and similarity against a reviewed Markdown file
 - diagnostic codes from the Markdown-quality pass
 - postprocessing trace metadata
 - success or failure status
