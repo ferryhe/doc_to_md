@@ -10,6 +10,7 @@ Use it when you want to:
 
 - compare output behavior across engines
 - measure conversion time and success rate
+- compare `quality` and `formula_status` on the final Markdown that agents will actually consume
 - validate a production-like sample before bulk conversion
 - evaluate free, local, and API-based engines side by side
 
@@ -83,11 +84,24 @@ The generated report includes:
 1. test metadata such as timestamp and file size
 2. overall statistics and success rate
 3. performance ranking by conversion time
-4. per-engine details such as output length and asset count
-5. engine pros, cons, and suggested use cases
-6. failure details and troubleshooting hints
+4. per-engine details such as output length, asset count, `quality`, `formula_status`, and diagnostic codes
+5. agent-readiness findings derived from the postprocessed Markdown
+6. engine pros, cons, and suggested use cases
+7. failure details and troubleshooting hints
 
 ## Common scenarios
+
+### Validate a real business PDF from `data/input`
+
+```bash
+python benchmark.py \
+  --test-file "data/input/your_document.pdf" \
+  --engines local \
+  --output-dir tmp_user_sample_benchmark \
+  --save-json
+```
+
+This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes.
 
 ### Choose the best engine for a document type
 
@@ -162,6 +176,9 @@ Metrics currently include:
 - conversion time
 - Markdown output length
 - extracted asset count
+- postprocessed `quality` and `formula_status`
+- diagnostic codes from the Markdown-quality pass
+- postprocessing trace metadata
 - success or failure status
 
 Optimization hints:
@@ -176,3 +193,4 @@ Optimization hints:
 - Main guide: [README.md](README.md)
 - Configuration template: [.env.example](.env.example)
 - Benchmark script: [benchmark.py](benchmark.py)
+- Real-PDF testing guide: [REAL_PDF_TESTING.md](REAL_PDF_TESTING.md)

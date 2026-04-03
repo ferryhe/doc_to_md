@@ -13,6 +13,8 @@
 - `09214a2` Add multipart support for inline API
 - `8bb2c7d` Document multipart inline usage and update roadmap
 - `3b1b1c3` Add real PDF smoke fixture and tests
+- `027d5b8` Document API response contract
+- `7b4247b` Add agent quality signals to benchmark
 
 ### Current focus
 
@@ -75,3 +77,27 @@ Observed result:
 - Traditional callers can rely on the documented fields.
 - AI agents can rely on the same fields plus `quality` and `trace` for decision-making.
 - Real-PDF smoke and contract coverage passed together with broader postprocessing regressions.
+
+### Step 3: representative PDF benchmark path
+
+- Enhanced `benchmark.py` so successful engine results now include:
+  - `quality_status`
+  - `formula_status`
+  - `diagnostic_codes`
+  - full `quality`
+  - full `trace`
+- Added `tests/test_benchmark.py` using the tracked real PDF fixture.
+- Added `REAL_PDF_TESTING.md` to document how to keep using real PDFs in `data/input/` for manual evaluation.
+
+Verification:
+
+- `.venv\Scripts\python -m pytest tests/test_benchmark.py tests/test_real_pdf_smoke.py tests/test_api_contract.py tests/test_api.py tests/test_conversion_logic.py -q`
+- `.venv\Scripts\python benchmark.py --test-file "data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf" --engines local --output-dir tmp_user_sample_benchmark --save-json`
+
+Observed result on the representative sample:
+
+- `local` completed in about `0.50s`
+- `quality_status=review`
+- `formula_status=review`
+- `diagnostic_codes=["formula_context_without_math"]`
+- formulas were not recovered as math segments, but the prose remained readable enough for analysis
