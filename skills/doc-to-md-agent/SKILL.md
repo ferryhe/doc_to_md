@@ -48,13 +48,16 @@ python benchmark.py --test-file path\to\document.pdf --profile preferred-pdf --r
    `poor`: do not trust the formulas yet; retry with another engine or enable formula OCR.
 
 5. For formula-heavy PDFs, prefer the stronger paths first.
-   Start with `opendataloader` for the best current local balance.
-   Use `mistral` when managed OCR is acceptable.
+   If the document is prose-dominant or formula-light, start with `opendataloader`.
+   If the document is formula-heavy and AI-readable math matters, start with `mistral`.
+   If the `mistral` result is already structurally correct but still contains OCR-split decimals such as `0. 1 4 8`, prefer lightweight math cleanup over switching engines.
    If formula images remain, enable `FORMULA_OCR_ENABLED=true`.
 
 ## Decision rules
 
 - If `quality.status=good` and `formula_status=not_applicable`, the document is probably fine for ordinary prose workflows.
+- If the document has little or no meaningful formula content, `opendataloader` is usually the best local default.
+- If the document is formula-heavy, prefer `mistral` plus lightweight numeric cleanup when needed.
 - If `formula_status=good`, formulas are likely usable as-is.
 - If `formula_status=review`, inspect the flagged regions and look for flattened formulas, fragmented OCR spacing, or missing math delimiters.
 - If `formula_status=poor`, switch engines or OCR strategy before trusting the result.

@@ -300,11 +300,25 @@ python -m doc_to_md.cli convert --input-path data/input --output-path data/outpu
 
 Current recommendation:
 
-- Use `mistral` first for formula-heavy regulatory PDFs.
+- Use `opendataloader` first for prose-dominant PDFs where local speed and structure matter more than formula fidelity.
+- Use `mistral` first for formula-heavy regulatory PDFs where AI-readable math is the priority.
 - Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
 - Leave the feature off for image-heavy documents where embedded figures should stay as images.
 
 Math postprocessing also normalizes spacing around `_` and `^` inside math segments so Markdown renderers are less likely to misread subscripts or superscripts as italics.
+
+### Practical engine choice
+
+For day-to-day use, the most reliable rule is:
+
+- If the document has little or no meaningful formula content:
+  prefer `opendataloader`
+- If the document is formula-heavy and the math needs to stay readable to an AI agent:
+  prefer `mistral`
+- If the formula-heavy result still shows OCR-split decimals or percentages:
+  keep the `mistral` path and apply lightweight math cleanup rather than switching back to a formula-flattening engine
+
+This is the same rule the repository skill now follows for agent workflows.
 
 ## CLI usage
 

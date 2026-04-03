@@ -43,11 +43,15 @@ Use those fields before doing manual review.
   Meaning: the output still contains OCR fallback or failure placeholders.
   Action: do not treat the section as fully extracted.
 
-## Suggested retry order for formula-heavy PDFs
+## Suggested engine choice by document shape
 
-1. `opendataloader`
-2. `opendataloader` plus `FORMULA_OCR_ENABLED=true`
-3. `mistral`
-4. `mistral` plus formula OCR if residual images remain
+1. Prose-dominant or formula-light PDFs:
+   start with `opendataloader`
+2. Formula-heavy PDFs where AI-readable math matters:
+   start with `mistral`
+3. If a `mistral` result is structurally good but still has OCR-split decimals such as `0. 1 4 8`:
+   keep `mistral` and apply lightweight numeric cleanup
+4. If residual formula images remain:
+   retry with `FORMULA_OCR_ENABLED=true`
 
 If the result is still `poor`, stop auto-trusting formulas and escalate to manual review or a more specialized engine experiment.
