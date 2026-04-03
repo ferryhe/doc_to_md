@@ -30,14 +30,16 @@ The key architectural rule is:
 - Engine selection is centralized and consistent.
 - Formula-image postprocessing already exists behind `FORMULA_OCR_ENABLED`.
 - Conversion results now include a structured `quality` report per converted document.
+- Conversion results now include postprocessing `trace` metadata per converted document.
 - Single-document inline conversion no longer requires input/output directories.
 - The same core already serves both batch workflows and agent-style single-document calls.
+- Batch and inline requests can now override formula OCR settings per request.
 
 ## Current limits
 
 - The inline HTTP API uses JSON base64 payloads rather than multipart upload.
 - Formula quality is still heuristic, not benchmark-backed against a gold dataset.
-- There is no request-level override yet for formula OCR settings in the API payload.
+- The trace surface is postprocessing-focused and does not yet expose deeper per-engine runtime details.
 
 ## Recommended use today
 

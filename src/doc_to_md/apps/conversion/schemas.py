@@ -1,6 +1,7 @@
 """Pydantic models for the conversion FastAPI app."""
 from __future__ import annotations
 
+from doc_to_md.config.settings import FormulaOcrProvider
 from typing import Literal
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -14,6 +15,8 @@ class ConvertRequest(BaseModel):
     since: datetime | None = Field(default=None, description="Process only files modified on or after this timestamp")
     no_page_info: bool = Field(default=False, description="Disable page headings and footer cleanup when supported by the engine")
     dry_run: bool = Field(default=False, description="List eligible files without converting or writing output")
+    formula_ocr_enabled: bool | None = Field(default=None, description="Override formula OCR for this request; when omitted, use settings")
+    formula_ocr_provider: FormulaOcrProvider | None = Field(default=None, description="Override formula OCR provider for this request")
 
 
 class InlineConvertRequest(BaseModel):
@@ -22,6 +25,8 @@ class InlineConvertRequest(BaseModel):
     engine: str | None = Field(default=None, description="Engine name override")
     model: str | None = Field(default=None, description="Model override for engines that support it")
     no_page_info: bool = Field(default=False, description="Disable page headings and footer cleanup when supported by the engine")
+    formula_ocr_enabled: bool | None = Field(default=None, description="Override formula OCR for this request; when omitted, use settings")
+    formula_ocr_provider: FormulaOcrProvider | None = Field(default=None, description="Override formula OCR provider for this request")
     include_assets: bool = Field(default=False, description="Include generated asset bytes as base64 in the response")
 
 
@@ -52,6 +57,19 @@ class InlineAssetResponse(BaseModel):
     content_base64: str | None = None
 
 
+class PostprocessTraceResponse(BaseModel):
+    math_normalization_changed: bool
+    formula_ocr_enabled: bool
+    formula_ocr_provider: str | None = None
+    formula_ocr_attempted: bool
+    formula_ocr_applied: bool
+    formula_image_references_before: int
+    formula_image_references_after: int
+    asset_count_before: int
+    asset_count_after: int
+    postprocess_changed: bool
+
+
 class DocumentResultResponse(BaseModel):
     source_path: str
     status: str
@@ -59,6 +77,7 @@ class DocumentResultResponse(BaseModel):
     error: str | None = None
     modified_at: datetime | None = None
     quality: MarkdownQualityResponse | None = None
+    trace: PostprocessTraceResponse | None = None
 
 
 class InlineConvertResponse(BaseModel):
@@ -68,6 +87,7 @@ class InlineConvertResponse(BaseModel):
     model: str | None = None
     markdown: str
     quality: MarkdownQualityResponse
+    trace: PostprocessTraceResponse | None = None
     asset_count: int
     assets: list[InlineAssetResponse]
     duration_seconds: float

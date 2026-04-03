@@ -18,9 +18,52 @@ from doc_to_md.apps.conversion.schemas import (
     InlineConvertResponse,
     MarkdownDiagnosticResponse,
     MarkdownQualityResponse,
+    PostprocessTraceResponse,
 )
 
 router = APIRouter(prefix="/apps/conversion", tags=["conversion"])
+
+
+def _build_quality_response(quality) -> MarkdownQualityResponse | None:
+    if quality is None:
+        return None
+    return MarkdownQualityResponse(
+        status=quality.status,
+        formula_status=quality.formula_status,
+        headings=quality.headings,
+        bullet_lines=quality.bullet_lines,
+        table_lines=quality.table_lines,
+        image_references=quality.image_references,
+        formula_image_references=quality.formula_image_references,
+        inline_math_segments=quality.inline_math_segments,
+        block_math_segments=quality.block_math_segments,
+        diagnostics=[
+            MarkdownDiagnosticResponse(
+                code=diagnostic.code,
+                severity=diagnostic.severity,
+                message=diagnostic.message,
+                count=diagnostic.count,
+            )
+            for diagnostic in quality.diagnostics
+        ],
+    )
+
+
+def _build_trace_response(trace) -> PostprocessTraceResponse | None:
+    if trace is None:
+        return None
+    return PostprocessTraceResponse(
+        math_normalization_changed=trace.math_normalization_changed,
+        formula_ocr_enabled=trace.formula_ocr_enabled,
+        formula_ocr_provider=trace.formula_ocr_provider,
+        formula_ocr_attempted=trace.formula_ocr_attempted,
+        formula_ocr_applied=trace.formula_ocr_applied,
+        formula_image_references_before=trace.formula_image_references_before,
+        formula_image_references_after=trace.formula_image_references_after,
+        asset_count_before=trace.asset_count_before,
+        asset_count_after=trace.asset_count_after,
+        postprocess_changed=trace.postprocess_changed,
+    )
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -44,6 +87,8 @@ def convert_documents(payload: ConvertRequest) -> ConvertResponse:
             since=payload.since,
             no_page_info=payload.no_page_info,
             dry_run=payload.dry_run,
+            formula_ocr_enabled=payload.formula_ocr_enabled,
+            formula_ocr_provider=payload.formula_ocr_provider,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -69,30 +114,8 @@ def convert_documents(payload: ConvertRequest) -> ConvertResponse:
                 output_path=str(item.output_path) if item.output_path else None,
                 error=item.error,
                 modified_at=item.modified_at,
-                quality=(
-                    MarkdownQualityResponse(
-                        status=item.quality.status,
-                        formula_status=item.quality.formula_status,
-                        headings=item.quality.headings,
-                        bullet_lines=item.quality.bullet_lines,
-                        table_lines=item.quality.table_lines,
-                        image_references=item.quality.image_references,
-                        formula_image_references=item.quality.formula_image_references,
-                        inline_math_segments=item.quality.inline_math_segments,
-                        block_math_segments=item.quality.block_math_segments,
-                        diagnostics=[
-                            MarkdownDiagnosticResponse(
-                                code=diagnostic.code,
-                                severity=diagnostic.severity,
-                                message=diagnostic.message,
-                                count=diagnostic.count,
-                            )
-                            for diagnostic in item.quality.diagnostics
-                        ],
-                    )
-                    if item.quality
-                    else None
-                ),
+                quality=_build_quality_response(item.quality),
+                trace=_build_trace_response(item.trace),
             )
             for item in summary.results
         ],
@@ -108,6 +131,8 @@ def convert_inline(payload: InlineConvertRequest) -> InlineConvertResponse:
             engine=payload.engine,
             model=payload.model,
             no_page_info=payload.no_page_info,
+            formula_ocr_enabled=payload.formula_ocr_enabled,
+            formula_ocr_provider=payload.formula_ocr_provider,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -119,26 +144,8 @@ def convert_inline(payload: InlineConvertRequest) -> InlineConvertResponse:
         engine=result.engine,
         model=result.model,
         markdown=result.markdown,
-        quality=MarkdownQualityResponse(
-            status=result.quality.status,
-            formula_status=result.quality.formula_status,
-            headings=result.quality.headings,
-            bullet_lines=result.quality.bullet_lines,
-            table_lines=result.quality.table_lines,
-            image_references=result.quality.image_references,
-            formula_image_references=result.quality.formula_image_references,
-            inline_math_segments=result.quality.inline_math_segments,
-            block_math_segments=result.quality.block_math_segments,
-            diagnostics=[
-                MarkdownDiagnosticResponse(
-                    code=diagnostic.code,
-                    severity=diagnostic.severity,
-                    message=diagnostic.message,
-                    count=diagnostic.count,
-                )
-                for diagnostic in result.quality.diagnostics
-            ],
-        ),
+        quality=_build_quality_response(result.quality),
+        trace=_build_trace_response(result.trace),
         asset_count=len(result.assets),
         assets=[
             InlineAssetResponse(

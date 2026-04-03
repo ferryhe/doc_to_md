@@ -10,7 +10,7 @@ import tempfile
 import time
 from typing import Dict, Optional, Type, cast
 
-from doc_to_md.config.settings import EngineName, Settings, get_settings
+from doc_to_md.config.settings import EngineName, FormulaOcrProvider, Settings, get_settings
 from doc_to_md.engines.base import Engine
 from doc_to_md.engines.base import EngineAsset
 from doc_to_md.engines.auto import AutoEngine
@@ -25,9 +25,13 @@ from doc_to_md.engines.mistral import MistralEngine
 from doc_to_md.engines.opendataloader import OpenDataLoaderEngine
 from doc_to_md.engines.paddleocr import PaddleOCREngine
 from doc_to_md.pipeline.loader import iter_documents
-from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
+from doc_to_md.pipeline.postprocessor import (
+    ConversionResult,
+    PostprocessTrace,
+    postprocess_conversion_result,
+)
 from doc_to_md.pipeline.writer import write_markdown
-from doc_to_md.quality import MarkdownQualityReport, evaluate_markdown_quality
+from doc_to_md.quality import MarkdownQualityReport
 from doc_to_md.utils.logging import log_error, log_info, log_warning
 from doc_to_md.utils.validation import FileValidationError, validate_file
 
@@ -72,6 +76,7 @@ class DocumentResult:
     error: str | None = None
     modified_at: datetime | None = None
     quality: MarkdownQualityReport | None = None
+    trace: PostprocessTrace | None = None
 
 
 @dataclass(slots=True)
@@ -94,6 +99,7 @@ class InlineConversionResult:
     quality: MarkdownQualityReport
     duration_seconds: float
     assets: list[EngineAsset] = field(default_factory=list)
+    trace: PostprocessTrace | None = None
 
 
 def list_engine_names() -> list[str]:
@@ -145,6 +151,20 @@ def _format_summary(metrics: RunMetrics, elapsed_seconds: float) -> str:
     )
 
 
+def _resolve_postprocess_settings(
+    base_settings: Settings,
+    *,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
+) -> Settings:
+    if formula_ocr_enabled is None and formula_ocr_provider is None:
+        return base_settings
+    return base_settings.with_overrides(
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
+
+
 def run_conversion(
     *,
     input_path: str | Path | None = None,
@@ -154,9 +174,16 @@ def run_conversion(
     since: datetime | None = None,
     no_page_info: bool = False,
     dry_run: bool = False,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
     settings: Settings | None = None,
 ) -> ConversionRun:
     active_settings = settings or get_settings()
+    postprocess_settings = _resolve_postprocess_settings(
+        active_settings,
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
     input_dir = Path(input_path) if input_path else active_settings.input_dir
     output_dir = Path(output_path) if output_path else active_settings.output_dir
     engine_name = _normalize_engine(engine, active_settings.default_engine)
@@ -229,9 +256,8 @@ def run_conversion(
             engine=engine_instance.name,
             assets=engine_response.assets,
         )
-        cleaned = enforce_markdown(result)
-        quality = evaluate_markdown_quality(cleaned.markdown)
-        target = write_markdown(cleaned, output_dir)
+        outcome = postprocess_conversion_result(result, settings=postprocess_settings)
+        target = write_markdown(outcome.result, output_dir)
         log_info(f"[{index}/{total_count}] Wrote {target}")
         metrics.successes += 1
         results.append(
@@ -240,7 +266,8 @@ def run_conversion(
                 status="converted",
                 output_path=target,
                 modified_at=modified_at,
-                quality=quality,
+                quality=outcome.quality,
+                trace=outcome.trace,
             )
         )
 
@@ -264,6 +291,8 @@ def convert_inline_document(
     engine: str | None = None,
     model: str | None = None,
     no_page_info: bool = False,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
     settings: Settings | None = None,
 ) -> InlineConversionResult:
     safe_name = Path(source_name).name
@@ -279,6 +308,11 @@ def convert_inline_document(
         raise ValueError("Decoded file content is empty")
 
     active_settings = settings or get_settings()
+    postprocess_settings = _resolve_postprocess_settings(
+        active_settings,
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
     engine_name = _normalize_engine(engine, active_settings.default_engine)
 
     engine_kwargs: dict = {}
@@ -300,15 +334,15 @@ def convert_inline_document(
         engine=engine_instance.name,
         assets=engine_response.assets,
     )
-    cleaned = enforce_markdown(result)
-    quality = evaluate_markdown_quality(cleaned.markdown)
+    outcome = postprocess_conversion_result(result, settings=postprocess_settings)
     elapsed = time.perf_counter() - started_at
     return InlineConversionResult(
         source_name=safe_name,
         engine=engine_name,
         model=getattr(engine_instance, "model", model),
-        markdown=cleaned.markdown,
-        quality=quality,
+        markdown=outcome.result.markdown,
+        quality=outcome.quality,
         duration_seconds=elapsed,
-        assets=cleaned.assets,
+        assets=outcome.result.assets,
+        trace=outcome.trace,
     )

@@ -9,6 +9,7 @@ from doc_to_md.api import app
 from doc_to_md.apps.conversion.logic import ConversionRun, DocumentResult, InlineConversionResult, RunMetrics
 from doc_to_md.engines.base import EngineAsset
 from doc_to_md.apps.conversion import router as conversion_router
+from doc_to_md.pipeline.postprocessor import PostprocessTrace
 from doc_to_md.quality import MarkdownDiagnostic, MarkdownQualityReport
 
 
@@ -54,11 +55,15 @@ def test_conversion_endpoint_forwards_no_page_info(monkeypatch, tmp_path) -> Non
             "engine": "mistral",
             "no_page_info": True,
             "dry_run": True,
+            "formula_ocr_enabled": True,
+            "formula_ocr_provider": "mistral",
         },
     )
 
     assert response.status_code == 200
     assert captured["no_page_info"] is True
+    assert captured["formula_ocr_enabled"] is True
+    assert captured["formula_ocr_provider"] == "mistral"
 
 
 def test_conversion_endpoint_includes_quality_payload(monkeypatch, tmp_path) -> None:
@@ -95,6 +100,18 @@ def test_conversion_endpoint_includes_quality_payload(monkeypatch, tmp_path) -> 
                             )
                         ],
                     ),
+                    trace=PostprocessTrace(
+                        math_normalization_changed=True,
+                        formula_ocr_enabled=True,
+                        formula_ocr_provider="mistral",
+                        formula_ocr_attempted=True,
+                        formula_ocr_applied=False,
+                        formula_image_references_before=1,
+                        formula_image_references_after=1,
+                        asset_count_before=1,
+                        asset_count_after=1,
+                        postprocess_changed=True,
+                    ),
                 )
             ],
         )
@@ -107,12 +124,15 @@ def test_conversion_endpoint_includes_quality_payload(monkeypatch, tmp_path) -> 
     payload = response.json()
     assert payload["results"][0]["quality"]["formula_status"] == "poor"
     assert payload["results"][0]["quality"]["diagnostics"][0]["code"] == "formula_image_reference"
+    assert payload["results"][0]["trace"]["formula_ocr_attempted"] is True
 
 
 def test_inline_conversion_endpoint_returns_markdown(monkeypatch) -> None:
     def fake_convert_inline_document(**kwargs):
         assert kwargs["source_name"] == "sample.txt"
         assert kwargs["no_page_info"] is True
+        assert kwargs["formula_ocr_enabled"] is True
+        assert kwargs["formula_ocr_provider"] == "deepseekocr"
         return InlineConversionResult(
             source_name="sample.txt",
             engine="local",
@@ -132,6 +152,18 @@ def test_inline_conversion_endpoint_returns_markdown(monkeypatch) -> None:
             ),
             duration_seconds=0.01,
             assets=[],
+            trace=PostprocessTrace(
+                math_normalization_changed=False,
+                formula_ocr_enabled=True,
+                formula_ocr_provider="deepseekocr",
+                formula_ocr_attempted=False,
+                formula_ocr_applied=False,
+                formula_image_references_before=0,
+                formula_image_references_after=0,
+                asset_count_before=0,
+                asset_count_after=0,
+                postprocess_changed=False,
+            ),
         )
 
     monkeypatch.setattr(conversion_router, "convert_inline_document", fake_convert_inline_document)
@@ -143,6 +175,8 @@ def test_inline_conversion_endpoint_returns_markdown(monkeypatch) -> None:
             "content_base64": base64.b64encode(b"hello").decode("ascii"),
             "engine": "local",
             "no_page_info": True,
+            "formula_ocr_enabled": True,
+            "formula_ocr_provider": "deepseekocr",
         },
     )
 
@@ -152,6 +186,7 @@ def test_inline_conversion_endpoint_returns_markdown(monkeypatch) -> None:
     assert payload["markdown"] == "# sample\n\nhello\n"
     assert payload["quality"]["status"] == "good"
     assert payload["asset_count"] == 0
+    assert payload["trace"]["formula_ocr_provider"] == "deepseekocr"
 
 
 def test_inline_conversion_endpoint_can_include_assets(monkeypatch) -> None:
@@ -176,6 +211,18 @@ def test_inline_conversion_endpoint_can_include_assets(monkeypatch) -> None:
             ),
             duration_seconds=0.02,
             assets=[EngineAsset(filename="a.png", data=b"png-bytes", subdir="assets")],
+            trace=PostprocessTrace(
+                math_normalization_changed=False,
+                formula_ocr_enabled=False,
+                formula_ocr_provider=None,
+                formula_ocr_attempted=False,
+                formula_ocr_applied=False,
+                formula_image_references_before=0,
+                formula_image_references_after=0,
+                asset_count_before=1,
+                asset_count_after=1,
+                postprocess_changed=False,
+            ),
         )
 
     monkeypatch.setattr(conversion_router, "convert_inline_document", fake_convert_inline_document)

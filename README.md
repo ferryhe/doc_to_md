@@ -4,6 +4,10 @@ Convert PDFs, scans, office documents, HTML, and plain text into LLM-ready Markd
 
 This repository is designed first for actuaries and actuarial teams working with source documents such as actuarial papers, SFCRs, ORSAs, valuation reports, internal guidance, policy documents, and other materials that need cleanup before indexing, review, chunking, or downstream RAG use.
 
+## Version History
+
+- `0.1.1` (April 1, 2026) - Initial release
+
 ## Highlights
 
 - `src/` layout packaged as `doc_to_md`
@@ -376,8 +380,9 @@ Available endpoints:
 - `GET /apps/conversion/health`
 - `GET /apps/conversion/engines`
 - `POST /apps/conversion/convert`
+- `POST /apps/conversion/convert-inline`
 
-Example request:
+### Batch conversion request
 
 ```bash
 curl -X POST http://localhost:8000/apps/conversion/convert \
@@ -386,9 +391,64 @@ curl -X POST http://localhost:8000/apps/conversion/convert \
     "input_path": "data/input",
     "output_path": "data/output",
     "engine": "mistral",
-    "no_page_info": true
+    "no_page_info": true,
+    "formula_ocr_enabled": true,
+    "formula_ocr_provider": "mistral"
   }'
 ```
+
+### Inline single-document request
+
+Use `POST /apps/conversion/convert-inline` when another service or AI agent wants one request in and one response out without preparing input/output directories.
+
+Request body:
+
+- `source_name`: original filename with extension such as `sample.pdf`
+- `content_base64`: base64-encoded file bytes
+- `engine` / `model`: optional engine overrides
+- `formula_ocr_enabled` / `formula_ocr_provider`: optional request-level formula OCR overrides
+- `include_assets`: include generated asset bytes in the response when `true`
+
+Example payload:
+
+```json
+{
+  "source_name": "sample.txt",
+  "content_base64": "aGVsbG8gd29ybGQ=",
+  "engine": "local",
+  "formula_ocr_enabled": false,
+  "include_assets": false
+}
+```
+
+### Response metadata
+
+Converted documents now include two machine-friendly sections:
+
+- `quality`: heuristic quality report for the Markdown output
+- `trace`: execution trace for postprocessing and formula cleanup
+
+`quality` is the main decision signal for AI agents and downstream services:
+
+- `status`: overall `good`, `review`, or `poor`
+- `formula_status`: `good`, `review`, `poor`, or `not_applicable`
+- `diagnostics[]`: structured reasons such as `formula_image_reference` or `fragmented_math_tokens`
+
+`trace` explains what happened during postprocessing:
+
+- whether math normalization changed the document
+- whether formula OCR was enabled for that request
+- which formula OCR provider was selected
+- whether formula OCR was attempted and whether it actually changed the output
+- formula-image counts before and after postprocessing
+- asset counts before and after postprocessing
+
+### Python helpers
+
+For in-process programmatic use:
+
+- batch workflows: `doc_to_md.apps.conversion.logic.run_conversion(...)`
+- single-document inline workflows: `doc_to_md.apps.conversion.logic.convert_inline_document(...)`
 
 ## Supported formats and validation
 

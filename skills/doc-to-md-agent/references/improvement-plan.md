@@ -44,29 +44,28 @@ Status:
 
 - single-document inline conversion is now in place
 - structured `quality` output is now in place
+- request-level formula OCR controls are now in place
+- postprocessing execution trace metadata is now in place
 
 Next actions in this phase:
 
-1. Add request-level formula controls to the inline and batch API payloads.
-   Goal: let callers choose `formula_ocr_enabled` and `formula_ocr_provider` per request.
-   Why: an agent often needs to escalate only one hard document, not flip a global environment variable.
-
-2. Return lightweight execution trace metadata.
-   Goal: include whether formula OCR ran, which provider was used, how many assets were preserved, and whether postprocessing changed the document.
-   Why: agents need observable state to decide whether another retry is worth it.
-
-3. Add multipart upload support in addition to JSON base64.
+1. Add multipart upload support in addition to JSON base64.
    Goal: keep `convert-inline` friendly to normal web clients and traditional backends.
    Why: base64 is good for portability, but multipart is more natural for many callers.
 
-4. Document the stable response contract.
+2. Document the stable response contract.
    Goal: pin the shape of `quality`, `assets`, and error responses.
    Why: both agents and traditional programs depend on predictable fields.
+
+3. Extend trace metadata one level deeper when useful.
+   Goal: include more engine-facing details later, such as chunking or provider fallback decisions, without breaking the current response shape.
+   Why: the current trace is already useful, but it is still focused on postprocessing.
 
 Acceptance criteria for Phase 1:
 
 - another service can call the API without using input/output directories
 - an agent can tell from the response whether formulas are safe, risky, or broken
+- an agent can request formula OCR per document instead of relying on global environment settings
 - no existing batch or CLI workflow has to be rewritten
 
 ## Phase 2: Make Formula Quality Measurable
@@ -186,12 +185,12 @@ Acceptance criteria for Phase 5:
 
 Recommended order from here:
 
-1. request-level formula controls
-2. execution trace metadata
-3. multipart inline upload
-4. formula gold set and formula benchmark
-5. agent playbook expansion
-6. stronger machine-readable error model
+1. multipart inline upload
+2. stable response-contract documentation
+3. formula gold set and formula benchmark
+4. agent playbook expansion
+5. stronger machine-readable error model
+6. deeper engine-level trace detail when justified
 
 ## Recommendation
 

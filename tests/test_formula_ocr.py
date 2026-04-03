@@ -1,7 +1,7 @@
 from doc_to_md.config.settings import Settings
 from doc_to_md.engines.base import EngineAsset
 from doc_to_md.pipeline.formula_ocr import replace_formula_images
-from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
+from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown, postprocess_conversion_result
 
 
 class _FakeFormulaClient:
@@ -104,3 +104,37 @@ def test_enforce_markdown_runs_formula_ocr_when_enabled(tmp_path, monkeypatch) -
 
     assert marker["called"] is True
     assert cleaned.markdown == "cleaned body"
+
+
+def test_postprocess_conversion_result_returns_trace_for_formula_cleanup(tmp_path, monkeypatch) -> None:
+    settings = _settings(tmp_path)
+
+    def _fake_replace(result: ConversionResult, *, settings: Settings, client=None) -> ConversionResult:
+        del settings, client
+        return ConversionResult(
+            source_name=result.source_name,
+            markdown="$$MC = A + B$$",
+            engine=result.engine,
+            assets=[],
+        )
+
+    monkeypatch.setattr("doc_to_md.pipeline.postprocessor.replace_formula_images", _fake_replace)
+
+    outcome = postprocess_conversion_result(
+        ConversionResult(
+            source_name="sample.pdf",
+            markdown="计算公式如下：\n\n![image 1](sample_images/imageFile1.png)",
+            engine="opendataloader",
+            assets=[EngineAsset(filename="imageFile1.png", data=b"png-bytes", subdir="sample_images")],
+        ),
+        settings=settings,
+    )
+
+    assert outcome.result.markdown == "$$MC = A + B$$"
+    assert outcome.trace.formula_ocr_enabled is True
+    assert outcome.trace.formula_ocr_attempted is True
+    assert outcome.trace.formula_ocr_applied is True
+    assert outcome.trace.formula_image_references_before == 1
+    assert outcome.trace.formula_image_references_after == 0
+    assert outcome.trace.asset_count_before == 1
+    assert outcome.trace.asset_count_after == 0

@@ -25,3 +25,22 @@ def test_package_settings_module_is_importable() -> None:
     from doc_to_md.config import settings
 
     assert settings.Settings.__name__ == "Settings"
+
+
+def test_settings_with_overrides_preserves_base_and_applies_updates(tmp_path: Path) -> None:
+    settings = Settings(
+        input_dir=tmp_path / "input",
+        output_dir=tmp_path / "output",
+        formula_ocr_enabled=False,
+        formula_ocr_provider="mistral",
+    )
+
+    overridden = settings.with_overrides(
+        formula_ocr_enabled=True,
+        formula_ocr_provider="deepseekocr",
+    )
+
+    assert settings.formula_ocr_enabled is False
+    assert settings.formula_ocr_provider == "mistral"
+    assert overridden.formula_ocr_enabled is True
+    assert overridden.formula_ocr_provider == "deepseekocr"
