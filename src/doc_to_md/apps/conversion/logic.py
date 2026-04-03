@@ -1,14 +1,18 @@
 """Shared document conversion logic used by CLI and FastAPI."""
 from __future__ import annotations
 
+import base64
+import binascii
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+import tempfile
 import time
 from typing import Dict, Optional, Type, cast
 
 from doc_to_md.config.settings import EngineName, Settings, get_settings
 from doc_to_md.engines.base import Engine
+from doc_to_md.engines.base import EngineAsset
 from doc_to_md.engines.auto import AutoEngine
 from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.engines.docling import DoclingEngine
@@ -23,8 +27,9 @@ from doc_to_md.engines.paddleocr import PaddleOCREngine
 from doc_to_md.pipeline.loader import iter_documents
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
 from doc_to_md.pipeline.writer import write_markdown
+from doc_to_md.quality import MarkdownQualityReport, evaluate_markdown_quality
 from doc_to_md.utils.logging import log_error, log_info, log_warning
-from doc_to_md.utils.validation import FileValidationError
+from doc_to_md.utils.validation import FileValidationError, validate_file
 
 ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
@@ -66,6 +71,7 @@ class DocumentResult:
     output_path: Path | None = None
     error: str | None = None
     modified_at: datetime | None = None
+    quality: MarkdownQualityReport | None = None
 
 
 @dataclass(slots=True)
@@ -77,6 +83,17 @@ class ConversionRun:
     metrics: RunMetrics
     duration_seconds: float
     results: list[DocumentResult] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class InlineConversionResult:
+    source_name: str
+    engine: str
+    model: str | None
+    markdown: str
+    quality: MarkdownQualityReport
+    duration_seconds: float
+    assets: list[EngineAsset] = field(default_factory=list)
 
 
 def list_engine_names() -> list[str]:
@@ -213,10 +230,19 @@ def run_conversion(
             assets=engine_response.assets,
         )
         cleaned = enforce_markdown(result)
+        quality = evaluate_markdown_quality(cleaned.markdown)
         target = write_markdown(cleaned, output_dir)
         log_info(f"[{index}/{total_count}] Wrote {target}")
         metrics.successes += 1
-        results.append(DocumentResult(source_path=source_path, status="converted", output_path=target, modified_at=modified_at))
+        results.append(
+            DocumentResult(
+                source_path=source_path,
+                status="converted",
+                output_path=target,
+                modified_at=modified_at,
+                quality=quality,
+            )
+        )
 
     elapsed = time.perf_counter() - started_at
     log_info(_format_summary(metrics, elapsed))
@@ -228,4 +254,61 @@ def run_conversion(
         metrics=metrics,
         duration_seconds=elapsed,
         results=results,
+    )
+
+
+def convert_inline_document(
+    *,
+    source_name: str,
+    content_base64: str,
+    engine: str | None = None,
+    model: str | None = None,
+    no_page_info: bool = False,
+    settings: Settings | None = None,
+) -> InlineConversionResult:
+    safe_name = Path(source_name).name
+    if not safe_name or safe_name in {".", ".."}:
+        raise ValueError("source_name must include a valid filename with a supported extension")
+
+    try:
+        content = base64.b64decode(content_base64, validate=True)
+    except binascii.Error as exc:
+        raise ValueError("content_base64 is not valid base64") from exc
+
+    if not content:
+        raise ValueError("Decoded file content is empty")
+
+    active_settings = settings or get_settings()
+    engine_name = _normalize_engine(engine, active_settings.default_engine)
+
+    engine_kwargs: dict = {}
+    if no_page_info:
+        engine_kwargs["include_page_headers"] = False
+
+    engine_instance = _resolve_engine(engine_name, model, **engine_kwargs)
+    started_at = time.perf_counter()
+
+    with tempfile.TemporaryDirectory(prefix="doc_to_md_inline_") as temp_dir:
+        temp_path = Path(temp_dir) / safe_name
+        temp_path.write_bytes(content)
+        validate_file(temp_path)
+        engine_response = engine_instance.convert(temp_path)
+
+    result = ConversionResult(
+        source_name=safe_name,
+        markdown=engine_response.markdown,
+        engine=engine_instance.name,
+        assets=engine_response.assets,
+    )
+    cleaned = enforce_markdown(result)
+    quality = evaluate_markdown_quality(cleaned.markdown)
+    elapsed = time.perf_counter() - started_at
+    return InlineConversionResult(
+        source_name=safe_name,
+        engine=engine_name,
+        model=getattr(engine_instance, "model", model),
+        markdown=cleaned.markdown,
+        quality=quality,
+        duration_seconds=elapsed,
+        assets=cleaned.assets,
     )
