@@ -6,9 +6,11 @@ This repository already has three usable integration surfaces:
 
 - Python single-document inline: `doc_to_md.apps.conversion.logic.convert_inline_document(...)`
 - Python: `doc_to_md.apps.conversion.logic.run_conversion(...)`
+- Python preferred-engine readiness: `doc_to_md.apps.conversion.logic.list_preferred_engine_readiness(...)`
 - CLI: `python -m doc_to_md.cli convert ...`
 - FastAPI: `POST /apps/conversion/convert`
 - FastAPI single-document inline: `POST /apps/conversion/convert-inline`
+- FastAPI preferred-engine readiness: `GET /apps/conversion/engine-readiness`
 
 Those surfaces are good enough for agent use in the workspace and for server-side orchestration.
 
@@ -36,6 +38,7 @@ The key architectural rule is:
 - The HTTP response contract is now documented in `API_RESPONSE_CONTRACT.md`.
 - The same core already serves both batch workflows and agent-style single-document calls.
 - Batch and inline requests can now override formula OCR settings per request.
+- Agents and services can now inspect whether `opendataloader` and `mistral` are ready before choosing an engine.
 
 ## Current limits
 

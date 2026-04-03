@@ -36,3 +36,10 @@ def test_benchmark_report_mentions_agent_readiness_fields(tmp_path: Path) -> Non
     assert "Fastest engine with acceptable formula judgment" in report
     assert "- Overall quality: `good`" in report
     assert "- Formula quality: `not_applicable`" in report
+
+
+def test_resolve_engines_preferred_pdf_profile_uses_opendataloader_and_mistral() -> None:
+    selected = benchmark.resolve_engines(None, profile="preferred-pdf")
+
+    assert selected is not None
+    assert [engine for engine, _ in selected] == ["opendataloader", "mistral"]

@@ -26,10 +26,15 @@ EngineName = settings_module.EngineName
 get_settings = settings_module.get_settings
 ENGINE_REGISTRY = logic_module.ENGINE_REGISTRY
 ENGINES_REQUIRING_MODEL = logic_module.ENGINES_REQUIRING_MODEL
+list_preferred_pdf_engines = logic_module.list_preferred_pdf_engines
 Engine = base_module.Engine
 EngineResponse = base_module.EngineResponse
 ConversionResult = postprocess_module.ConversionResult
 postprocess_conversion_result = postprocess_module.postprocess_conversion_result
+
+BENCHMARK_PROFILES: dict[str, list[str]] = {
+    "preferred-pdf": list_preferred_pdf_engines(),
+}
 
 ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
     "paddleocr": {
@@ -502,13 +507,17 @@ class MarkdownReportGenerator:
         return report_path
 
 
-def resolve_engines(engine_names: list[str] | None) -> list[tuple[EngineName, str | None]] | None:
-    if not engine_names:
+def resolve_engines(engine_names: list[str] | None, profile: str | None = None) -> list[tuple[EngineName, str | None]] | None:
+    selected_names = engine_names
+    if not selected_names and profile:
+        selected_names = BENCHMARK_PROFILES[profile]
+
+    if not selected_names:
         return None
 
     settings = get_settings()
     selected: list[tuple[EngineName, str | None]] = []
-    for engine_name in engine_names:
+    for engine_name in selected_names:
         if engine_name == "mistral":
             selected.append((engine_name, settings.mistral_default_model))
         elif engine_name == "deepseekocr":
@@ -534,6 +543,11 @@ def main() -> None:
         help="List of engines to test, for example: docling opendataloader mistral",
     )
     parser.add_argument(
+        "--profile",
+        choices=sorted(BENCHMARK_PROFILES),
+        help="Named engine profile, for example `preferred-pdf` for opendataloader + mistral.",
+    )
+    parser.add_argument(
         "--save-json",
         action="store_true",
         help="Write `result.json` alongside the Markdown report.",
@@ -544,7 +558,7 @@ def main() -> None:
         raise SystemExit(f"Test file does not exist: {args.test_file}")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    engines_to_test = resolve_engines(args.engines)
+    engines_to_test = resolve_engines(args.engines, profile=args.profile)
 
     benchmark = EngineBenchmark(engines_to_test)
     result = benchmark.run_benchmark(args.test_file, args.output_dir)

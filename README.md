@@ -381,10 +381,24 @@ Available endpoints:
 - `GET /health`
 - `GET /apps/conversion/health`
 - `GET /apps/conversion/engines`
+- `GET /apps/conversion/engine-readiness`
 - `POST /apps/conversion/convert`
 - `POST /apps/conversion/convert-inline`
 
 The stable response field contract for the conversion endpoints is documented in [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md).
+
+### Preferred engine readiness
+
+If you mainly route PDF work through `opendataloader` and `mistral`, call:
+
+```bash
+curl http://localhost:8000/apps/conversion/engine-readiness
+```
+
+This returns the current readiness of the preferred PDF engines on the running machine:
+
+- `opendataloader`: checks Java 11+ on `PATH` and the `opendataloader-pdf` package
+- `mistral`: checks that the Mistral API key is configured and the client can initialize
 
 ### Batch conversion request
 
@@ -537,6 +551,7 @@ Quick examples:
 ```bash
 python benchmark.py --test-file path/to/document.pdf
 python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 

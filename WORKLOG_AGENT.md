@@ -15,6 +15,7 @@
 - `3b1b1c3` Add real PDF smoke fixture and tests
 - `027d5b8` Document API response contract
 - `7b4247b` Add agent quality signals to benchmark
+- `6523281` Add preferred engine readiness endpoint
 
 ### Current focus
 
@@ -101,3 +102,32 @@ Observed result on the representative sample:
 - `formula_status=review`
 - `diagnostic_codes=["formula_context_without_math"]`
 - formulas were not recovered as math segments, but the prose remained readable enough for analysis
+
+### Step 4: preferred engine routing for opendataloader and mistral
+
+- Added a preferred-engine readiness helper and API surface for the two currently favored PDF engines:
+  - `doc_to_md.apps.conversion.logic.list_preferred_engine_readiness(...)`
+  - `GET /apps/conversion/engine-readiness`
+- Added benchmark profile support:
+  - `python benchmark.py --profile preferred-pdf`
+- Updated benchmark and skill docs so the normal evaluation path now points at `opendataloader` plus `mistral`.
+
+Verification:
+
+- `.venv\Scripts\python -m pytest tests/test_engine_readiness.py tests/test_benchmark.py tests/test_real_pdf_smoke.py tests/test_api.py tests/test_conversion_logic.py -q`
+- direct readiness probe from Python helper
+- real representative PDF regression via inline conversion
+- real representative PDF benchmark with `preferred-pdf`
+
+Observed result on the current machine:
+
+- `mistral` is ready
+- `opendataloader` is blocked because Java 11+ is not on `PATH`
+- `opendataloader` is also blocked because `opendataloader-pdf` is not installed
+- the representative PDF still produces `review/review` on `local`, so it remains a good formula-quality regression sample
+- running `preferred-pdf` on the representative PDF produced:
+  - `opendataloader`: blocked immediately by missing Java
+  - `mistral`: success in about `11.13s`
+  - `mistral quality_status=review`
+  - `mistral formula_status=review`
+  - `mistral diagnostic_codes=["fragmented_math_tokens"]`

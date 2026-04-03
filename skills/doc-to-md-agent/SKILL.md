@@ -15,26 +15,30 @@ Use this skill when the task is any of the following:
 
 ## Quick workflow
 
-1. Choose the narrowest integration surface that fits the task.
+1. Check preferred-engine readiness when the workflow is PDF-heavy.
+   Call `GET /apps/conversion/engine-readiness` or use the Python helper `doc_to_md.apps.conversion.logic.list_preferred_engine_readiness()`.
+   This tells the agent whether `opendataloader` and `mistral` are actually usable on the current machine.
+
+2. Choose the narrowest integration surface that fits the task.
    For in-process single-document use `doc_to_md.apps.conversion.logic.convert_inline_document`.
    For in-process batch use `doc_to_md.apps.conversion.logic.run_conversion`.
    For service-style single-document orchestration use `POST /apps/conversion/convert-inline` with either JSON base64 or multipart upload.
    For service-style orchestration use `POST /apps/conversion/convert`.
    For workspace-local tasks use `python -m doc_to_md.cli convert`.
 
-2. Treat conversion and evaluation as a pair.
+3. Treat conversion and evaluation as a pair.
    After each conversion, inspect the per-document `quality` payload from the API or run:
 
 ```powershell
 python tools/evaluate_markdown_quality.py path\to\output.md --json
 ```
 
-3. Use `formula_status` to decide whether to trust math-heavy output.
+4. Use `formula_status` to decide whether to trust math-heavy output.
    `good`: safe to continue into chunking, indexing, or summarization.
    `review`: do a targeted spot-check on the formula-heavy sections before proceeding.
    `poor`: do not trust the formulas yet; retry with another engine or enable formula OCR.
 
-4. For formula-heavy PDFs, prefer the stronger paths first.
+5. For formula-heavy PDFs, prefer the stronger paths first.
    Start with `opendataloader` for the best current local balance.
    Use `mistral` when managed OCR is acceptable.
    If formula images remain, enable `FORMULA_OCR_ENABLED=true`.

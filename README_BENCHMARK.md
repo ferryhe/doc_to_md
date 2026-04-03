@@ -22,6 +22,9 @@ Use it when you want to:
 # Test specific engines
 python benchmark.py --test-file path/to/document.pdf --engines local markitdown
 
+# Test the preferred PDF profile
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
+
 # Use a custom test file
 python benchmark.py --test-file path/to/your/document.pdf
 
@@ -43,6 +46,11 @@ python benchmark.py \
 python benchmark.py \
   --test-file document.pdf \
   --engines mistral deepseekocr paddleocr opendataloader
+
+# Run the preferred PDF profile
+python benchmark.py \
+  --test-file document.pdf \
+  --profile preferred-pdf
 
 # Test only local engines
 python benchmark.py \
@@ -96,12 +104,12 @@ The generated report includes:
 ```bash
 python benchmark.py \
   --test-file "data/input/your_document.pdf" \
-  --engines local \
+  --profile preferred-pdf \
   --output-dir tmp_user_sample_benchmark \
   --save-json
 ```
 
-This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes.
+This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes and your preferred engines are `opendataloader` plus `mistral`.
 
 ### Choose the best engine for a document type
 
@@ -180,6 +188,10 @@ Metrics currently include:
 - diagnostic codes from the Markdown-quality pass
 - postprocessing trace metadata
 - success or failure status
+
+The built-in benchmark profiles currently include:
+
+- `preferred-pdf`: `opendataloader` then `mistral`
 
 Optimization hints:
 

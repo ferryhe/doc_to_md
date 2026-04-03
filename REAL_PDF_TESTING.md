@@ -52,7 +52,7 @@ Then run a focused benchmark:
 ```powershell
 .venv\Scripts\python benchmark.py `
   --test-file "data/input/your_document.pdf" `
-  --engines local `
+  --profile preferred-pdf `
   --output-dir tmp_user_sample_benchmark `
   --save-json
 ```
@@ -104,6 +104,14 @@ What this means:
 - plain text extraction is usable enough to continue analysis
 - formulas are being flattened into prose-like text instead of recovered as math segments
 - this document is a good representative regression sample for future formula-quality work
+
+Preferred-path note:
+
+- if your normal workflow prefers `opendataloader` and `mistral`, use `--profile preferred-pdf`
+- before running that profile, inspect `GET /apps/conversion/engine-readiness` to confirm whether the local machine is actually ready for both engines
+- on the current machine, `preferred-pdf` currently means:
+  - `opendataloader` is blocked until Java 11+ and `opendataloader-pdf` are installed
+  - `mistral` is the only ready engine in that preferred pair
 
 ## Environment note
 
