@@ -254,3 +254,72 @@ def test_inline_conversion_endpoint_rejects_invalid_base64() -> None:
 
     assert response.status_code == 400
     assert "valid base64" in response.json()["detail"]
+
+
+def test_inline_conversion_endpoint_accepts_multipart_upload(monkeypatch) -> None:
+    def fake_convert_inline_document(**kwargs):
+        assert kwargs["source_name"] == "uploaded.txt"
+        assert kwargs["engine"] == "local"
+        assert kwargs["formula_ocr_enabled"] is True
+        assert kwargs["formula_ocr_provider"] == "mistral"
+        return InlineConversionResult(
+            source_name="uploaded.txt",
+            engine="local",
+            model="local-text-wrapper",
+            markdown="# uploaded\n\nhello multipart\n",
+            quality=MarkdownQualityReport(
+                status="good",
+                formula_status="not_applicable",
+                headings=1,
+                bullet_lines=0,
+                table_lines=0,
+                image_references=0,
+                formula_image_references=0,
+                inline_math_segments=0,
+                block_math_segments=0,
+                diagnostics=[],
+            ),
+            duration_seconds=0.01,
+            assets=[],
+            trace=PostprocessTrace(
+                math_normalization_changed=False,
+                formula_ocr_enabled=True,
+                formula_ocr_provider="mistral",
+                formula_ocr_attempted=False,
+                formula_ocr_applied=False,
+                formula_image_references_before=0,
+                formula_image_references_after=0,
+                asset_count_before=0,
+                asset_count_after=0,
+                postprocess_changed=False,
+            ),
+        )
+
+    monkeypatch.setattr(conversion_router, "convert_inline_document", fake_convert_inline_document)
+
+    response = client.post(
+        "/apps/conversion/convert-inline",
+        data={
+            "engine": "local",
+            "formula_ocr_enabled": "true",
+            "formula_ocr_provider": "mistral",
+        },
+        files={"file": ("uploaded.txt", b"hello multipart", "text/plain")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_name"] == "uploaded.txt"
+    assert payload["markdown"] == "# uploaded\n\nhello multipart\n"
+    assert payload["trace"]["formula_ocr_provider"] == "mistral"
+
+
+def test_inline_conversion_endpoint_rejects_invalid_multipart_boolean() -> None:
+    response = client.post(
+        "/apps/conversion/convert-inline",
+        data={"formula_ocr_enabled": "maybe"},
+        files={"file": ("uploaded.txt", b"hello multipart", "text/plain")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "formula_ocr_enabled"]

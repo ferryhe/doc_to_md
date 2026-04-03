@@ -4,7 +4,9 @@ from __future__ import annotations
 import base64
 import mimetypes
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import ValidationError
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from doc_to_md.apps.conversion.logic import convert_inline_document, list_engine_names, run_conversion
 from doc_to_md.apps.conversion.schemas import (
@@ -66,6 +68,91 @@ def _build_trace_response(trace) -> PostprocessTraceResponse | None:
     )
 
 
+def _coerce_optional_bool(value: object, *, field_name: str) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered == "":
+            return None
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    raise HTTPException(
+        status_code=422,
+        detail=[
+            {
+                "loc": ["body", field_name],
+                "msg": "Input should be a valid boolean",
+                "type": "bool_parsing",
+            }
+        ],
+    )
+
+
+def _coerce_optional_text(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+async def _parse_inline_request(request: Request) -> InlineConvertRequest:
+    content_type = request.headers.get("content-type", "").lower()
+    if "multipart/form-data" in content_type:
+        try:
+            form = await request.form()
+        except (AssertionError, RuntimeError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="Multipart support requires `python-multipart`. Install it with `pip install \\\".[api]\\\"`.",
+            ) from exc
+
+        upload = form.get("file")
+        if not isinstance(upload, StarletteUploadFile):
+            raise HTTPException(status_code=422, detail=[{"loc": ["body", "file"], "msg": "Field required", "type": "missing"}])
+
+        source_name = _coerce_optional_text(form.get("source_name")) or upload.filename
+        if not source_name:
+            raise HTTPException(
+                status_code=422,
+                detail=[{"loc": ["body", "source_name"], "msg": "source_name is required when upload filename is missing", "type": "missing"}],
+            )
+
+        payload = {
+            "source_name": source_name,
+            "content_base64": base64.b64encode(await upload.read()).decode("ascii"),
+            "engine": _coerce_optional_text(form.get("engine")),
+            "model": _coerce_optional_text(form.get("model")),
+            "no_page_info": _coerce_optional_bool(form.get("no_page_info"), field_name="no_page_info") or False,
+            "formula_ocr_enabled": _coerce_optional_bool(form.get("formula_ocr_enabled"), field_name="formula_ocr_enabled"),
+            "formula_ocr_provider": _coerce_optional_text(form.get("formula_ocr_provider")),
+            "include_assets": _coerce_optional_bool(form.get("include_assets"), field_name="include_assets") or False,
+        }
+        try:
+            return InlineConvertRequest.model_validate(payload)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    if content_type.startswith("application/json") or not content_type:
+        try:
+            payload = await request.json()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload") from exc
+        try:
+            return InlineConvertRequest.model_validate(payload)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    raise HTTPException(
+        status_code=415,
+        detail="Unsupported content type. Use application/json or multipart/form-data.",
+    )
+
+
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse()
@@ -123,7 +210,8 @@ def convert_documents(payload: ConvertRequest) -> ConvertResponse:
 
 
 @router.post("/convert-inline", response_model=InlineConvertResponse)
-def convert_inline(payload: InlineConvertRequest) -> InlineConvertResponse:
+async def convert_inline(request: Request) -> InlineConvertResponse:
+    payload = await _parse_inline_request(request)
     try:
         result = convert_inline_document(
             source_name=payload.source_name,
