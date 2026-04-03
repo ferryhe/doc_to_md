@@ -33,6 +33,15 @@ Use this skill when the task is any of the following:
 python tools/evaluate_markdown_quality.py path\to\output.md --json
 ```
 
+   When a reviewed Markdown reference already exists for the same document, also run:
+
+```powershell
+python benchmark.py --test-file path\to\document.pdf --profile preferred-pdf --reference-markdown path\to\reviewed.md --save-json
+```
+
+   Use the reference metrics when formula fidelity matters:
+   `reference_formula_status`, `reference_formula_recall`, and `reference_formula_similarity`.
+
 4. Use `formula_status` to decide whether to trust math-heavy output.
    `good`: safe to continue into chunking, indexing, or summarization.
    `review`: do a targeted spot-check on the formula-heavy sections before proceeding.

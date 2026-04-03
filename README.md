@@ -6,6 +6,7 @@ This repository is designed first for actuaries and actuarial teams working with
 
 ## Version History
 
+- `0.1.2` (April 3, 2026) - Agent-ready quality scoring, inline API improvements, preferred-PDF benchmarking, and release polish
 - `0.1.1` (April 1, 2026) - Initial release
 
 ## Highlights
@@ -13,11 +14,32 @@ This repository is designed first for actuaries and actuarial teams working with
 - `src/` layout packaged as `doc_to_md`
 - Typer CLI with `convert` and `list-engines`
 - FastAPI app for HTTP conversion workflows
+- Python helpers for batch, inline, and readiness checks
+- Structured `quality` and `trace` signals for AI agents and services
 - Multiple local and remote extraction engines
 - Format-aware `auto` engine with per-format routing from `.env`
 - Built-in support for PDF, DOCX, PPTX, XLSX, HTML, images, TXT, and Markdown
 - Benchmark script for side-by-side engine comparison
+- Repository skill for agent orchestration plus reference-aware formula benchmarking
 - MIT licensed
+
+## Integration Surfaces
+
+This repository is now shaped around four supported ways to use the same conversion core:
+
+- Python library:
+  `run_conversion(...)`, `convert_inline_document(...)`, and `list_preferred_engine_readiness(...)`
+- CLI:
+  `python -m doc_to_md.cli ...`
+- FastAPI service:
+  `doc-to-md-api` with batch, inline, and readiness endpoints
+- AI agent workflow:
+  structured `quality` and `trace` metadata, [README_BENCHMARK.md](README_BENCHMARK.md), and [skills/doc-to-md-agent/SKILL.md](skills/doc-to-md-agent/SKILL.md)
+
+The project is intended to stay dual-surface:
+
+- ordinary programs can call the typed Python, CLI, and HTTP interfaces without knowing anything about agent orchestration
+- AI agents can use those same interfaces plus diagnostics, benchmark evidence, and the repo skill to decide whether the result is trustworthy
 
 ## Project layout
 
@@ -580,6 +602,20 @@ pip install -e .
 ```
 
 The repository also includes GitHub Actions CI for `ruff`, `pytest`, `build`, and `twine check` across Python 3.10 to 3.12.
+
+Release smoke checklist for the main supported surfaces:
+
+```bash
+python -m doc_to_md.cli list-engines
+python -m pytest tests/test_real_pdf_smoke.py tests/test_api_contract.py tests/test_benchmark.py -q
+python -m build
+```
+
+For a formula-heavy release candidate, also run one representative benchmark:
+
+```bash
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md --save-json
+```
 
 ## License
 

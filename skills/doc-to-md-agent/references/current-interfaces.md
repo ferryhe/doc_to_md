@@ -36,13 +36,14 @@ The key architectural rule is:
 - Single-document inline conversion no longer requires input/output directories.
 - The inline HTTP API now supports both JSON base64 and multipart upload on the same endpoint.
 - The HTTP response contract is now documented in `API_RESPONSE_CONTRACT.md`.
+- The benchmark layer can now compare formula output against a reviewed Markdown reference through `benchmark.py --reference-markdown`.
 - The same core already serves both batch workflows and agent-style single-document calls.
 - Batch and inline requests can now override formula OCR settings per request.
 - Agents and services can now inspect whether `opendataloader` and `mistral` are ready before choosing an engine.
 
 ## Current limits
 
-- Formula quality is still heuristic, not benchmark-backed against a gold dataset.
+- Reference-aware formula benchmarking is available, but it depends on a reviewed Markdown file and is not yet exposed as a runtime API field.
 - The trace surface is postprocessing-focused and does not yet expose deeper per-engine runtime details.
 
 ## Recommended use today
