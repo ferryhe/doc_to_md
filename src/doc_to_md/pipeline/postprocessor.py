@@ -105,7 +105,7 @@ def postprocess_conversion_result(
         formula_image_references_after=final_quality.formula_image_references,
         asset_count_before=len(result.assets),
         asset_count_after=len(final_result.assets),
-        postprocess_changed=final_result.markdown != cleaned or len(final_result.assets) != len(result.assets),
+        postprocess_changed=final_result.markdown != result.markdown or len(final_result.assets) != len(result.assets),
     )
     return PostprocessOutcome(result=final_result, quality=final_quality, trace=trace)
 

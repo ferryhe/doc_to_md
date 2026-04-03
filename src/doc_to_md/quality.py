@@ -55,7 +55,7 @@ class MarkdownQualityReport:
 def evaluate_markdown_quality(markdown: str) -> MarkdownQualityReport:
     lines = markdown.splitlines()
     matches = list(MATH_SEGMENT_PATTERN.finditer(markdown))
-    math_segments = extract_math_segments(markdown)
+    math_segments = [match.group(0) for match in matches]
     inline_math_segments = sum(
         1 for match in matches if match.group("inline_paren") or match.group("inline_dollar")
     )

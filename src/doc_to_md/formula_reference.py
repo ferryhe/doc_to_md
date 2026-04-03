@@ -15,7 +15,7 @@ WRAPPER_COMMAND_RE = re.compile(
     r"\\(?:mathrm|mathbf|mathit|text|operatorname|boldsymbol)\s*\{([^{}]*)\}"
 )
 ENVIRONMENT_RE = re.compile(r"\\(?:begin|end)\{[^{}]+\}")
-SPACING_COMMAND_RE = re.compile(r"\\(?:left|right|quad|qquad|,|;|:|!|enspace|thinspace)\b")
+SPACING_COMMAND_RE = re.compile(r"\\(?:left|right|quad|qquad|,|;|:|!|enspace|thinspace)(?![A-Za-z])")
 
 
 @dataclass(slots=True)

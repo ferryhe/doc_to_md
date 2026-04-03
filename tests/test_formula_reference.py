@@ -46,3 +46,14 @@ def test_formula_reference_marks_missing_explicit_math_as_poor() -> None:
     assert report.candidate_formula_count == 0
     assert report.matched_formula_count == 0
     assert any(item.code == "reference_formula_missing_all" for item in report.diagnostics)
+
+
+def test_formula_reference_ignores_latex_spacing_commands() -> None:
+    reference = "```math\na=b\n```\n"
+    candidate = "$$a\\,\\;=b$$\n"
+
+    report = evaluate_formula_reference(candidate, reference)
+
+    assert report.status == "good"
+    assert report.formula_recall == 1.0
+    assert report.average_similarity >= 0.85

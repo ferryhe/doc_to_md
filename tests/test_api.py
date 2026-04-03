@@ -178,6 +178,19 @@ def test_conversion_endpoint_includes_quality_payload(monkeypatch, tmp_path) -> 
     assert payload["results"][0]["trace"]["formula_ocr_attempted"] is True
 
 
+def test_conversion_endpoint_hides_internal_errors(monkeypatch) -> None:
+    def fake_run_conversion(**kwargs):
+        del kwargs
+        raise RuntimeError("secret stack detail")
+
+    monkeypatch.setattr(conversion_router, "run_conversion", fake_run_conversion)
+
+    response = client.post("/apps/conversion/convert", json={})
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Batch conversion failed."}
+
+
 def test_inline_conversion_endpoint_returns_markdown(monkeypatch) -> None:
     def fake_convert_inline_document(**kwargs):
         assert kwargs["source_name"] == "sample.txt"
@@ -305,6 +318,25 @@ def test_inline_conversion_endpoint_rejects_invalid_base64() -> None:
 
     assert response.status_code == 400
     assert "valid base64" in response.json()["detail"]
+
+
+def test_inline_conversion_endpoint_hides_internal_errors(monkeypatch) -> None:
+    def fake_convert_inline_document(**kwargs):
+        del kwargs
+        raise RuntimeError("secret stack detail")
+
+    monkeypatch.setattr(conversion_router, "convert_inline_document", fake_convert_inline_document)
+
+    response = client.post(
+        "/apps/conversion/convert-inline",
+        json={
+            "source_name": "sample.txt",
+            "content_base64": base64.b64encode(b"hello").decode("ascii"),
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Inline conversion failed."}
 
 
 def test_inline_conversion_endpoint_accepts_multipart_upload(monkeypatch) -> None:

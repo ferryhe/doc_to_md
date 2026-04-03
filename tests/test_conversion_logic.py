@@ -56,7 +56,7 @@ def test_run_conversion_local_writes_markdown(tmp_path: Path) -> None:
     assert summary.results[0].quality.status == "good"
     assert summary.results[0].quality.formula_status == "not_applicable"
     assert summary.results[0].trace is not None
-    assert summary.results[0].trace.postprocess_changed is False
+    assert summary.results[0].trace.postprocess_changed is True
 
 
 def test_convert_inline_document_returns_markdown_and_quality() -> None:

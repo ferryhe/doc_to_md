@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 import mimetypes
 
 from fastapi import APIRouter, HTTPException, Request
@@ -32,6 +33,7 @@ from doc_to_md.apps.conversion.schemas import (
 )
 
 router = APIRouter(prefix="/apps/conversion", tags=["conversion"])
+logger = logging.getLogger(__name__)
 
 
 def _build_quality_response(quality) -> MarkdownQualityResponse | None:
@@ -212,7 +214,8 @@ def convert_documents(payload: ConvertRequest) -> ConvertResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.exception("Batch conversion failed.")
+        raise HTTPException(status_code=500, detail="Batch conversion failed.") from exc
 
     return ConvertResponse(
         engine=summary.engine,
@@ -257,7 +260,8 @@ async def convert_inline(request: Request) -> InlineConvertResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.exception("Inline conversion failed.")
+        raise HTTPException(status_code=500, detail="Inline conversion failed.") from exc
 
     return InlineConvertResponse(
         source_name=result.source_name,
