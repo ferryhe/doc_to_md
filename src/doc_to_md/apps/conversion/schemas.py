@@ -112,5 +112,24 @@ class EnginesResponse(BaseModel):
     engines: list[str]
 
 
+class EngineReadinessCheckResponse(BaseModel):
+    name: str
+    ready: bool
+    message: str
+
+
+class PreferredEngineReadinessItemResponse(BaseModel):
+    engine: str
+    preferred_rank: int
+    available: bool
+    summary: str
+    checks: list[EngineReadinessCheckResponse]
+
+
+class PreferredEngineReadinessResponse(BaseModel):
+    profile: Literal["preferred_pdf"] = "preferred_pdf"
+    engines: list[PreferredEngineReadinessItemResponse]
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"

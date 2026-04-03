@@ -102,8 +102,113 @@ class InlineConversionResult:
     trace: PostprocessTrace | None = None
 
 
+@dataclass(slots=True)
+class EngineReadinessCheck:
+    name: str
+    ready: bool
+    message: str
+
+
+@dataclass(slots=True)
+class PreferredEngineReadiness:
+    engine: str
+    preferred_rank: int
+    available: bool
+    summary: str
+    checks: list[EngineReadinessCheck] = field(default_factory=list)
+
+
+PREFERRED_PDF_ENGINE_ORDER: tuple[EngineName, EngineName] = ("opendataloader", "mistral")
+
+
 def list_engine_names() -> list[str]:
     return list(ENGINE_REGISTRY)
+
+
+def list_preferred_pdf_engines() -> list[str]:
+    return list(PREFERRED_PDF_ENGINE_ORDER)
+
+
+def _run_readiness_check(name: str, check, success_message: str) -> EngineReadinessCheck:
+    try:
+        check()
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc).strip() or f"{name} check failed"
+        return EngineReadinessCheck(name=name, ready=False, message=message)
+    return EngineReadinessCheck(name=name, ready=True, message=success_message)
+
+
+def _summarize_readiness(engine: str, checks: list[EngineReadinessCheck]) -> str:
+    if all(item.ready for item in checks):
+        if engine == "opendataloader":
+            return "Ready for local PDF conversion with the Java-backed OpenDataLoader pipeline."
+        if engine == "mistral":
+            return "Ready for managed OCR through the Mistral API."
+        return "Ready."
+
+    blocker_labels: list[str] = []
+    for item in checks:
+        if item.ready:
+            continue
+        if item.name == "java_runtime":
+            blocker_labels.append("Java 11+ runtime not ready.")
+        elif item.name == "python_package":
+            blocker_labels.append("The `opendataloader-pdf` package is not installed.")
+        elif item.name == "api_key":
+            blocker_labels.append("The Mistral API key is not configured.")
+        else:
+            blocker_labels.append(item.message.splitlines()[0])
+    if blocker_labels:
+        return "Blocked: " + " ".join(blocker_labels)
+    return "Blocked."
+
+
+def _build_opendataloader_readiness() -> PreferredEngineReadiness:
+    engine = OpenDataLoaderEngine()
+    checks = [
+        _run_readiness_check(
+            "java_runtime",
+            engine._ensure_java,
+            "Java 11+ is available on PATH.",
+        ),
+        _run_readiness_check(
+            "python_package",
+            engine._ensure_package,
+            "The `opendataloader-pdf` package is importable.",
+        ),
+    ]
+    return PreferredEngineReadiness(
+        engine="opendataloader",
+        preferred_rank=1,
+        available=all(item.ready for item in checks),
+        summary=_summarize_readiness("opendataloader", checks),
+        checks=checks,
+    )
+
+
+def _build_mistral_readiness(settings: Settings) -> PreferredEngineReadiness:
+    checks = [
+        _run_readiness_check(
+            "api_key",
+            lambda: MistralEngine(model=settings.mistral_default_model),
+            "Mistral client initialized from the configured API key.",
+        ),
+    ]
+    return PreferredEngineReadiness(
+        engine="mistral",
+        preferred_rank=2,
+        available=all(item.ready for item in checks),
+        summary=_summarize_readiness("mistral", checks),
+        checks=checks,
+    )
+
+
+def list_preferred_engine_readiness(*, settings: Settings | None = None) -> list[PreferredEngineReadiness]:
+    active_settings = settings or get_settings()
+    return [
+        _build_opendataloader_readiness(),
+        _build_mistral_readiness(active_settings),
+    ]
 
 
 def _resolve_engine(engine: EngineName, model: str | None, **engine_kwargs) -> Engine:

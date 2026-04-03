@@ -8,11 +8,17 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import ValidationError
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from doc_to_md.apps.conversion.logic import convert_inline_document, list_engine_names, run_conversion
+from doc_to_md.apps.conversion.logic import (
+    convert_inline_document,
+    list_engine_names,
+    list_preferred_engine_readiness,
+    run_conversion,
+)
 from doc_to_md.apps.conversion.schemas import (
     ConvertRequest,
     ConvertResponse,
     DocumentResultResponse,
+    EngineReadinessCheckResponse,
     EnginesResponse,
     HealthResponse,
     InlineAssetResponse,
@@ -21,6 +27,8 @@ from doc_to_md.apps.conversion.schemas import (
     MarkdownDiagnosticResponse,
     MarkdownQualityResponse,
     PostprocessTraceResponse,
+    PreferredEngineReadinessItemResponse,
+    PreferredEngineReadinessResponse,
 )
 
 router = APIRouter(prefix="/apps/conversion", tags=["conversion"])
@@ -65,6 +73,23 @@ def _build_trace_response(trace) -> PostprocessTraceResponse | None:
         asset_count_before=trace.asset_count_before,
         asset_count_after=trace.asset_count_after,
         postprocess_changed=trace.postprocess_changed,
+    )
+
+
+def _build_readiness_item_response(item) -> PreferredEngineReadinessItemResponse:
+    return PreferredEngineReadinessItemResponse(
+        engine=item.engine,
+        preferred_rank=item.preferred_rank,
+        available=item.available,
+        summary=item.summary,
+        checks=[
+            EngineReadinessCheckResponse(
+                name=check.name,
+                ready=check.ready,
+                message=check.message,
+            )
+            for check in item.checks
+        ],
     )
 
 
@@ -161,6 +186,13 @@ def health() -> HealthResponse:
 @router.get("/engines", response_model=EnginesResponse)
 def list_engines() -> EnginesResponse:
     return EnginesResponse(engines=list_engine_names())
+
+
+@router.get("/engine-readiness", response_model=PreferredEngineReadinessResponse)
+def engine_readiness() -> PreferredEngineReadinessResponse:
+    return PreferredEngineReadinessResponse(
+        engines=[_build_readiness_item_response(item) for item in list_preferred_engine_readiness()]
+    )
 
 
 @router.post("/convert", response_model=ConvertResponse)

@@ -6,7 +6,14 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
 from doc_to_md.api import app
-from doc_to_md.apps.conversion.logic import ConversionRun, DocumentResult, InlineConversionResult, RunMetrics
+from doc_to_md.apps.conversion.logic import (
+    ConversionRun,
+    DocumentResult,
+    EngineReadinessCheck,
+    InlineConversionResult,
+    PreferredEngineReadiness,
+    RunMetrics,
+)
 from doc_to_md.engines.base import EngineAsset
 from doc_to_md.apps.conversion import router as conversion_router
 from doc_to_md.pipeline.postprocessor import PostprocessTrace
@@ -28,6 +35,50 @@ def test_conversion_engines_endpoint() -> None:
     payload = response.json()
     assert "engines" in payload
     assert "local" in payload["engines"]
+
+
+def test_engine_readiness_endpoint_returns_preferred_engines(monkeypatch) -> None:
+    monkeypatch.setattr(
+        conversion_router,
+        "list_preferred_engine_readiness",
+        lambda: [
+            PreferredEngineReadiness(
+                engine="opendataloader",
+                preferred_rank=1,
+                available=False,
+                summary="Blocked: Java 11+ missing on PATH.",
+                checks=[
+                    EngineReadinessCheck(
+                        name="java_runtime",
+                        ready=False,
+                        message="Java 11+ missing on PATH.",
+                    )
+                ],
+            ),
+            PreferredEngineReadiness(
+                engine="mistral",
+                preferred_rank=2,
+                available=True,
+                summary="Ready for managed OCR through the Mistral API.",
+                checks=[
+                    EngineReadinessCheck(
+                        name="api_key",
+                        ready=True,
+                        message="Mistral client initialized from the configured API key.",
+                    )
+                ],
+            ),
+        ],
+    )
+
+    response = client.get("/apps/conversion/engine-readiness")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["profile"] == "preferred_pdf"
+    assert [item["engine"] for item in payload["engines"]] == ["opendataloader", "mistral"]
+    assert payload["engines"][0]["available"] is False
+    assert payload["engines"][1]["available"] is True
 
 
 def test_conversion_endpoint_forwards_no_page_info(monkeypatch, tmp_path) -> None:
