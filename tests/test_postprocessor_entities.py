@@ -1,4 +1,9 @@
-from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown, normalize_math_entities
+from doc_to_md.pipeline.postprocessor import (
+    ConversionResult,
+    enforce_markdown,
+    normalize_math_entities,
+    postprocess_conversion_result,
+)
 
 
 def test_normalize_math_entities_decodes_only_math_segments() -> None:
@@ -55,3 +60,17 @@ def test_enforce_markdown_adds_spacing_around_math_subscripts_and_keeps_escaped_
     assert "$MC _ {非寿险保险}$" in result.markdown
     assert "$x ^ 2$" in result.markdown
     assert "$\\text{a\\_b}$" in result.markdown
+
+
+def test_postprocess_reports_whitespace_only_trim_as_changed() -> None:
+    outcome = postprocess_conversion_result(
+        ConversionResult(
+            source_name="sample.txt",
+            markdown="# sample\n\nhello\n",
+            engine="local",
+            assets=[],
+        )
+    )
+
+    assert outcome.result.markdown == "# sample\n\nhello"
+    assert outcome.trace.postprocess_changed is True

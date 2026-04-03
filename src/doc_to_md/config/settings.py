@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -123,6 +123,13 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    def with_overrides(self, **overrides: Any) -> "Settings":
+        payload = self.model_dump()
+        for key, value in overrides.items():
+            if value is not None:
+                payload[key] = value
+        return type(self).model_validate(payload)
 
 
 @lru_cache

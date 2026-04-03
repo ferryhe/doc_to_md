@@ -4,16 +4,42 @@ Convert PDFs, scans, office documents, HTML, and plain text into LLM-ready Markd
 
 This repository is designed first for actuaries and actuarial teams working with source documents such as actuarial papers, SFCRs, ORSAs, valuation reports, internal guidance, policy documents, and other materials that need cleanup before indexing, review, chunking, or downstream RAG use.
 
+## Version History
+
+- `0.1.2` (April 3, 2026) - Agent-ready quality scoring, inline API improvements, preferred-PDF benchmarking, and release polish
+- `0.1.1` (April 1, 2026) - Initial release
+
 ## Highlights
 
 - `src/` layout packaged as `doc_to_md`
 - Typer CLI with `convert` and `list-engines`
 - FastAPI app for HTTP conversion workflows
+- Python helpers for batch, inline, and readiness checks
+- Structured `quality` and `trace` signals for AI agents and services
 - Multiple local and remote extraction engines
 - Format-aware `auto` engine with per-format routing from `.env`
 - Built-in support for PDF, DOCX, PPTX, XLSX, HTML, images, TXT, and Markdown
 - Benchmark script for side-by-side engine comparison
+- Repository skill for agent orchestration plus reference-aware formula benchmarking
 - MIT licensed
+
+## Integration Surfaces
+
+This repository is now shaped around four supported ways to use the same conversion core:
+
+- Python library:
+  `run_conversion(...)`, `convert_inline_document(...)`, and `list_preferred_engine_readiness(...)`
+- CLI:
+  `python -m doc_to_md.cli ...`
+- FastAPI service:
+  `doc-to-md-api` with batch, inline, and readiness endpoints
+- AI agent workflow:
+  structured `quality` and `trace` metadata, [README_BENCHMARK.md](README_BENCHMARK.md), and [skills/doc-to-md-agent/SKILL.md](skills/doc-to-md-agent/SKILL.md)
+
+The project is intended to stay dual-surface:
+
+- ordinary programs can call the typed Python, CLI, and HTTP interfaces without knowing anything about agent orchestration
+- AI agents can use those same interfaces plus diagnostics, benchmark evidence, and the repo skill to decide whether the result is trustworthy
 
 ## Project layout
 
@@ -274,11 +300,25 @@ python -m doc_to_md.cli convert --input-path data/input --output-path data/outpu
 
 Current recommendation:
 
-- Use `mistral` first for formula-heavy regulatory PDFs.
+- Use `opendataloader` first for prose-dominant PDFs where local speed and structure matter more than formula fidelity.
+- Use `mistral` first for formula-heavy regulatory PDFs where AI-readable math is the priority.
 - Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
 - Leave the feature off for image-heavy documents where embedded figures should stay as images.
 
 Math postprocessing also normalizes spacing around `_` and `^` inside math segments so Markdown renderers are less likely to misread subscripts or superscripts as italics.
+
+### Practical engine choice
+
+For day-to-day use, the most reliable rule is:
+
+- If the document has little or no meaningful formula content:
+  prefer `opendataloader`
+- If the document is formula-heavy and the math needs to stay readable to an AI agent:
+  prefer `mistral`
+- If the formula-heavy result still shows OCR-split decimals or percentages:
+  keep the `mistral` path and apply lightweight math cleanup rather than switching back to a formula-flattening engine
+
+This is the same rule the repository skill now follows for agent workflows.
 
 ## CLI usage
 
@@ -362,6 +402,8 @@ Install the API extra first:
 pip install ".[api]"
 ```
 
+The API extra now includes multipart upload support for inline document conversion.
+
 Start the server:
 
 ```bash
@@ -375,9 +417,26 @@ Available endpoints:
 - `GET /health`
 - `GET /apps/conversion/health`
 - `GET /apps/conversion/engines`
+- `GET /apps/conversion/engine-readiness`
 - `POST /apps/conversion/convert`
+- `POST /apps/conversion/convert-inline`
 
-Example request:
+The stable response field contract for the conversion endpoints is documented in [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md).
+
+### Preferred engine readiness
+
+If you mainly route PDF work through `opendataloader` and `mistral`, call:
+
+```bash
+curl http://localhost:8000/apps/conversion/engine-readiness
+```
+
+This returns the current readiness of the preferred PDF engines on the running machine:
+
+- `opendataloader`: checks Java 11+ on `PATH` and the `opendataloader-pdf` package
+- `mistral`: checks that the Mistral API key is configured and the client can initialize
+
+### Batch conversion request
 
 ```bash
 curl -X POST http://localhost:8000/apps/conversion/convert \
@@ -386,9 +445,85 @@ curl -X POST http://localhost:8000/apps/conversion/convert \
     "input_path": "data/input",
     "output_path": "data/output",
     "engine": "mistral",
-    "no_page_info": true
+    "no_page_info": true,
+    "formula_ocr_enabled": true,
+    "formula_ocr_provider": "mistral"
   }'
 ```
+
+### Inline single-document request
+
+Use `POST /apps/conversion/convert-inline` when another service or AI agent wants one request in and one response out without preparing input/output directories.
+
+This endpoint accepts either:
+
+- `application/json` with `content_base64`
+- `multipart/form-data` with an uploaded `file`
+
+JSON request body:
+
+- `source_name`: original filename with extension such as `sample.pdf`
+- `content_base64`: base64-encoded file bytes
+- `engine` / `model`: optional engine overrides
+- `formula_ocr_enabled` / `formula_ocr_provider`: optional request-level formula OCR overrides
+- `include_assets`: include generated asset bytes in the response when `true`
+
+Example payload:
+
+```json
+{
+  "source_name": "sample.txt",
+  "content_base64": "aGVsbG8gd29ybGQ=",
+  "engine": "local",
+  "formula_ocr_enabled": false,
+  "include_assets": false
+}
+```
+
+Multipart example:
+
+```bash
+curl -X POST http://localhost:8000/apps/conversion/convert-inline \
+  -F "file=@data/input/sample.pdf" \
+  -F "engine=opendataloader" \
+  -F "formula_ocr_enabled=true" \
+  -F "formula_ocr_provider=mistral"
+```
+
+### Response metadata
+
+Converted documents now include two machine-friendly sections:
+
+- `quality`: heuristic quality report for the Markdown output
+- `trace`: execution trace for postprocessing and formula cleanup
+
+`quality` is the main decision signal for AI agents and downstream services:
+
+- `status`: overall `good`, `review`, or `poor`
+- `formula_status`: `good`, `review`, `poor`, or `not_applicable`
+- `diagnostics[]`: structured reasons such as `formula_image_reference` or `fragmented_math_tokens`
+
+`trace` explains what happened during postprocessing:
+
+- whether math normalization changed the document
+- whether formula OCR was enabled for that request
+- which formula OCR provider was selected
+- whether formula OCR was attempted and whether it actually changed the output
+- formula-image counts before and after postprocessing
+- asset counts before and after postprocessing
+
+The current contract examples are locked with a repository smoke fixture:
+
+- `tests/fixtures/real_smoke.pdf`
+- `tests/test_real_pdf_smoke.py`
+- `tests/test_api_contract.py`
+
+### Python helpers
+
+For in-process programmatic use:
+
+- batch workflows: `doc_to_md.apps.conversion.logic.run_conversion(...)`
+- single-document inline workflows: `doc_to_md.apps.conversion.logic.convert_inline_document(...)`
 
 ## Supported formats and validation
 
@@ -452,6 +587,8 @@ Quick examples:
 ```bash
 python benchmark.py --test-file path/to/document.pdf
 python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 
@@ -479,6 +616,20 @@ pip install -e .
 ```
 
 The repository also includes GitHub Actions CI for `ruff`, `pytest`, `build`, and `twine check` across Python 3.10 to 3.12.
+
+Release smoke checklist for the main supported surfaces:
+
+```bash
+python -m doc_to_md.cli list-engines
+python -m pytest tests/test_real_pdf_smoke.py tests/test_api_contract.py tests/test_benchmark.py -q
+python -m build
+```
+
+For a formula-heavy release candidate, also run one representative benchmark:
+
+```bash
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md --save-json
+```
 
 ## License
 

@@ -5,9 +5,10 @@ from dataclasses import dataclass
 import html
 import re
 
-from doc_to_md.config.settings import get_settings
+from doc_to_md.config.settings import Settings, get_settings
 from doc_to_md.engines.base import EngineAsset
 from doc_to_md.pipeline.formula_ocr import replace_formula_images
+from doc_to_md.quality import MarkdownQualityReport, evaluate_markdown_quality
 
 
 @dataclass(slots=True)
@@ -16,6 +17,27 @@ class ConversionResult:
     markdown: str
     engine: str
     assets: list[EngineAsset]
+
+
+@dataclass(slots=True)
+class PostprocessTrace:
+    math_normalization_changed: bool
+    formula_ocr_enabled: bool
+    formula_ocr_provider: str | None
+    formula_ocr_attempted: bool
+    formula_ocr_applied: bool
+    formula_image_references_before: int
+    formula_image_references_after: int
+    asset_count_before: int
+    asset_count_after: int
+    postprocess_changed: bool
+
+
+@dataclass(slots=True)
+class PostprocessOutcome:
+    result: ConversionResult
+    quality: MarkdownQualityReport
+    trace: PostprocessTrace
 
 
 MATH_SEGMENT_PATTERN = re.compile(
@@ -43,8 +65,11 @@ BROKEN_CJK_SUBSUP_PATTERN = re.compile(
 )
 
 
-def enforce_markdown(result: ConversionResult) -> ConversionResult:
-    """Placeholder hook to normalize Markdown (e.g., strip trailing spaces)."""
+def postprocess_conversion_result(
+    result: ConversionResult,
+    *,
+    settings: Settings | None = None,
+) -> PostprocessOutcome:
     cleaned = result.markdown.strip()
     normalized = ConversionResult(
         source_name=result.source_name,
@@ -52,16 +77,42 @@ def enforce_markdown(result: ConversionResult) -> ConversionResult:
         engine=result.engine,
         assets=result.assets,
     )
-    settings = get_settings()
-    if settings.formula_ocr_enabled:
-        normalized = replace_formula_images(normalized, settings=settings)
-        return ConversionResult(
-            source_name=normalized.source_name,
-            markdown=normalize_math_entities(normalized.markdown),
-            engine=normalized.engine,
-            assets=normalized.assets,
-        )
-    return normalized
+    active_settings = settings or get_settings()
+    quality_before = evaluate_markdown_quality(normalized.markdown)
+    after_formula = normalized
+    formula_ocr_attempted = active_settings.formula_ocr_enabled and quality_before.formula_image_references > 0
+
+    if active_settings.formula_ocr_enabled:
+        after_formula = replace_formula_images(normalized, settings=active_settings)
+
+    final_result = ConversionResult(
+        source_name=after_formula.source_name,
+        markdown=normalize_math_entities(after_formula.markdown),
+        engine=after_formula.engine,
+        assets=after_formula.assets,
+    )
+    final_quality = evaluate_markdown_quality(final_result.markdown)
+    formula_ocr_applied = formula_ocr_attempted and (
+        final_result.markdown != normalized.markdown or len(final_result.assets) != len(normalized.assets)
+    )
+    trace = PostprocessTrace(
+        math_normalization_changed=normalized.markdown != cleaned,
+        formula_ocr_enabled=active_settings.formula_ocr_enabled,
+        formula_ocr_provider=active_settings.formula_ocr_provider if active_settings.formula_ocr_enabled else None,
+        formula_ocr_attempted=formula_ocr_attempted,
+        formula_ocr_applied=formula_ocr_applied,
+        formula_image_references_before=quality_before.formula_image_references,
+        formula_image_references_after=final_quality.formula_image_references,
+        asset_count_before=len(result.assets),
+        asset_count_after=len(final_result.assets),
+        postprocess_changed=final_result.markdown != result.markdown or len(final_result.assets) != len(result.assets),
+    )
+    return PostprocessOutcome(result=final_result, quality=final_quality, trace=trace)
+
+
+def enforce_markdown(result: ConversionResult, *, settings: Settings | None = None) -> ConversionResult:
+    """Normalize Markdown and optionally run formula OCR cleanup."""
+    return postprocess_conversion_result(result, settings=settings).result
 
 
 def normalize_math_entities(markdown: str) -> str:

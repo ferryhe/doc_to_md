@@ -1,14 +1,18 @@
 """Shared document conversion logic used by CLI and FastAPI."""
 from __future__ import annotations
 
+import base64
+import binascii
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+import tempfile
 import time
 from typing import Dict, Optional, Type, cast
 
-from doc_to_md.config.settings import EngineName, Settings, get_settings
+from doc_to_md.config.settings import EngineName, FormulaOcrProvider, Settings, get_settings
 from doc_to_md.engines.base import Engine
+from doc_to_md.engines.base import EngineAsset
 from doc_to_md.engines.auto import AutoEngine
 from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.engines.docling import DoclingEngine
@@ -21,10 +25,15 @@ from doc_to_md.engines.mistral import MistralEngine
 from doc_to_md.engines.opendataloader import OpenDataLoaderEngine
 from doc_to_md.engines.paddleocr import PaddleOCREngine
 from doc_to_md.pipeline.loader import iter_documents
-from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown
+from doc_to_md.pipeline.postprocessor import (
+    ConversionResult,
+    PostprocessTrace,
+    postprocess_conversion_result,
+)
 from doc_to_md.pipeline.writer import write_markdown
+from doc_to_md.quality import MarkdownQualityReport
 from doc_to_md.utils.logging import log_error, log_info, log_warning
-from doc_to_md.utils.validation import FileValidationError
+from doc_to_md.utils.validation import FileValidationError, validate_file
 
 ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
@@ -66,6 +75,8 @@ class DocumentResult:
     output_path: Path | None = None
     error: str | None = None
     modified_at: datetime | None = None
+    quality: MarkdownQualityReport | None = None
+    trace: PostprocessTrace | None = None
 
 
 @dataclass(slots=True)
@@ -79,8 +90,125 @@ class ConversionRun:
     results: list[DocumentResult] = field(default_factory=list)
 
 
+@dataclass(slots=True)
+class InlineConversionResult:
+    source_name: str
+    engine: str
+    model: str | None
+    markdown: str
+    quality: MarkdownQualityReport
+    duration_seconds: float
+    assets: list[EngineAsset] = field(default_factory=list)
+    trace: PostprocessTrace | None = None
+
+
+@dataclass(slots=True)
+class EngineReadinessCheck:
+    name: str
+    ready: bool
+    message: str
+
+
+@dataclass(slots=True)
+class PreferredEngineReadiness:
+    engine: str
+    preferred_rank: int
+    available: bool
+    summary: str
+    checks: list[EngineReadinessCheck] = field(default_factory=list)
+
+
+PREFERRED_PDF_ENGINE_ORDER: tuple[EngineName, EngineName] = ("opendataloader", "mistral")
+
+
 def list_engine_names() -> list[str]:
     return list(ENGINE_REGISTRY)
+
+
+def list_preferred_pdf_engines() -> list[str]:
+    return list(PREFERRED_PDF_ENGINE_ORDER)
+
+
+def _run_readiness_check(name: str, check, success_message: str) -> EngineReadinessCheck:
+    try:
+        check()
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc).strip() or f"{name} check failed"
+        return EngineReadinessCheck(name=name, ready=False, message=message)
+    return EngineReadinessCheck(name=name, ready=True, message=success_message)
+
+
+def _summarize_readiness(engine: str, checks: list[EngineReadinessCheck]) -> str:
+    if all(item.ready for item in checks):
+        if engine == "opendataloader":
+            return "Ready for local PDF conversion with the Java-backed OpenDataLoader pipeline."
+        if engine == "mistral":
+            return "Ready for managed OCR through the Mistral API."
+        return "Ready."
+
+    blocker_labels: list[str] = []
+    for item in checks:
+        if item.ready:
+            continue
+        if item.name == "java_runtime":
+            blocker_labels.append("Java 11+ runtime not ready.")
+        elif item.name == "python_package":
+            blocker_labels.append("The `opendataloader-pdf` package is not installed.")
+        elif item.name == "api_key":
+            blocker_labels.append("The Mistral API key is not configured.")
+        else:
+            blocker_labels.append(item.message.splitlines()[0])
+    if blocker_labels:
+        return "Blocked: " + " ".join(blocker_labels)
+    return "Blocked."
+
+
+def _build_opendataloader_readiness() -> PreferredEngineReadiness:
+    engine = OpenDataLoaderEngine()
+    checks = [
+        _run_readiness_check(
+            "java_runtime",
+            engine._ensure_java,
+            "Java 11+ is available on PATH.",
+        ),
+        _run_readiness_check(
+            "python_package",
+            engine._ensure_package,
+            "The `opendataloader-pdf` package is importable.",
+        ),
+    ]
+    return PreferredEngineReadiness(
+        engine="opendataloader",
+        preferred_rank=1,
+        available=all(item.ready for item in checks),
+        summary=_summarize_readiness("opendataloader", checks),
+        checks=checks,
+    )
+
+
+def _build_mistral_readiness(settings: Settings) -> PreferredEngineReadiness:
+    checks = [
+        _run_readiness_check(
+            "api_key",
+            lambda: MistralEngine(model=settings.mistral_default_model),
+            "Mistral client initialized from the configured API key.",
+        ),
+    ]
+    return PreferredEngineReadiness(
+        engine="mistral",
+        preferred_rank=2,
+        available=all(item.ready for item in checks),
+        summary=_summarize_readiness("mistral", checks),
+        checks=checks,
+    )
+
+
+def list_preferred_engine_readiness(*, settings: Settings | None = None) -> list[PreferredEngineReadiness]:
+    active_settings = settings or get_settings()
+    return [
+        _build_opendataloader_readiness(),
+        _build_mistral_readiness(active_settings),
+    ]
 
 
 def _resolve_engine(engine: EngineName, model: str | None, **engine_kwargs) -> Engine:
@@ -128,6 +256,20 @@ def _format_summary(metrics: RunMetrics, elapsed_seconds: float) -> str:
     )
 
 
+def _resolve_postprocess_settings(
+    base_settings: Settings,
+    *,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
+) -> Settings:
+    if formula_ocr_enabled is None and formula_ocr_provider is None:
+        return base_settings
+    return base_settings.with_overrides(
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
+
+
 def run_conversion(
     *,
     input_path: str | Path | None = None,
@@ -137,9 +279,16 @@ def run_conversion(
     since: datetime | None = None,
     no_page_info: bool = False,
     dry_run: bool = False,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
     settings: Settings | None = None,
 ) -> ConversionRun:
     active_settings = settings or get_settings()
+    postprocess_settings = _resolve_postprocess_settings(
+        active_settings,
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
     input_dir = Path(input_path) if input_path else active_settings.input_dir
     output_dir = Path(output_path) if output_path else active_settings.output_dir
     engine_name = _normalize_engine(engine, active_settings.default_engine)
@@ -212,11 +361,20 @@ def run_conversion(
             engine=engine_instance.name,
             assets=engine_response.assets,
         )
-        cleaned = enforce_markdown(result)
-        target = write_markdown(cleaned, output_dir)
+        outcome = postprocess_conversion_result(result, settings=postprocess_settings)
+        target = write_markdown(outcome.result, output_dir)
         log_info(f"[{index}/{total_count}] Wrote {target}")
         metrics.successes += 1
-        results.append(DocumentResult(source_path=source_path, status="converted", output_path=target, modified_at=modified_at))
+        results.append(
+            DocumentResult(
+                source_path=source_path,
+                status="converted",
+                output_path=target,
+                modified_at=modified_at,
+                quality=outcome.quality,
+                trace=outcome.trace,
+            )
+        )
 
     elapsed = time.perf_counter() - started_at
     log_info(_format_summary(metrics, elapsed))
@@ -228,4 +386,68 @@ def run_conversion(
         metrics=metrics,
         duration_seconds=elapsed,
         results=results,
+    )
+
+
+def convert_inline_document(
+    *,
+    source_name: str,
+    content_base64: str,
+    engine: str | None = None,
+    model: str | None = None,
+    no_page_info: bool = False,
+    formula_ocr_enabled: bool | None = None,
+    formula_ocr_provider: FormulaOcrProvider | None = None,
+    settings: Settings | None = None,
+) -> InlineConversionResult:
+    safe_name = Path(source_name).name
+    if not safe_name or safe_name in {".", ".."}:
+        raise ValueError("source_name must include a valid filename with a supported extension")
+
+    try:
+        content = base64.b64decode(content_base64, validate=True)
+    except binascii.Error as exc:
+        raise ValueError("content_base64 is not valid base64") from exc
+
+    if not content:
+        raise ValueError("Decoded file content is empty")
+
+    active_settings = settings or get_settings()
+    postprocess_settings = _resolve_postprocess_settings(
+        active_settings,
+        formula_ocr_enabled=formula_ocr_enabled,
+        formula_ocr_provider=formula_ocr_provider,
+    )
+    engine_name = _normalize_engine(engine, active_settings.default_engine)
+
+    engine_kwargs: dict = {}
+    if no_page_info:
+        engine_kwargs["include_page_headers"] = False
+
+    engine_instance = _resolve_engine(engine_name, model, **engine_kwargs)
+    started_at = time.perf_counter()
+
+    with tempfile.TemporaryDirectory(prefix="doc_to_md_inline_") as temp_dir:
+        temp_path = Path(temp_dir) / safe_name
+        temp_path.write_bytes(content)
+        validate_file(temp_path)
+        engine_response = engine_instance.convert(temp_path)
+
+    result = ConversionResult(
+        source_name=safe_name,
+        markdown=engine_response.markdown,
+        engine=engine_instance.name,
+        assets=engine_response.assets,
+    )
+    outcome = postprocess_conversion_result(result, settings=postprocess_settings)
+    elapsed = time.perf_counter() - started_at
+    return InlineConversionResult(
+        source_name=safe_name,
+        engine=engine_name,
+        model=getattr(engine_instance, "model", model),
+        markdown=outcome.result.markdown,
+        quality=outcome.quality,
+        duration_seconds=elapsed,
+        assets=outcome.result.assets,
+        trace=outcome.trace,
     )
