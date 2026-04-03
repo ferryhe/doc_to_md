@@ -7,6 +7,7 @@ import pytest
 from doc_to_md.api import app
 from doc_to_md.apps.conversion.logic import convert_inline_document, run_conversion
 
+TestClient = pytest.importorskip("fastapi.testclient").TestClient
 
 FIXTURE_PDF = Path(__file__).parent / "fixtures" / "real_smoke.pdf"
 
@@ -29,10 +30,6 @@ def test_convert_inline_document_real_pdf_smoke() -> None:
     assert "doc_to_md smoke PDF" in result.markdown
     assert "real PDF fixture" in result.markdown
     assert result.quality.status in {"good", "review"}
-
-
-pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient
 
 client = TestClient(app)
 

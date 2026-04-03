@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doc-to-markdown-converter"
-version = "0.1.1"
-description = "Modular CLI for converting documentation to Markdown using multiple engines"
+version = "0.1.2"
+description = "Document-to-Markdown conversion toolkit with Python, CLI, FastAPI, and agent-ready quality signals"
 authors = [{name = "Ferry He", email = "ferry.he@gmail.com"}]
 license = "MIT"
 license-files = ["LICENSE"]
