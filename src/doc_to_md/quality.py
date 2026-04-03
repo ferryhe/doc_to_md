@@ -10,11 +10,12 @@ BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+\S")
 TABLE_RE = re.compile(r"^\s*\|.*\|\s*$")
 FORMULA_KEYWORDS = ("公式", "计算公式", "如下", "其中", "矩阵", "相关系数", "min", "max")
 MATH_SEGMENT_PATTERN = re.compile(
-    r"(?P<display_dollar>\$\$.*?\$\$)"
+    r"(?P<fenced_math>```(?:math|latex)\s*[\r\n]+.*?[\r\n]*```)"
+    r"|(?P<display_dollar>\$\$.*?\$\$)"
     r"|(?P<display_bracket>\\\[.*?\\\])"
     r"|(?P<inline_paren>\\\(.*?\\\))"
     r"|(?P<inline_dollar>(?<!\$)\$(?!\$).*?(?<!\\)\$)",
-    re.DOTALL,
+    re.DOTALL | re.IGNORECASE,
 )
 HTML_ENTITY_RE = re.compile(r"&(?:lt|gt|amp|nbsp|#\d+|#x[0-9a-fA-F]+);", re.IGNORECASE)
 PLACEHOLDER_PATTERNS = (
@@ -54,12 +55,14 @@ class MarkdownQualityReport:
 def evaluate_markdown_quality(markdown: str) -> MarkdownQualityReport:
     lines = markdown.splitlines()
     matches = list(MATH_SEGMENT_PATTERN.finditer(markdown))
-    math_segments = [match.group(0) for match in matches]
+    math_segments = extract_math_segments(markdown)
     inline_math_segments = sum(
         1 for match in matches if match.group("inline_paren") or match.group("inline_dollar")
     )
     block_math_segments = sum(
-        1 for match in matches if match.group("display_dollar") or match.group("display_bracket")
+        1
+        for match in matches
+        if match.group("fenced_math") or match.group("display_dollar") or match.group("display_bracket")
     )
     image_references = sum(len(list(IMAGE_RE.finditer(line))) for line in lines)
     formula_image_references = _count_formula_image_references(lines)
@@ -98,7 +101,7 @@ def evaluate_markdown_quality(markdown: str) -> MarkdownQualityReport:
             )
         )
 
-    fragmented_hits = _count_fragmented_math_segments(math_segments)
+    fragmented_hits = count_fragmented_math_segments(math_segments)
     if fragmented_hits:
         diagnostics.append(
             MarkdownDiagnostic(
@@ -181,7 +184,11 @@ def _contains_formula_keywords(text: str) -> bool:
     return any(keyword.lower() in lowered for keyword in FORMULA_KEYWORDS)
 
 
-def _count_fragmented_math_segments(segments: list[str]) -> int:
+def extract_math_segments(markdown: str) -> list[str]:
+    return [match.group(0) for match in MATH_SEGMENT_PATTERN.finditer(markdown)]
+
+
+def count_fragmented_math_segments(segments: list[str]) -> int:
     fragmented = 0
     for segment in segments:
         if FRAGMENTED_NUMBER_RE.search(segment) or FRAGMENTED_SYMBOL_RE.search(segment):

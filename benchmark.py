@@ -21,6 +21,7 @@ settings_module = import_module("doc_to_md.config.settings")
 logic_module = import_module("doc_to_md.apps.conversion.logic")
 base_module = import_module("doc_to_md.engines.base")
 postprocess_module = import_module("doc_to_md.pipeline.postprocessor")
+formula_reference_module = import_module("doc_to_md.formula_reference")
 
 EngineName = settings_module.EngineName
 get_settings = settings_module.get_settings
@@ -31,6 +32,7 @@ Engine = base_module.Engine
 EngineResponse = base_module.EngineResponse
 ConversionResult = postprocess_module.ConversionResult
 postprocess_conversion_result = postprocess_module.postprocess_conversion_result
+evaluate_formula_reference = formula_reference_module.evaluate_formula_reference
 
 BENCHMARK_PROFILES: dict[str, list[str]] = {
     "preferred-pdf": list_preferred_pdf_engines(),
@@ -138,6 +140,11 @@ class EngineResult:
     formula_status: str | None = None
     diagnostic_codes: list[str] = field(default_factory=list)
     quality: dict[str, Any] | None = None
+    reference_formula_status: str | None = None
+    reference_formula_recall: float | None = None
+    reference_formula_similarity: float | None = None
+    reference_formula_diagnostics: list[str] = field(default_factory=list)
+    formula_reference: dict[str, Any] | None = None
     trace: dict[str, Any] | None = None
     error_message: str | None = None
     markdown_path: str | None = None
@@ -151,6 +158,7 @@ class BenchmarkResult:
     timestamp: str
     test_file: str
     file_size_bytes: int
+    reference_markdown: str | None = None
     results: list[EngineResult] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -158,6 +166,7 @@ class BenchmarkResult:
             "timestamp": self.timestamp,
             "test_file": self.test_file,
             "file_size_bytes": self.file_size_bytes,
+            "reference_markdown": self.reference_markdown,
             "results": [asdict(result) for result in self.results],
         }
 
@@ -244,6 +253,7 @@ class EngineBenchmark:
         model: str | None,
         test_file: Path,
         output_dir: Path,
+        reference_markdown: str | None = None,
     ) -> EngineResult:
         print(f"Testing engine: {engine_name} (model: {model or 'default'})")
         engine, create_error = self._create_engine(engine_name, model)
@@ -271,6 +281,12 @@ class EngineBenchmark:
                 ),
                 settings=self.settings,
             )
+            reference_formula = None
+            if reference_markdown:
+                reference_formula = evaluate_formula_reference(
+                    outcome.result.markdown,
+                    reference_markdown,
+                )
             conversion_time = time.perf_counter() - started_at
             markdown_path, asset_dir = self._write_success_artifacts(
                 engine_name=engine_name,
@@ -288,6 +304,13 @@ class EngineBenchmark:
                 formula_status=outcome.quality.formula_status,
                 diagnostic_codes=[item.code for item in outcome.quality.diagnostics],
                 quality=outcome.quality.to_dict(),
+                reference_formula_status=reference_formula.status if reference_formula else None,
+                reference_formula_recall=reference_formula.formula_recall if reference_formula else None,
+                reference_formula_similarity=reference_formula.average_similarity if reference_formula else None,
+                reference_formula_diagnostics=[
+                    item.code for item in reference_formula.diagnostics
+                ] if reference_formula else [],
+                formula_reference=reference_formula.to_dict() if reference_formula else None,
                 trace=asdict(outcome.trace),
                 markdown_path=markdown_path,
                 asset_dir=asset_dir,
@@ -298,6 +321,12 @@ class EngineBenchmark:
                 f" | markdown={result.markdown_length}"
                 f" | assets={result.num_assets}"
                 f" | quality={result.quality_status}/{result.formula_status}"
+                + (
+                    f" | ref_formula={result.reference_formula_status}"
+                    f" ({result.reference_formula_recall:.0%} recall)"
+                    if result.reference_formula_status and result.reference_formula_recall is not None
+                    else ""
+                )
             )
             return result
         except Exception as exc:  # noqa: BLE001
@@ -313,17 +342,27 @@ class EngineBenchmark:
                 error_message=error_message,
             )
 
-    def run_benchmark(self, test_file: Path, output_dir: Path) -> BenchmarkResult:
+    def run_benchmark(
+        self,
+        test_file: Path,
+        output_dir: Path,
+        reference_markdown_path: Path | None = None,
+    ) -> BenchmarkResult:
         print("=" * 72)
         print("Starting benchmark")
         print(f"Test file: {test_file}")
         print(f"File size: {test_file.stat().st_size / 1024:.2f} KB")
+        reference_markdown = None
+        if reference_markdown_path is not None:
+            print(f"Reference Markdown: {reference_markdown_path}")
+            reference_markdown = reference_markdown_path.read_text(encoding="utf-8")
         print("=" * 72)
 
         benchmark_result = BenchmarkResult(
             timestamp=datetime.now(timezone.utc).isoformat(),
             test_file=str(test_file),
             file_size_bytes=test_file.stat().st_size,
+            reference_markdown=str(reference_markdown_path) if reference_markdown_path else None,
         )
 
         for engine_name, model in self.engines_to_test:
@@ -333,6 +372,7 @@ class EngineBenchmark:
                     model=model,
                     test_file=test_file,
                     output_dir=output_dir,
+                    reference_markdown=reference_markdown,
                 )
             )
 
@@ -348,6 +388,12 @@ class MarkdownReportGenerator:
     @staticmethod
     def _format_duration(seconds: float) -> str:
         return f"{seconds:.2f}s"
+
+    @staticmethod
+    def _format_percent(value: float | None) -> str:
+        if value is None:
+            return "-"
+        return f"{value:.0%}"
 
     @staticmethod
     def _format_size(byte_count: int) -> str:
@@ -383,6 +429,23 @@ class MarkdownReportGenerator:
                 f"- Fastest engine with acceptable formula judgment: `{best_formula.engine_name}` "
                 f"({best_formula.formula_status})."
             )
+        reference_ready = [result for result in successful if result.reference_formula_status]
+        if reference_ready:
+            ranked_reference = sorted(
+                reference_ready,
+                key=lambda result: (
+                    {"poor": 0, "review": 1, "good": 2}.get(result.reference_formula_status or "", -1),
+                    result.reference_formula_recall or 0.0,
+                    result.reference_formula_similarity or 0.0,
+                    -result.conversion_time,
+                ),
+                reverse=True,
+            )[0]
+            lines.append(
+                f"- Strongest reference-aligned formula output: `{ranked_reference.engine_name}` "
+                f"({ranked_reference.reference_formula_status}, "
+                f"recall={self._format_percent(ranked_reference.reference_formula_recall)})."
+            )
 
         failed = [result for result in self.result.results if not result.success]
         if failed:
@@ -403,6 +466,8 @@ class MarkdownReportGenerator:
         lines.append(f"- Timestamp: `{self.result.timestamp}`")
         lines.append(f"- Test file: `{self.result.test_file}`")
         lines.append(f"- File size: {self._format_size(self.result.file_size_bytes)}")
+        if self.result.reference_markdown:
+            lines.append(f"- Reference Markdown: `{self.result.reference_markdown}`")
         lines.append(f"- Engines tested: {len(self.result.results)}")
         lines.append("")
         lines.append("## Summary")
@@ -454,6 +519,20 @@ class MarkdownReportGenerator:
                     lines.append("- Diagnostic codes: " + ", ".join(f"`{code}`" for code in result.diagnostic_codes))
                 else:
                     lines.append("- Diagnostic codes: none")
+                if result.reference_formula_status:
+                    lines.append(
+                        "- Reference formula alignment: "
+                        f"`{result.reference_formula_status}` "
+                        f"(recall={self._format_percent(result.reference_formula_recall)}, "
+                        f"similarity={self._format_percent(result.reference_formula_similarity)})"
+                    )
+                    if result.reference_formula_diagnostics:
+                        lines.append(
+                            "- Reference diagnostics: "
+                            + ", ".join(f"`{code}`" for code in result.reference_formula_diagnostics)
+                        )
+                    else:
+                        lines.append("- Reference diagnostics: none")
                 if result.trace:
                     lines.append(
                         "- Trace highlights: "
@@ -552,16 +631,27 @@ def main() -> None:
         action="store_true",
         help="Write `result.json` alongside the Markdown report.",
     )
+    parser.add_argument(
+        "--reference-markdown",
+        type=Path,
+        help="Optional reviewed Markdown file used to score formula readability and recall.",
+    )
     args = parser.parse_args()
 
     if not args.test_file.exists():
         raise SystemExit(f"Test file does not exist: {args.test_file}")
+    if args.reference_markdown is not None and not args.reference_markdown.exists():
+        raise SystemExit(f"Reference Markdown does not exist: {args.reference_markdown}")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     engines_to_test = resolve_engines(args.engines, profile=args.profile)
 
     benchmark = EngineBenchmark(engines_to_test)
-    result = benchmark.run_benchmark(args.test_file, args.output_dir)
+    result = benchmark.run_benchmark(
+        args.test_file,
+        args.output_dir,
+        reference_markdown_path=args.reference_markdown,
+    )
 
     report_path = MarkdownReportGenerator(result).save_report(args.output_dir)
     print("=" * 72)

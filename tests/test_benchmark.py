@@ -38,6 +38,38 @@ def test_benchmark_report_mentions_agent_readiness_fields(tmp_path: Path) -> Non
     assert "- Formula quality: `not_applicable`" in report
 
 
+def test_benchmark_report_mentions_reference_formula_alignment() -> None:
+    result = benchmark.BenchmarkResult(
+        timestamp="2026-04-03T00:00:00+00:00",
+        test_file="sample.pdf",
+        file_size_bytes=2048,
+        reference_markdown="reviewed.md",
+        results=[
+            benchmark.EngineResult(
+                engine_name="mistral",
+                model="mistral-ocr-latest",
+                success=True,
+                conversion_time=1.2,
+                markdown_length=120,
+                num_assets=0,
+                quality_status="review",
+                formula_status="review",
+                reference_formula_status="review",
+                reference_formula_recall=0.9,
+                reference_formula_similarity=0.88,
+                reference_formula_diagnostics=["reference_formula_fragmented_tokens"],
+            )
+        ],
+    )
+
+    report = benchmark.MarkdownReportGenerator(result).generate_markdown_report()
+
+    assert "Reference Markdown: `reviewed.md`" in report
+    assert "Strongest reference-aligned formula output" in report
+    assert "Reference formula alignment: `review` (recall=90%, similarity=88%)" in report
+    assert "Reference diagnostics: `reference_formula_fragmented_tokens`" in report
+
+
 def test_resolve_engines_preferred_pdf_profile_uses_opendataloader_and_mistral() -> None:
     selected = benchmark.resolve_engines(None, profile="preferred-pdf")
 
