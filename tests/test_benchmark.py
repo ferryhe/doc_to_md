@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import benchmark
 
@@ -75,3 +76,38 @@ def test_resolve_engines_preferred_pdf_profile_uses_opendataloader_and_mistral()
 
     assert selected is not None
     assert [engine for engine, _ in selected] == ["opendataloader", "mistral"]
+
+
+def test_default_benchmark_engines_include_mathpix(monkeypatch) -> None:
+    monkeypatch.setattr(
+        benchmark,
+        "get_settings",
+        lambda: SimpleNamespace(
+            mistral_default_model="mistral-ocr-latest",
+            siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
+        ),
+    )
+
+    runner = benchmark.EngineBenchmark()
+
+    assert ("mathpix", None) in runner.engines_to_test
+
+
+def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> None:
+    monkeypatch.setattr(
+        benchmark,
+        "get_settings",
+        lambda: SimpleNamespace(
+            mistral_default_model="mistral-ocr-latest",
+            siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
+        ),
+    )
+
+    selected = benchmark.resolve_engines(None, profile="formula-pdf")
+
+    assert selected is not None
+    assert selected == [
+        ("opendataloader", None),
+        ("mistral", "mistral-ocr-latest"),
+        ("mathpix", None),
+    ]

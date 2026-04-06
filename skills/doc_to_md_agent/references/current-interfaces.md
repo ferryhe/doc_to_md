@@ -40,11 +40,13 @@ The key architectural rule is:
 - The same core already serves both batch workflows and agent-style single-document calls.
 - Batch and inline requests can now override formula OCR settings per request.
 - Agents and services can now inspect whether `opendataloader` and `mistral` are ready before choosing an engine.
+- `mathpix` is now available as a base-install remote engine for PDF, office-document, and image OCR, especially for handwritten formulas.
 
 ## Current limits
 
 - Reference-aware formula benchmarking is available, but it depends on a reviewed Markdown file and is not yet exposed as a runtime API field.
 - The trace surface is postprocessing-focused and does not yet expose deeper per-engine runtime details.
+- The built-in readiness endpoint currently covers the preferred prose and printed-formula pair (`opendataloader` and `mistral`), not the specialized `mathpix` fallback path.
 
 ## Recommended use today
 

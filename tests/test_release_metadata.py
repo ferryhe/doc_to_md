@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+from doc_to_md import __version__
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,3 +32,11 @@ def test_html_extra_includes_bs4_and_trafilatura() -> None:
     body = match.group("body")
     assert "trafilatura" in body
     assert "beautifulsoup4" in body
+
+
+def test_package_version_matches_pyproject() -> None:
+    pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version\s*=\s*"(?P<version>[^"]+)"$', pyproject, re.MULTILINE)
+
+    assert match is not None
+    assert __version__ == match.group("version")

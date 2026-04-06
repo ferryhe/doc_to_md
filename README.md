@@ -1,379 +1,80 @@
 # doc-to-markdown-converter
 
-Convert PDFs, scans, office documents, HTML, and plain text into LLM-ready Markdown for actuarial document workflows, with a Typer CLI, a FastAPI layer, and pluggable extraction engines.
+Convert PDFs, scans, office documents, HTML, and plain text into Markdown for LLM and actuarial-document workflows.
 
-This repository is designed first for actuaries and actuarial teams working with source documents such as actuarial papers, SFCRs, ORSAs, valuation reports, internal guidance, policy documents, and other materials that need cleanup before indexing, review, chunking, or downstream RAG use.
+This repository is optimized for one practical goal: turn messy source documents into Markdown that is usable for review, indexing, chunking, RAG, and downstream AI processing.
 
-## Version History
+## What matters most
 
-- `0.1.2` (April 3, 2026) - Agent-ready quality scoring, inline API improvements, preferred-PDF benchmarking, and release polish
-- `0.1.1` (April 1, 2026) - Initial release
+Current engine choice by document type:
 
-## Highlights
+| Document type | First choice | Backup | Why |
+| --- | --- | --- | --- |
+| General text-heavy PDF | `opendataloader` | `mistral` | Best current local default when Java is acceptable |
+| General text-heavy PDF, easiest install | `markitdown` | `opendataloader` | Simplest local extra to try |
+| Printed formula PDF | `mistral` | `mathpix` | Best current tracked printed-formula recovery |
+| Handwritten formula PDF | `mathpix` | `mistral` | Best current tracked handwritten-formula recovery |
 
-- `src/` layout packaged as `doc_to_md`
-- Typer CLI with `convert` and `list-engines`
-- FastAPI app for HTTP conversion workflows
-- Python helpers for batch, inline, and readiness checks
-- Structured `quality` and `trace` signals for AI agents and services
-- Multiple local and remote extraction engines
-- Format-aware `auto` engine with per-format routing from `.env`
-- Built-in support for PDF, DOCX, PPTX, XLSX, HTML, images, TXT, and Markdown
-- Benchmark script for side-by-side engine comparison
-- Repository skill for agent orchestration plus reference-aware formula benchmarking
-- MIT licensed
+Important caution:
 
-## Integration Surfaces
+- `opendataloader` is fast and often structurally strong, but formula-heavy AI workflows should not trust it blindly.
+- When it fails on formulas, it often leaves plain context or images instead of machine-readable math.
+- If you see `formula_context_without_math` or `formula_image_reference`, rerun with `mistral` or `mathpix`.
 
-This repository is now shaped around four supported ways to use the same conversion core:
+## Recommended install
 
-- Python library:
-  `run_conversion(...)`, `convert_inline_document(...)`, and `list_preferred_engine_readiness(...)`
-- CLI:
-  `python -m doc_to_md.cli ...`
-- FastAPI service:
-  `doc-to-md-api` with batch, inline, and readiness endpoints
-- AI agent workflow:
-  structured `quality` and `trace` metadata, [README_BENCHMARK.md](README_BENCHMARK.md), and [skills/doc-to-md-agent/SKILL.md](skills/doc-to-md-agent/SKILL.md)
-
-The project is intended to stay dual-surface:
-
-- ordinary programs can call the typed Python, CLI, and HTTP interfaces without knowing anything about agent orchestration
-- AI agents can use those same interfaces plus diagnostics, benchmark evidence, and the repo skill to decide whether the result is trustworthy
-
-## Project layout
-
-```text
-doc_to_md/
-|-- .github/
-|   `-- workflows/
-|-- benchmark_results/
-|-- config/                      # compatibility shim for legacy imports
-|-- src/
-|   `-- doc_to_md/
-|       |-- api.py
-|       |-- cli.py
-|       |-- apps/
-|       |   `-- conversion/
-|       |       |-- cli.py
-|       |       |-- logic.py
-|       |       |-- router.py
-|       |       `-- schemas.py
-|       |-- config/
-|       |   `-- settings.py
-|       |-- engines/
-|       |-- pipeline/
-|       `-- utils/
-|-- tests/
-|-- tools/
-|-- benchmark.py
-|-- PDF_ENGINE_EVALUATION.md
-|-- README.md
-|-- README_BENCHMARK.md
-|-- requirements-recommended-pdf.txt
-|-- requirements-core.txt
-|-- requirements-dev.txt
-|-- requirements.txt
-`-- pyproject.toml
-```
-
-Local working directories such as `data/`, `.venv/`, and temporary `tmp_*` folders are created during use and are not part of the tracked repository layout.
-
-## Python support
-
-- Supported: Python `>=3.10,<3.13`
-- Recommended: Python 3.10 or 3.11
-- Intentionally unsupported: Python 3.13 and newer
-
-Several optional OCR and ML dependencies lag behind the newest Python releases, so 3.10 or 3.11 remains the safest default.
-
-## Installation
-
-### From a source checkout
+For the current recommended PDF setup:
 
 ```bash
-git clone https://github.com/ferryhe/doc_to_md.git
-cd doc_to_md
-
-# Windows
-py -3.10 -m venv .venv
-.venv\Scripts\activate
-
-# Unix/macOS
-python3.10 -m venv .venv
-source .venv/bin/activate
-
-pip install -e .
+pip install -r requirements-recommended-pdf.txt
 ```
 
-### Optional extras
-
-Install only the extras you actually need:
-
-```bash
-pip install ".[api]"
-pip install ".[html]"
-pip install ".[office]"
-pip install ".[markitdown]"
-pip install ".[docling]"
-pip install ".[paddleocr]"
-pip install ".[mineru]"
-pip install ".[marker]"
-```
-
-If you are installing from a published package instead of a source checkout, replace `".[extra]"` with `doc-to-markdown-converter[extra]`.
-
-### Install paths
-
-There are now three clear install targets:
-
-| What you want | Use this | Includes |
-| --- | --- | --- |
-| Current recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` | `local`, `markitdown`, `opendataloader`, `docling`, `mistral` |
-| Pinned broad CPU environment | `pip install -r requirements-core.txt` | A wider non-GPU stack including `deepseekocr`, `html_local`, `office`, and `docling` |
-| Heavy full stack | `pip install -r requirements.txt` | Adds the GPU-oriented / harder-to-install engines |
-| Repo development and tests | `pip install -r requirements-dev.txt` | `pytest`, `fastapi`, `uvicorn`, `ruff`, `build`, `twine` on top of one runtime install |
-
-The current recommended PDF setup is the one that matches the evaluation report.
-
-It keeps:
+That setup keeps:
 
 - `local`
 - `markitdown`
 - `opendataloader`
 - `docling`
 - `mistral`
+- `mathpix`
 
-Equivalent direct command:
+Notes:
 
-```bash
-# From a source checkout
-pip install -e ".[markitdown,docling,opendataloader]"
+- `local`, `mistral`, and `mathpix` are part of the base package
+- `mistral` needs `MISTRAL_API_KEY`
+- `mathpix` needs `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`
+- `opendataloader` needs Java 11+ on `PATH`
 
-# From a published package
-pip install "doc-to-markdown-converter[markitdown,docling,opendataloader]"
-```
+Other install targets:
 
-Notes for the recommended setup:
+| Use case | Command |
+| --- | --- |
+| Recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` |
+| Broader CPU environment | `pip install -r requirements-core.txt` |
+| Full heavy stack | `pip install -r requirements.txt` |
+| Dev and test overlay | `pip install -r requirements-dev.txt` |
 
-- `local` and `mistral` are already included in the base package
-- `mistral` does not need an extra, but it does need `MISTRAL_API_KEY`
-- `opendataloader` still needs Java 11+ on the system
-- on the Windows / Python 3.12 test machine used here, this setup occupied about `1.32 GB` for `.venv` plus about `303 MB` for the JDK
+## Quick start
 
-### OpenDataLoader setup
-
-`opendataloader` needs Java 11+ in addition to the Python extra.
-
-1. Install Java 11+.
-   Ubuntu or Debian: `sudo apt install default-jre`
-   macOS with Homebrew: `brew install openjdk@17`
-   Windows: <https://adoptium.net/>
-
-2. Open a new terminal, then verify Java:
+Create `.env` from the template:
 
 ```bash
-java -version
-```
-
-3. Install the Python extra:
-
-```bash
-# From a source checkout
-pip install -e ".[opendataloader]"
-
-# From a published package
-pip install "doc-to-markdown-converter[opendataloader]"
-```
-
-4. Run a smoke test:
-
-```bash
-python -m doc_to_md.cli convert \
-  --input-path data/input \
-  --output-path data/output \
-  --engine opendataloader
-```
-
-For harder PDFs, set `OPENDATALOADER_HYBRID=docling-fast` before running the same command:
-
-```bash
-# Windows PowerShell
-$env:OPENDATALOADER_HYBRID="docling-fast"
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
-
-# Unix/macOS
-OPENDATALOADER_HYBRID=docling-fast \
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
-```
-
-Common failures:
-
-- `java` not found: restart the terminal or fix Java on `PATH`
-- `No module named 'opendataloader_pdf'`: reinstall the extra in the active environment
-
-### Requirements files
-
-Use the requirements files as follows:
-
-```bash
-# Current recommended PDF setup
-pip install -r requirements-recommended-pdf.txt
-
-# Pinned broad CPU environment
-pip install -r requirements-core.txt
-
-# Heavy full stack
-pip install -r requirements.txt
-
-# Development and test overlay
-pip install -r requirements-dev.txt
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and fill in only the settings you need:
-
-```bash
-# Windows
-copy .env.example .env
-
-# Unix/macOS
 cp .env.example .env
 ```
 
-Settings are centralized in `doc_to_md.config.settings`.
+Minimum useful settings:
 
-### Key variables
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `DEFAULT_ENGINE` | Default engine when `--engine` is omitted | `local` |
-| `MISTRAL_API_KEY` | Required for the Mistral OCR engine | unset |
-| `SILICONFLOW_API_KEY` | Required for the DeepSeek OCR engine | unset |
-| `MISTRAL_DEFAULT_MODEL` | Default Mistral OCR model | `mistral-ocr-latest` |
-| `SILICONFLOW_DEFAULT_MODEL` | Default DeepSeek OCR model | `deepseek-ai/DeepSeek-OCR` |
-| `AUTO_PDF_ENGINE` | Auto-engine route for PDF | `local` |
-| `AUTO_DOCX_ENGINE` | Auto-engine route for DOCX | `local` |
-| `AUTO_PPTX_ENGINE` | Auto-engine route for PPTX | `local` |
-| `AUTO_SPREADSHEET_ENGINE` | Auto-engine route for XLSX | `local` |
-| `AUTO_HTML_ENGINE` | Auto-engine route for HTML and HTM | `html_local` |
-| `AUTO_IMAGE_ENGINE` | Auto-engine route for PNG, JPG, and JPEG | `local` |
-| `AUTO_TEXT_ENGINE` | Auto-engine route for TXT and MD | `local` |
-| `OPENDATALOADER_HYBRID` | Optional hybrid backend for complex PDF pages | unset |
-| `OPENDATALOADER_USE_STRUCT_TREE` | Enable structure-tree aware extraction for tagged PDFs | `false` |
-| `FORMULA_OCR_ENABLED` | Run an optional postprocessor that replaces residual formula images with Markdown math | `false` |
-| `FORMULA_OCR_PROVIDER` | Vision OCR backend for formula-image replacement (`mistral` or `deepseekocr`) | `mistral` |
-
-### Engine dependency notes
-
-| Engine | Install note | Notes |
-| --- | --- | --- |
-| `local` | Included in the base install | Internal extraction pipeline for PDF, DOCX, images, text, PPTX, and XLSX |
-| `html_local` | `pip install ".[html]"` for best extraction quality | Installs `trafilatura` plus BeautifulSoup support, then falls back to regex stripping when needed |
-| `mistral` | Base install plus `MISTRAL_API_KEY` | Remote OCR API; page headers and standalone page-number lines are omitted by default |
-| `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | Remote OCR API via SiliconFlow |
-| `markitdown` | `pip install ".[markitdown]"` | Microsoft MarkItDown-based conversion |
-| `docling` | `pip install ".[docling]"` | Heavy transformer stack |
-| `paddleocr` | `pip install ".[paddleocr]"` | GPU-friendly OCR path |
-| `mineru` | `pip install ".[mineru]"` | GPU strongly recommended |
-| `marker` | `pip install ".[marker]"` | GPU strongly recommended |
-| `opendataloader` | `pip install ".[opendataloader]"` | PDF-only, requires Java 11+ on `PATH` |
-| `api` | `pip install ".[api]"` | FastAPI plus uvicorn |
-| `office` support | `pip install ".[office]"` | Installs PPTX and XLSX helpers |
-
-### Formula-image postprocessing
-
-Some PDF engines still leave formulas, matrix headers, or short mathematical labels as image references inside the Markdown.  
-If you want those converted into Markdown math after the main document conversion step, enable the optional formula OCR pass:
-
-```bash
-# Windows PowerShell
-$env:FORMULA_OCR_ENABLED="true"
-$env:FORMULA_OCR_PROVIDER="mistral"
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
-
-# Unix/macOS
-FORMULA_OCR_ENABLED=true FORMULA_OCR_PROVIDER=mistral \
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
-```
-
-Current recommendation:
-
-- Use `opendataloader` first for prose-dominant PDFs where local speed and structure matter more than formula fidelity.
-- Use `mistral` first for formula-heavy regulatory PDFs where AI-readable math is the priority.
-- Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
-- Leave the feature off for image-heavy documents where embedded figures should stay as images.
-
-Math postprocessing also normalizes spacing around `_` and `^` inside math segments so Markdown renderers are less likely to misread subscripts or superscripts as italics.
-
-### Practical engine choice
-
-For day-to-day use, the most reliable rule is:
-
-- If the document has little or no meaningful formula content:
-  prefer `opendataloader`
-- If the document is formula-heavy and the math needs to stay readable to an AI agent:
-  prefer `mistral`
-- If the formula-heavy result still shows OCR-split decimals or percentages:
-  keep the `mistral` path and apply lightweight math cleanup rather than switching back to a formula-flattening engine
-
-This is the same rule the repository skill now follows for agent workflows.
-
-## CLI usage
-
-Install the package first with `pip install -e .`.
-
-### Convert documents
-
-```bash
-python -m doc_to_md.cli convert \
-  --input-path data/input \
-  --output-path data/output \
-  --engine local
-```
-
-Common flags:
-
-- `--engine` / `--model`
-- `--since 2025-05-01T00:00:00`
-- `--dry-run`
-- `--no-page-info`
-
-### Auto engine
-
-```bash
-python -m doc_to_md.cli convert \
-  --input-path data/input \
-  --output-path data/output \
-  --engine auto
-```
-
-Example routing:
-
-```bash
-DEFAULT_ENGINE=auto
+```env
+DEFAULT_ENGINE=local
+MISTRAL_API_KEY=...
+MATHPIX_APP_ID=...
+MATHPIX_APP_KEY=...
 AUTO_PDF_ENGINE=opendataloader
-AUTO_HTML_ENGINE=html_local
-AUTO_DOCX_ENGINE=markitdown
-AUTO_PPTX_ENGINE=local
-AUTO_SPREADSHEET_ENGINE=local
-AUTO_IMAGE_ENGINE=local
-AUTO_TEXT_ENGINE=local
 ```
 
-### List engines
+The CLI batch converter reads a directory of documents. For a single file, place it in an input folder or call `POST /apps/conversion/convert-inline`.
 
-```bash
-python -m doc_to_md.cli list-engines
-# Output: local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker, html_local, auto, opendataloader
-```
-
-### Use the OpenDataLoader engine
-
-Complete the install steps in [OpenDataLoader setup](#opendataloader-setup) first.
-
-Examples:
+Convert a directory:
 
 ```bash
 python -m doc_to_md.cli convert \
@@ -382,255 +83,108 @@ python -m doc_to_md.cli convert \
   --engine opendataloader
 ```
 
-Hybrid mode for harder tables or scanned pages:
+Try the strongest handwritten-formula path:
 
 ```bash
-# Windows PowerShell
-$env:OPENDATALOADER_HYBRID="docling-fast"
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
-
-# Unix/macOS
-OPENDATALOADER_HYBRID=docling-fast \
-python -m doc_to_md.cli convert --input-path data/input --output-path data/output --engine opendataloader
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine mathpix
 ```
 
-## API usage
-
-Install the API extra first:
+List available engines:
 
 ```bash
-pip install ".[api]"
+python -m doc_to_md.cli list-engines
 ```
 
-The API extra now includes multipart upload support for inline document conversion.
+## Interfaces
 
-Start the server:
+The three main ways to use this repository are:
 
-```bash
-doc-to-md-api
-# or
-uvicorn doc_to_md.api:app --reload
-```
+- CLI: `python -m doc_to_md.cli ...`
+- API: `doc-to-md-api`
+- Agent skill: [skills/doc_to_md_agent/SKILL.md](skills/doc_to_md_agent/SKILL.md)
 
-Available endpoints:
+Useful API endpoints:
 
-- `GET /health`
-- `GET /apps/conversion/health`
 - `GET /apps/conversion/engines`
 - `GET /apps/conversion/engine-readiness`
 - `POST /apps/conversion/convert`
 - `POST /apps/conversion/convert-inline`
 
-The stable response field contract for the conversion endpoints is documented in [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md).
+The HTTP response contract is documented in [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md).
 
-### Preferred engine readiness
+If you are calling the library directly in Python, the main helpers are:
 
-If you mainly route PDF work through `opendataloader` and `mistral`, call:
+- `doc_to_md.apps.conversion.logic.run_conversion(...)`
+- `doc_to_md.apps.conversion.logic.convert_inline_document(...)`
+- `doc_to_md.apps.conversion.logic.list_preferred_engine_readiness(...)`
 
-```bash
-curl http://localhost:8000/apps/conversion/engine-readiness
-```
+## Supported formats
 
-This returns the current readiness of the preferred PDF engines on the running machine:
+Supported input types:
 
-- `opendataloader`: checks Java 11+ on `PATH` and the `opendataloader-pdf` package
-- `mistral`: checks that the Mistral API key is configured and the client can initialize
+- `.pdf`
+- `.docx`
+- `.pptx`
+- `.xlsx`
+- `.html`
+- `.htm`
+- `.png`
+- `.jpg`
+- `.jpeg`
+- `.txt`
+- `.md`
 
-### Batch conversion request
+Validation rules:
 
-```bash
-curl -X POST http://localhost:8000/apps/conversion/convert \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input_path": "data/input",
-    "output_path": "data/output",
-    "engine": "mistral",
-    "no_page_info": true,
-    "formula_ocr_enabled": true,
-    "formula_ocr_provider": "mistral"
-  }'
-```
-
-### Inline single-document request
-
-Use `POST /apps/conversion/convert-inline` when another service or AI agent wants one request in and one response out without preparing input/output directories.
-
-This endpoint accepts either:
-
-- `application/json` with `content_base64`
-- `multipart/form-data` with an uploaded `file`
-
-JSON request body:
-
-- `source_name`: original filename with extension such as `sample.pdf`
-- `content_base64`: base64-encoded file bytes
-- `engine` / `model`: optional engine overrides
-- `formula_ocr_enabled` / `formula_ocr_provider`: optional request-level formula OCR overrides
-- `include_assets`: include generated asset bytes in the response when `true`
-
-Example payload:
-
-```json
-{
-  "source_name": "sample.txt",
-  "content_base64": "aGVsbG8gd29ybGQ=",
-  "engine": "local",
-  "formula_ocr_enabled": false,
-  "include_assets": false
-}
-```
-
-Multipart example:
-
-```bash
-curl -X POST http://localhost:8000/apps/conversion/convert-inline \
-  -F "file=@data/input/sample.pdf" \
-  -F "engine=opendataloader" \
-  -F "formula_ocr_enabled=true" \
-  -F "formula_ocr_provider=mistral"
-```
-
-### Response metadata
-
-Converted documents now include two machine-friendly sections:
-
-- `quality`: heuristic quality report for the Markdown output
-- `trace`: execution trace for postprocessing and formula cleanup
-
-`quality` is the main decision signal for AI agents and downstream services:
-
-- `status`: overall `good`, `review`, or `poor`
-- `formula_status`: `good`, `review`, `poor`, or `not_applicable`
-- `diagnostics[]`: structured reasons such as `formula_image_reference` or `fragmented_math_tokens`
-
-`trace` explains what happened during postprocessing:
-
-- whether math normalization changed the document
-- whether formula OCR was enabled for that request
-- which formula OCR provider was selected
-- whether formula OCR was attempted and whether it actually changed the output
-- formula-image counts before and after postprocessing
-- asset counts before and after postprocessing
-
-The current contract examples are locked with a repository smoke fixture:
-
-- `tests/fixtures/real_smoke.pdf`
-- `tests/test_real_pdf_smoke.py`
-- `tests/test_api_contract.py`
-
-### Python helpers
-
-For in-process programmatic use:
-
-- batch workflows: `doc_to_md.apps.conversion.logic.run_conversion(...)`
-- single-document inline workflows: `doc_to_md.apps.conversion.logic.convert_inline_document(...)`
-
-## Supported formats and validation
-
-- Supported file types: `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.html`, `.htm`, `.png`, `.jpg`, `.jpeg`, `.txt`, `.md`
-- Legacy `.doc` is rejected explicitly
-- Files must be non-empty and readable
-- The validation layer rejects files larger than 100 MB
+- files must be readable and non-empty
+- legacy `.doc` is rejected
+- files larger than `100 MB` are rejected
 
 ## Engines
 
-- `local`: lightweight internal extraction pipeline
-- `mistral`: Mistral OCR API, with optional PDF chunking and page-aware output
-- `deepseekocr`: DeepSeek OCR via SiliconFlow
-- `markitdown`: Microsoft MarkItDown-based local conversion
-- `paddleocr`: local PaddleOCR pipeline for PDFs and images
-- `mineru`: MinerU pipeline wrapper
-- `docling`: IBM Docling pipeline wrapper
-- `marker`: Marker PDF integration
-- `html_local`: main-content HTML extraction with `trafilatura` fallback logic
-- `auto`: format-aware dispatcher configured from settings
-- `opendataloader`: Java-backed PDF conversion via `opendataloader-pdf`
+Main engines:
 
-All engines implement `Engine.convert(Path) -> EngineResponse`.
+- `local`: fast built-in baseline
+- `markitdown`: easiest local extra
+- `opendataloader`: strongest local default for prose-heavy PDFs
+- `mistral`: strongest managed OCR path for general PDFs and printed formulas
+- `mathpix`: strongest tracked path for handwritten formulas
 
-## Recommended PDF engines
+Other supported engines:
 
-Detailed scoring, install-cost analysis, dependency conflicts, and full benchmark coverage live in [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
+- `docling`
+- `paddleocr`
+- `mineru`
+- `marker`
+- `deepseekocr`
+- `html_local`
+- `auto`
 
-Final score weights are `25%` install cost, `25%` speed, and `50%` quality.
+## Read next
 
-| Engine | Stars | Final score | Best for | Main tradeoff |
-| --- | --- | ---: | --- | --- |
-| `mistral` | `★★★★☆` | `3.9/5` | Best managed-service OCR result | Paid API and network dependency |
-| `opendataloader` | `★★★★☆` | `3.8/5` | Best current local default for PDFs | Needs Java 11+ and can extract many images |
-| `docling` | `★★★☆☆` | `2.9/5` | Best text fidelity on this sample | Too slow on CPU for default use |
-| `markitdown` | `★★★☆☆` | `3.2/5` | Easiest local extra to try | Quality ceiling is limited |
-| `local` | `★★★☆☆` | `3.2/5` | Fastest zero-extra baseline | Not good enough for quality-sensitive PDF work |
-| `marker` | `★★★☆☆` | `2.7/5` | Rich Markdown plus many assets | Very slow and not practical in the main env |
-| `mineru` | `★★☆☆☆` | `2.1/5` | Isolation-only benchmark coverage | Highest setup friction for limited payoff |
-| `paddleocr` | `★☆☆☆☆` | `1.3/5` | Benchmark completeness only | Near-empty output on this sample |
+Use the rest of the docs this way:
 
-Short reading of the table:
+- [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md): the main evaluation document
+  Includes benchmark method, install tradeoffs, routing rules, and real-PDF testing workflow.
+- [benchmark_results/README.md](benchmark_results/README.md): archived benchmark artifacts
+  Includes the tracked general-text, printed-formula, and handwritten-formula suites.
+- [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md): stable API field shapes
+- [skills/doc_to_md_agent/SKILL.md](skills/doc_to_md_agent/SKILL.md): agent workflow guidance
 
-- `opendataloader` is the best local recommendation if Java is acceptable.
-- `mistral` is the best result if a hosted OCR API is acceptable.
-- `docling` is strongest on text quality, but too slow to be the default.
-- `markitdown` is still the easiest local extra to recommend first.
+## Development
 
-Current sample artifacts:
-
-- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
-- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json`](benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
-- [`benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/`](benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/)
-
-## Benchmarking
-
-The repository includes `benchmark.py` for comparing engines on representative documents. Usage and examples are documented in [README_BENCHMARK.md](README_BENCHMARK.md). For recommendation logic and install-cost analysis, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
-
-Quick examples:
+Typical local checks before a release:
 
 ```bash
-python benchmark.py --test-file path/to/document.pdf
-python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
-python benchmark.py --test-file path/to/document.pdf --save-json
-```
-
-## Troubleshooting
-
-- If `python -m doc_to_md.cli ...` fails with `ModuleNotFoundError`, install the package first with `pip install -e .`.
-- If installation fails on Python 3.13 or 3.14, switch to Python 3.10, 3.11, or 3.12.
-- If a remote engine fails to initialize, make sure the matching API key is set.
-- If an optional engine import fails, install the matching extra or package for that engine.
-- If `opendataloader` fails before conversion starts, verify `java -version` returns Java 11 or newer.
-- If remote OCR times out, tune the `*_TIMEOUT_SECONDS`, `*_RETRY_ATTEMPTS`, and chunk or token settings in `.env`.
-
-## Development and release checks
-
-For full local test and release checks, install `requirements-dev.txt` after your chosen runtime environment.
-
-Typical local checks:
-
-```bash
-python -m ruff check src tests config benchmark.py
+python -m ruff check src tests config benchmark.py tools
 python -m pytest -q
 python -m build
 python -m twine check dist/*
-pip install -e .
-```
-
-The repository also includes GitHub Actions CI for `ruff`, `pytest`, `build`, and `twine check` across Python 3.10 to 3.12.
-
-Release smoke checklist for the main supported surfaces:
-
-```bash
-python -m doc_to_md.cli list-engines
-python -m pytest tests/test_real_pdf_smoke.py tests/test_api_contract.py tests/test_benchmark.py -q
-python -m build
-```
-
-For a formula-heavy release candidate, also run one representative benchmark:
-
-```bash
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md --save-json
 ```
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

@@ -124,7 +124,9 @@ Tasks:
 
 3. Add "agent-safe defaults".
    Examples:
-   - prefer `opendataloader` for local formula-heavy PDFs
+   - prefer `opendataloader` for prose-first PDFs
+   - prefer `mistral` for printed formula-heavy PDFs
+   - prefer `mathpix` for handwritten formulas and image-like math pages
    - return quality by default
    - keep assets metadata even when asset bytes are omitted
 

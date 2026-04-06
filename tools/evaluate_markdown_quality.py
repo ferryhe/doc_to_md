@@ -11,10 +11,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from doc_to_md.quality import evaluate_markdown_quality
-
 
 def main() -> int:
+    from doc_to_md.quality import evaluate_markdown_quality
+
     parser = argparse.ArgumentParser(description="Inspect Markdown quality for agent workflows.")
     parser.add_argument("markdown_path", type=Path, help="Path to a Markdown file")
     parser.add_argument("--json", action="store_true", help="Emit a JSON report")

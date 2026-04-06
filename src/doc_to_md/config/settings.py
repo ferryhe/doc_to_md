@@ -12,17 +12,21 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "input"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
-EngineName = Literal["mistral", "deepseekocr", "local", "markitdown", "paddleocr", "mineru", "docling", "marker", "html_local", "auto", "opendataloader"]
+EngineName = Literal["mistral", "deepseekocr", "mathpix", "local", "markitdown", "paddleocr", "mineru", "docling", "marker", "html_local", "auto", "opendataloader"]
 FormulaOcrProvider = Literal["mistral", "deepseekocr"]
 
 
 class Settings(BaseSettings):
     mistral_api_key: str | None = Field(default=None)
     siliconflow_api_key: str | None = Field(default=None)
+    mathpix_app_id: str | None = Field(default=None)
+    mathpix_app_key: str | None = Field(default=None)
 
     default_engine: EngineName = Field(default="local")
     mistral_default_model: str = Field(default="mistral-ocr-latest")
     siliconflow_default_model: str = Field(default="deepseek-ai/DeepSeek-OCR")
+    # Backward-compatibility shim for older .env files; the Mathpix engine ignores it.
+    mathpix_default_model: str | None = Field(default=None)
     siliconflow_base_url: str = Field(default="https://api.siliconflow.cn/v1")
     mistral_timeout_seconds: float = Field(default=60.0)
     mistral_retry_attempts: int = Field(default=3)
@@ -33,6 +37,10 @@ class Settings(BaseSettings):
     siliconflow_retry_attempts: int = Field(default=3)
     siliconflow_max_input_tokens: int = Field(default=3500)
     siliconflow_chunk_overlap_tokens: int = Field(default=200)
+    mathpix_timeout_seconds: float = Field(default=120.0)
+    mathpix_retry_attempts: int = Field(default=3)
+    mathpix_poll_interval_seconds: float = Field(default=5.0)
+    mathpix_output_format: str = Field(default="md")
 
     markitdown_enable_plugins: bool | None = Field(default=True)
     markitdown_enable_builtins: bool | None = Field(default=True)
@@ -97,10 +105,17 @@ class Settings(BaseSettings):
         if self.siliconflow_chunk_overlap_tokens >= self.siliconflow_max_input_tokens:
             raise ValueError("SILICONFLOW_CHUNK_OVERLAP_TOKENS must be smaller than SILICONFLOW_MAX_INPUT_TOKENS")
 
-        for field_name in ("mistral_retry_attempts", "siliconflow_retry_attempts"):
+        for field_name in ("mistral_retry_attempts", "siliconflow_retry_attempts", "mathpix_retry_attempts"):
             value = getattr(self, field_name)
             if value < 1:
                 raise ValueError(f"{field_name.upper()} must be at least 1")
+
+        if self.mathpix_timeout_seconds <= 0:
+            raise ValueError("MATHPIX_TIMEOUT_SECONDS must be positive")
+        if self.mathpix_poll_interval_seconds <= 0:
+            raise ValueError("MATHPIX_POLL_INTERVAL_SECONDS must be positive")
+        if self.mathpix_output_format.lower() not in {"md", "mmd"}:
+            raise ValueError("MATHPIX_OUTPUT_FORMAT must be either 'md' or 'mmd'")
 
         if self.paddleocr_render_dpi <= 0:
             raise ValueError("PADDLEOCR_RENDER_DPI must be positive")

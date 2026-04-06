@@ -35,6 +35,7 @@ def test_conversion_engines_endpoint() -> None:
     payload = response.json()
     assert "engines" in payload
     assert "local" in payload["engines"]
+    assert "mathpix" in payload["engines"]
 
 
 def test_engine_readiness_endpoint_returns_preferred_engines(monkeypatch) -> None:

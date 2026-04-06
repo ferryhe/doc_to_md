@@ -8,8 +8,11 @@ from doc_to_md.config.settings import Settings
 def test_settings_allows_remote_default_without_secret(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
     monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
+    monkeypatch.delenv("MATHPIX_APP_ID", raising=False)
+    monkeypatch.delenv("MATHPIX_APP_KEY", raising=False)
 
     settings = Settings(
+        _env_file=None,
         default_engine="mistral",
         mistral_api_key=None,
         input_dir=tmp_path / "input",
@@ -21,6 +24,34 @@ def test_settings_allows_remote_default_without_secret(tmp_path: Path, monkeypat
     assert settings.output_dir.exists()
 
 
+def test_settings_allows_mathpix_default_without_secret(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("MATHPIX_APP_ID", raising=False)
+    monkeypatch.delenv("MATHPIX_APP_KEY", raising=False)
+
+    settings = Settings(
+        _env_file=None,
+        default_engine="mathpix",
+        mathpix_app_id=None,
+        mathpix_app_key=None,
+        input_dir=tmp_path / "input",
+        output_dir=tmp_path / "output",
+    )
+
+    assert settings.default_engine == "mathpix"
+    assert settings.input_dir.exists()
+    assert settings.output_dir.exists()
+
+
+def test_settings_validates_mathpix_output_format(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="MATHPIX_OUTPUT_FORMAT"):
+        Settings(
+            _env_file=None,
+            input_dir=tmp_path / "input",
+            output_dir=tmp_path / "output",
+            mathpix_output_format="html",
+        )
+
+
 def test_package_settings_module_is_importable() -> None:
     from doc_to_md.config import settings
 
@@ -29,6 +60,7 @@ def test_package_settings_module_is_importable() -> None:
 
 def test_settings_with_overrides_preserves_base_and_applies_updates(tmp_path: Path) -> None:
     settings = Settings(
+        _env_file=None,
         input_dir=tmp_path / "input",
         output_dir=tmp_path / "output",
         formula_ocr_enabled=False,

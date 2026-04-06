@@ -18,6 +18,7 @@ from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.engines.docling import DoclingEngine
 from doc_to_md.engines.html import HtmlLocalEngine
 from doc_to_md.engines.local import LocalEngine
+from doc_to_md.engines.mathpix import MathpixEngine
 from doc_to_md.engines.marker import MarkerEngine
 from doc_to_md.engines.markitdown import MarkItDownEngine
 from doc_to_md.engines.mineru import MinerUEngine
@@ -39,6 +40,7 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
     "mistral": MistralEngine,
     "deepseekocr": DeepSeekOCREngine,
+    "mathpix": MathpixEngine,
     "markitdown": MarkItDownEngine,
     "paddleocr": PaddleOCREngine,
     "mineru": MinerUEngine,
@@ -214,6 +216,8 @@ def list_preferred_engine_readiness(*, settings: Settings | None = None) -> list
 def _resolve_engine(engine: EngineName, model: str | None, **engine_kwargs) -> Engine:
     if engine not in ENGINE_REGISTRY:
         raise ValueError(f"Unknown engine '{engine}'")
+    if engine == "mathpix" and model is not None:
+        raise ValueError("Mathpix does not support model overrides; omit the model parameter.")
     engine_cls = ENGINE_REGISTRY[engine]
     # Only pass page-related kwargs to engines that support them
     if engine not in ENGINES_SUPPORTING_PAGE_OPTIONS:

@@ -9,11 +9,14 @@
 #   - opendataloader
 #   - docling
 #   - mistral
+#   - mathpix
 #
 # Notes:
-#   - local and mistral come from the base package
+#   - local, mistral, and mathpix come from the base package
 #   - mistral still needs MISTRAL_API_KEY
+#   - mathpix still needs MATHPIX_APP_ID and MATHPIX_APP_KEY
 #   - opendataloader still needs Java 11+ on the system
+#   - mathpix is mainly for handwritten formulas and image-like math pages
 #
 # Install:
 #   pip install -r requirements-recommended-pdf.txt

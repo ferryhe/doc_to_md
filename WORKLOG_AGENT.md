@@ -89,7 +89,7 @@ Observed result:
   - full `quality`
   - full `trace`
 - Added `tests/test_benchmark.py` using the tracked real PDF fixture.
-- Added `REAL_PDF_TESTING.md` to document how to keep using real PDFs in `data/input/` for manual evaluation.
+- Added real-PDF evaluation guidance for manual `data/input/` checks, later consolidated into `PDF_ENGINE_EVALUATION.md`.
 
 Verification:
 

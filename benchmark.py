@@ -36,6 +36,7 @@ evaluate_formula_reference = formula_reference_module.evaluate_formula_reference
 
 BENCHMARK_PROFILES: dict[str, list[str]] = {
     "preferred-pdf": list_preferred_pdf_engines(),
+    "formula-pdf": ["opendataloader", "mistral", "mathpix"],
 }
 
 ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
@@ -123,6 +124,20 @@ ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
         ],
         "best_for": "Production OCR when quality and convenience matter more than avoiding API usage.",
     },
+    "mathpix": {
+        "label": "Mathpix OCR",
+        "pros": [
+            "Strongest current tracked option for handwritten-formula PDFs.",
+            "Good fallback for image-like math pages and formula screenshots.",
+            "Uses the base install only; no extra Python package is required in this repository.",
+        ],
+        "cons": [
+            "Requires working Mathpix credentials and outbound network access.",
+            "PDF conversion is asynchronous, so small jobs can still incur polling latency.",
+            "Not the best default for ordinary prose-heavy PDFs where cheaper local paths are enough.",
+        ],
+        "best_for": "Handwritten formulas, image-heavy math pages, and formula-sensitive fallback workflows.",
+    },
 }
 
 
@@ -185,6 +200,7 @@ class EngineBenchmark:
                 ("marker", None),
                 ("mineru", None),
                 ("mistral", self.settings.mistral_default_model),
+                ("mathpix", None),
                 ("deepseekocr", self.settings.siliconflow_default_model),
                 ("opendataloader", None),
             ]
@@ -213,6 +229,13 @@ class EngineBenchmark:
             slug = slug.replace("__", "_")
         return slug.strip("_") or "artifact"
 
+    @staticmethod
+    def _display_path(path: Path) -> str:
+        try:
+            return path.relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            return path.as_posix()
+
     def _write_success_artifacts(
         self,
         *,
@@ -237,8 +260,8 @@ class EngineBenchmark:
                 target_path = target_dir / asset.filename
                 target_path.write_bytes(asset.data)
 
-        return str(markdown_path.relative_to(output_dir)), (
-            str(asset_dir_path.relative_to(output_dir)) if asset_dir_path else None
+        return markdown_path.relative_to(output_dir).as_posix(), (
+            asset_dir_path.relative_to(output_dir).as_posix() if asset_dir_path else None
         )
 
     def _write_failure_artifact(self, *, engine_name: str, error_message: str, output_dir: Path) -> None:
@@ -360,9 +383,9 @@ class EngineBenchmark:
 
         benchmark_result = BenchmarkResult(
             timestamp=datetime.now(timezone.utc).isoformat(),
-            test_file=str(test_file),
+            test_file=self._display_path(test_file),
             file_size_bytes=test_file.stat().st_size,
-            reference_markdown=str(reference_markdown_path) if reference_markdown_path else None,
+            reference_markdown=self._display_path(reference_markdown_path) if reference_markdown_path else None,
         )
 
         for engine_name, model in self.engines_to_test:
@@ -599,6 +622,8 @@ def resolve_engines(engine_names: list[str] | None, profile: str | None = None) 
     for engine_name in selected_names:
         if engine_name == "mistral":
             selected.append((engine_name, settings.mistral_default_model))
+        elif engine_name == "mathpix":
+            selected.append((engine_name, None))
         elif engine_name == "deepseekocr":
             selected.append((engine_name, settings.siliconflow_default_model))
         else:
@@ -619,12 +644,12 @@ def main() -> None:
         "--engines",
         type=str,
         nargs="+",
-        help="List of engines to test, for example: docling opendataloader mistral",
+        help="List of engines to test, for example: docling opendataloader mistral mathpix",
     )
     parser.add_argument(
         "--profile",
         choices=sorted(BENCHMARK_PROFILES),
-        help="Named engine profile, for example `preferred-pdf` for opendataloader + mistral.",
+        help="Named engine profile, for example `preferred-pdf` or `formula-pdf`.",
     )
     parser.add_argument(
         "--save-json",
