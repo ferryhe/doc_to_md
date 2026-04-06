@@ -6,6 +6,8 @@
 
 If you want recommendation conclusions, install-cost analysis, or dependency-conflict notes, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md). This guide is only about how to run the benchmark tool itself.
 
+Curated tracked benchmark suites live in [benchmark_results/README.md](benchmark_results/README.md).
+
 Use it when you want to:
 
 - compare output behavior across engines
@@ -223,6 +225,7 @@ Optimization hints:
 ## Related files
 
 - Main guide: [README.md](README.md)
+- Curated benchmark suites: [benchmark_results/README.md](benchmark_results/README.md)
 - Configuration template: [.env.example](.env.example)
 - Benchmark script: [benchmark.py](benchmark.py)
 - Real-PDF testing guide: [REAL_PDF_TESTING.md](REAL_PDF_TESTING.md)

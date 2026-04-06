@@ -1,0 +1,360 @@
+{
+  "timestamp": "2026-04-06T19:27:04.824214+00:00",
+  "test_file": "tmp_mathpix_handwritten_formula_benchmark\\mathpix_handwritten_formulas.pdf",
+  "file_size_bytes": 284767,
+  "reference_markdown": "tmp_mathpix_handwritten_formula_benchmark\\reviewed.md",
+  "results": [
+    {
+      "engine_name": "opendataloader",
+      "model": "opendataloader",
+      "success": true,
+      "conversion_time": 1.8111691999947652,
+      "markdown_length": 254,
+      "num_assets": 4,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 0,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 4,
+        "formula_image_references": 4,
+        "inline_math_segments": 0,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 4
+          }
+        ]
+      },
+      "reference_formula_status": "poor",
+      "reference_formula_recall": 0.0,
+      "reference_formula_similarity": 0.0,
+      "reference_formula_diagnostics": [
+        "reference_formula_missing_all",
+        "reference_formula_low_similarity"
+      ],
+      "formula_reference": {
+        "status": "poor",
+        "reference_formula_count": 4,
+        "candidate_formula_count": 0,
+        "matched_formula_count": 0,
+        "missing_formula_count": 4,
+        "extra_formula_count": 0,
+        "fragmented_candidate_formula_count": 0,
+        "formula_recall": 0.0,
+        "average_similarity": 0.0,
+        "diagnostics": [
+          {
+            "code": "reference_formula_missing_all",
+            "severity": "error",
+            "message": "No explicit math segments were recovered compared with the reviewed reference Markdown.",
+            "count": 1
+          },
+          {
+            "code": "reference_formula_low_similarity",
+            "severity": "warning",
+            "message": "Recovered formulas differ noticeably from the reviewed reference formulas.",
+            "count": 4
+          }
+        ]
+      },
+      "trace": {
+        "math_normalization_changed": false,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 4,
+        "formula_image_references_after": 4,
+        "asset_count_before": 4,
+        "asset_count_after": 4,
+        "postprocess_changed": true
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\opendataloader\\output.md",
+      "asset_dir": "outputs\\opendataloader\\assets"
+    },
+    {
+      "engine_name": "local",
+      "model": "local-text-wrapper",
+      "success": true,
+      "conversion_time": 0.0018035999964922667,
+      "markdown_length": 80,
+      "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "not_applicable",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "not_applicable",
+        "headings": 1,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 0,
+        "block_math_segments": 0,
+        "diagnostics": []
+      },
+      "reference_formula_status": "poor",
+      "reference_formula_recall": 0.0,
+      "reference_formula_similarity": 0.0,
+      "reference_formula_diagnostics": [
+        "reference_formula_missing_all",
+        "reference_formula_low_similarity"
+      ],
+      "formula_reference": {
+        "status": "poor",
+        "reference_formula_count": 4,
+        "candidate_formula_count": 0,
+        "matched_formula_count": 0,
+        "missing_formula_count": 4,
+        "extra_formula_count": 0,
+        "fragmented_candidate_formula_count": 0,
+        "formula_recall": 0.0,
+        "average_similarity": 0.0,
+        "diagnostics": [
+          {
+            "code": "reference_formula_missing_all",
+            "severity": "error",
+            "message": "No explicit math segments were recovered compared with the reviewed reference Markdown.",
+            "count": 1
+          },
+          {
+            "code": "reference_formula_low_similarity",
+            "severity": "warning",
+            "message": "Recovered formulas differ noticeably from the reviewed reference formulas.",
+            "count": 4
+          }
+        ]
+      },
+      "trace": {
+        "math_normalization_changed": false,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 0,
+        "formula_image_references_after": 0,
+        "asset_count_before": 0,
+        "asset_count_after": 0,
+        "postprocess_changed": true
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\local\\output.md",
+      "asset_dir": null
+    },
+    {
+      "engine_name": "markitdown",
+      "model": "markitdown",
+      "success": true,
+      "conversion_time": 0.028377399998134933,
+      "markdown_length": 40,
+      "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "not_applicable",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "not_applicable",
+        "headings": 0,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 0,
+        "block_math_segments": 0,
+        "diagnostics": []
+      },
+      "reference_formula_status": "poor",
+      "reference_formula_recall": 0.0,
+      "reference_formula_similarity": 0.0,
+      "reference_formula_diagnostics": [
+        "reference_formula_missing_all",
+        "reference_formula_low_similarity"
+      ],
+      "formula_reference": {
+        "status": "poor",
+        "reference_formula_count": 4,
+        "candidate_formula_count": 0,
+        "matched_formula_count": 0,
+        "missing_formula_count": 4,
+        "extra_formula_count": 0,
+        "fragmented_candidate_formula_count": 0,
+        "formula_recall": 0.0,
+        "average_similarity": 0.0,
+        "diagnostics": [
+          {
+            "code": "reference_formula_missing_all",
+            "severity": "error",
+            "message": "No explicit math segments were recovered compared with the reviewed reference Markdown.",
+            "count": 1
+          },
+          {
+            "code": "reference_formula_low_similarity",
+            "severity": "warning",
+            "message": "Recovered formulas differ noticeably from the reviewed reference formulas.",
+            "count": 4
+          }
+        ]
+      },
+      "trace": {
+        "math_normalization_changed": false,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 0,
+        "formula_image_references_after": 0,
+        "asset_count_before": 0,
+        "asset_count_after": 0,
+        "postprocess_changed": false
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\markitdown\\output.md",
+      "asset_dir": null
+    },
+    {
+      "engine_name": "mistral",
+      "model": "mistral-ocr-latest",
+      "success": true,
+      "conversion_time": 3.4136094999994384,
+      "markdown_length": 316,
+      "num_assets": 1,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 1,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 1,
+        "formula_image_references": 1,
+        "inline_math_segments": 0,
+        "block_math_segments": 3,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 1
+          }
+        ]
+      },
+      "reference_formula_status": "review",
+      "reference_formula_recall": 0.75,
+      "reference_formula_similarity": 0.801568352059925,
+      "reference_formula_diagnostics": [
+        "reference_formula_missing",
+        "reference_formula_low_similarity"
+      ],
+      "formula_reference": {
+        "status": "review",
+        "reference_formula_count": 4,
+        "candidate_formula_count": 3,
+        "matched_formula_count": 3,
+        "missing_formula_count": 1,
+        "extra_formula_count": 0,
+        "fragmented_candidate_formula_count": 0,
+        "formula_recall": 0.75,
+        "average_similarity": 0.801568352059925,
+        "diagnostics": [
+          {
+            "code": "reference_formula_missing",
+            "severity": "warning",
+            "message": "Some reviewed reference formulas were not recovered as explicit math segments.",
+            "count": 1
+          },
+          {
+            "code": "reference_formula_low_similarity",
+            "severity": "warning",
+            "message": "Recovered formulas differ noticeably from the reviewed reference formulas.",
+            "count": 1
+          }
+        ]
+      },
+      "trace": {
+        "math_normalization_changed": true,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 1,
+        "formula_image_references_after": 1,
+        "asset_count_before": 1,
+        "asset_count_after": 1,
+        "postprocess_changed": true
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\mistral\\output.md",
+      "asset_dir": "outputs\\mistral\\assets"
+    },
+    {
+      "engine_name": "mathpix",
+      "model": "mathpix-pdf",
+      "success": true,
+      "conversion_time": 5.656909400000586,
+      "markdown_length": 256,
+      "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "good",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "good",
+        "headings": 0,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 0,
+        "block_math_segments": 4,
+        "diagnostics": []
+      },
+      "reference_formula_status": "good",
+      "reference_formula_recall": 1.0,
+      "reference_formula_similarity": 0.9591069849690539,
+      "reference_formula_diagnostics": [],
+      "formula_reference": {
+        "status": "good",
+        "reference_formula_count": 4,
+        "candidate_formula_count": 4,
+        "matched_formula_count": 4,
+        "missing_formula_count": 0,
+        "extra_formula_count": 0,
+        "fragmented_candidate_formula_count": 0,
+        "formula_recall": 1.0,
+        "average_similarity": 0.9591069849690539,
+        "diagnostics": []
+      },
+      "trace": {
+        "math_normalization_changed": true,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 0,
+        "formula_image_references_after": 0,
+        "asset_count_before": 0,
+        "asset_count_after": 0,
+        "postprocess_changed": true
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\mathpix\\output.md",
+      "asset_dir": null
+    }
+  ]
+}

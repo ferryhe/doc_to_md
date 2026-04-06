@@ -615,6 +615,7 @@ Short reading of the table:
 
 Current sample artifacts:
 
+- Curated benchmark index: [benchmark_results/README.md](benchmark_results/README.md)
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json`](benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/`](benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/)
@@ -622,6 +623,8 @@ Current sample artifacts:
 ## Benchmarking
 
 The repository includes `benchmark.py` for comparing engines on representative documents. Usage and examples are documented in [README_BENCHMARK.md](README_BENCHMARK.md). For recommendation logic and install-cost analysis, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
+
+Tracked benchmark suites and scenario-specific comparison artifacts are indexed in [benchmark_results/README.md](benchmark_results/README.md).
 
 Quick examples:
 
