@@ -1,9 +1,14 @@
 ---
-name: doc-to-md-agent
-description: Use this skill when an AI agent needs to use doc_to_md as a core document-to-Markdown conversion capability, choose an engine, judge whether the output is reliable enough, and handle formula-heavy documents where Markdown math quality matters.
+name: doc_to_md_agent
+description: Use this skill when working with doc_to_md to convert documents to Markdown, choose between CLI/API flows, evaluate output quality, or route PDF OCR across opendataloader, mistral, and mathpix for prose, printed formulas, or handwritten formulas.
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - python
 ---
 
-# doc-to-md-agent
+# doc_to_md_agent
 
 Use this skill when the task is any of the following:
 
@@ -30,20 +35,20 @@ Use this skill when the task is any of the following:
 3. Treat conversion and evaluation as a pair.
    After each conversion, inspect the per-document `quality` payload from the API or run:
 
-```powershell
-python tools/evaluate_markdown_quality.py path\to\output.md --json
+```bash
+python tools/evaluate_markdown_quality.py path/to/output.md --json
 ```
 
    When a reviewed Markdown reference already exists for the same document, also run:
 
-```powershell
-python benchmark.py --test-file path\to\document.pdf --profile preferred-pdf --reference-markdown path\to\reviewed.md --save-json
+```bash
+python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md --save-json
 ```
 
    For formula-heavy or handwritten-math documents, prefer:
 
-```powershell
-python benchmark.py --test-file path\to\document.pdf --profile formula-pdf --reference-markdown path\to\reviewed.md --save-json
+```bash
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --reference-markdown path/to/reviewed.md --save-json
 ```
 
    Use the reference metrics when formula fidelity matters:
