@@ -37,7 +37,7 @@ This repository is now shaped around four supported ways to use the same convers
 - FastAPI service:
   `doc-to-md-api` with batch, inline, and readiness endpoints
 - AI agent workflow:
-  structured `quality` and `trace` metadata, [README_BENCHMARK.md](README_BENCHMARK.md), and [skills/doc-to-md-agent/SKILL.md](skills/doc-to-md-agent/SKILL.md)
+  structured `quality` and `trace` metadata, [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md), and [skills/doc-to-md-agent/SKILL.md](skills/doc-to-md-agent/SKILL.md)
 
 The project is intended to stay dual-surface:
 
@@ -72,7 +72,6 @@ doc_to_md/
 |-- benchmark.py
 |-- PDF_ENGINE_EVALUATION.md
 |-- README.md
-|-- README_BENCHMARK.md
 |-- requirements-recommended-pdf.txt
 |-- requirements-core.txt
 |-- requirements-dev.txt
@@ -660,7 +659,7 @@ Current sample artifacts:
 
 ## Benchmarking
 
-The repository includes `benchmark.py` for comparing engines on representative documents. Usage and examples are documented in [README_BENCHMARK.md](README_BENCHMARK.md). For recommendation logic and install-cost analysis, see [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
+The repository includes `benchmark.py` for comparing engines on representative documents. Usage, real-PDF evaluation workflow, and recommendation logic are documented in [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
 
 Tracked benchmark suites and scenario-specific comparison artifacts are indexed in [benchmark_results/README.md](benchmark_results/README.md).
 
