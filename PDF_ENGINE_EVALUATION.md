@@ -35,7 +35,7 @@ This repository currently keeps three benchmark views that answer different ques
 
 | Suite | Main question | Engines compared | Primary artifacts |
 | --- | --- | --- | --- |
-| General text-heavy PDF baseline | What should ordinary users try first for prose-heavy PDFs? | `local`, `markitdown`, `opendataloader`, `docling`, `paddleocr`, `marker`, `mineru`, `mistral` | [benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md) |
+| General text-heavy PDF baseline | What should ordinary users try first for prose-heavy PDFs? | `local`, `markitdown`, `opendataloader`, `docling`, `paddleocr`, `marker`, `mineru`, `mistral`, `mathpix` | [benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md) |
 | Printed formulas in a regulatory PDF | Can the engine recover explicit math inside a real actuarial-style document? | `opendataloader`, `local`, `markitdown`, `mistral`, `mathpix` | [benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md](benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md) |
 | Handwritten formulas | Which engine is strongest when math appears as handwriting or image-like equations? | `opendataloader`, `local`, `markitdown`, `mistral`, `mathpix` | [benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md](benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md) |
 
@@ -139,7 +139,7 @@ Important interpretation rule:
 | `marker` | `pip install -e ".[marker]"` in an isolated env | `78` | `250.4 MiB` | Fails in the main env | Benchmarked in an isolated env | Strong output, but not honest to present as a drop-in extra in this repo |
 | `mineru` | `pip install -e ".[mineru]"` in an isolated env, plus runtime repair | `82` | `214.0 MiB` | Fails in the main env | Benchmarked in an isolated env | Needed the most manual runtime repair before the benchmark would succeed |
 | `mistral` | Base install plus `MISTRAL_API_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Best current managed OCR path for general and printed-formula PDFs |
-| `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | `0` extra | `0` extra | Works now | Benchmarked in the formula suites | Strongest current handwritten-formula specialist |
+| `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Strongest current handwritten-formula specialist; not a prose-default winner on the tracked text-heavy sample |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | `0` extra | `0` extra | Works now | Intentionally skipped | Supported, but still outside the main recommendation focus |
 
 ### Recommended minimal retained setup
@@ -241,7 +241,7 @@ Weighted formula:
 Important scope note:
 
 - this weighted table is only for the tracked general text-heavy PDF baseline
-- `mathpix` is not scored here because its current value in this repo comes from formula-specialist work, not ordinary prose benchmarking
+- `mathpix` has now been measured on the tracked prose-heavy sample too, but it is still left out of the weighted ranking because it does not change the prose-default recommendation and its main value in this repo remains formula-specialist work
 
 ### Weighted results
 
@@ -261,6 +261,8 @@ Important scope note:
 - `opendataloader` is still the best current local default when Java is acceptable
 - `markitdown` is still the easiest true extra to recommend
 - `mistral` is still the best current managed OCR path for ordinary PDFs
+- `mathpix` was added to this prose-heavy baseline and recorded `16.32s`, `112,203` Markdown chars, and `poor/poor` quality because formula-like image references and fragmented math still remained
+- that means `mathpix` is now benchmarked on ordinary prose too, but it still should not be described as a prose-first recommendation
 - `docling` has strong text quality, but is too slow on CPU to be the default
 - `local` should be described as a fast baseline, not a quality recommendation
 
@@ -332,6 +334,7 @@ Interpretation:
 - `markitdown` is the simplest local extra to install and try
 - `opendataloader` is the stronger local default when Java is acceptable
 - `mistral` is the strongest managed OCR path
+- `mathpix` is now measured on the tracked prose-heavy sample, but it does not beat the prose-first recommendation set and should stay a specialist engine for formula workflows
 
 ### Printed formula PDF
 

@@ -17,6 +17,7 @@ What it shows:
 - why `markitdown` is the easiest local extra
 - why `opendataloader` is still the stronger local default when Java is acceptable
 - why `mistral` is the stronger managed OCR option
+- why `mathpix` remains a formula-specialist path even after being tested on the prose baseline
 
 Open here first:
 

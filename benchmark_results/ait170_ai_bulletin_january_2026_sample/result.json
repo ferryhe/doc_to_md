@@ -1,7 +1,8 @@
 {
-  "timestamp": "2026-03-24T07:58:09.998682+00:00",
+  "timestamp": "2026-04-06T21:37:41.123820+00:00",
   "test_file": "data\\input\\ait170-ai-bulletin-january-2026_1.pdf",
   "file_size_bytes": 717988,
+  "reference_markdown": null,
   "results": [
     {
       "engine_name": "local",
@@ -10,6 +11,27 @@
       "conversion_time": 3.400667699985206,
       "markdown_length": 115965,
       "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "good",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "good",
+        "headings": 1,
+        "bullet_lines": 32,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 1,
+        "block_math_segments": 0,
+        "diagnostics": []
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\local\\output.md",
       "asset_dir": null
@@ -21,6 +43,27 @@
       "conversion_time": 20.43880879995413,
       "markdown_length": 113587,
       "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "good",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "good",
+        "headings": 0,
+        "bullet_lines": 32,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 1,
+        "block_math_segments": 0,
+        "diagnostics": []
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\markitdown\\output.md",
       "asset_dir": null
@@ -32,6 +75,36 @@
       "conversion_time": 179.19785080000293,
       "markdown_length": 1385,
       "num_assets": 0,
+      "quality_status": "review",
+      "formula_status": "not_applicable",
+      "diagnostic_codes": [
+        "ocr_placeholder"
+      ],
+      "quality": {
+        "status": "review",
+        "formula_status": "not_applicable",
+        "headings": 41,
+        "bullet_lines": 0,
+        "table_lines": 0,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 0,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "ocr_placeholder",
+            "severity": "warning",
+            "message": "OCR placeholder text is present in the Markdown output.",
+            "count": 40
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\paddleocr\\output.md",
       "asset_dir": null
@@ -43,6 +116,27 @@
       "conversion_time": 276.35032700002193,
       "markdown_length": 114482,
       "num_assets": 0,
+      "quality_status": "good",
+      "formula_status": "good",
+      "diagnostic_codes": [],
+      "quality": {
+        "status": "good",
+        "formula_status": "good",
+        "headings": 145,
+        "bullet_lines": 123,
+        "table_lines": 33,
+        "image_references": 0,
+        "formula_image_references": 0,
+        "inline_math_segments": 1,
+        "block_math_segments": 0,
+        "diagnostics": []
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\docling\\output.md",
       "asset_dir": null
@@ -54,6 +148,36 @@
       "conversion_time": 5990.151946400059,
       "markdown_length": 124355,
       "num_assets": 59,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 147,
+        "bullet_lines": 111,
+        "table_lines": 33,
+        "image_references": 59,
+        "formula_image_references": 58,
+        "inline_math_segments": 1,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 58
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\marker\\output.md",
       "asset_dir": "outputs\\marker\\assets"
@@ -65,6 +189,43 @@
       "conversion_time": 1935.6683323000325,
       "markdown_length": 103466,
       "num_assets": 11,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference",
+        "fragmented_math_tokens"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 120,
+        "bullet_lines": 28,
+        "table_lines": 0,
+        "image_references": 2,
+        "formula_image_references": 2,
+        "inline_math_segments": 58,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 2
+          },
+          {
+            "code": "fragmented_math_tokens",
+            "severity": "warning",
+            "message": "Some math segments still look fragmented by OCR spacing.",
+            "count": 11
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\mineru\\output.md",
       "asset_dir": "outputs\\mineru\\assets"
@@ -76,9 +237,98 @@
       "conversion_time": 29.18882069992833,
       "markdown_length": 110549,
       "num_assets": 14,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 165,
+        "bullet_lines": 124,
+        "table_lines": 31,
+        "image_references": 14,
+        "formula_image_references": 14,
+        "inline_math_segments": 14,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 14
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\mistral\\output.md",
       "asset_dir": "outputs\\mistral\\assets"
+    },
+    {
+      "engine_name": "mathpix",
+      "model": "mathpix-pdf",
+      "success": true,
+      "conversion_time": 16.315735600001062,
+      "markdown_length": 112203,
+      "num_assets": 0,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference",
+        "fragmented_math_tokens"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 156,
+        "bullet_lines": 125,
+        "table_lines": 14,
+        "image_references": 3,
+        "formula_image_references": 3,
+        "inline_math_segments": 85,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 3
+          },
+          {
+            "code": "fragmented_math_tokens",
+            "severity": "warning",
+            "message": "Some math segments still look fragmented by OCR spacing.",
+            "count": 2
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": {
+        "math_normalization_changed": true,
+        "formula_ocr_enabled": false,
+        "formula_ocr_provider": null,
+        "formula_ocr_attempted": false,
+        "formula_ocr_applied": false,
+        "formula_image_references_before": 3,
+        "formula_image_references_after": 3,
+        "asset_count_before": 0,
+        "asset_count_after": 0,
+        "postprocess_changed": true
+      },
+      "error_message": null,
+      "markdown_path": "outputs\\mathpix\\output.md",
+      "asset_dir": null
     },
     {
       "engine_name": "opendataloader",
@@ -87,6 +337,36 @@
       "conversion_time": 21.193668499938212,
       "markdown_length": 112618,
       "num_assets": 60,
+      "quality_status": "poor",
+      "formula_status": "poor",
+      "diagnostic_codes": [
+        "formula_image_reference"
+      ],
+      "quality": {
+        "status": "poor",
+        "formula_status": "poor",
+        "headings": 119,
+        "bullet_lines": 169,
+        "table_lines": 19,
+        "image_references": 21,
+        "formula_image_references": 21,
+        "inline_math_segments": 1,
+        "block_math_segments": 0,
+        "diagnostics": [
+          {
+            "code": "formula_image_reference",
+            "severity": "error",
+            "message": "Potential formula images remain in the Markdown output.",
+            "count": 21
+          }
+        ]
+      },
+      "reference_formula_status": null,
+      "reference_formula_recall": null,
+      "reference_formula_similarity": null,
+      "reference_formula_diagnostics": [],
+      "formula_reference": null,
+      "trace": null,
       "error_message": null,
       "markdown_path": "outputs\\opendataloader\\output.md",
       "asset_dir": "outputs\\opendataloader\\assets"
