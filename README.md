@@ -251,8 +251,15 @@ Settings are centralized in `doc_to_md.config.settings`.
 | `DEFAULT_ENGINE` | Default engine when `--engine` is omitted | `local` |
 | `MISTRAL_API_KEY` | Required for the Mistral OCR engine | unset |
 | `SILICONFLOW_API_KEY` | Required for the DeepSeek OCR engine | unset |
+| `MATHPIX_APP_ID` | Required for the Mathpix OCR engine | unset |
+| `MATHPIX_APP_KEY` | Required for the Mathpix OCR engine | unset |
 | `MISTRAL_DEFAULT_MODEL` | Default Mistral OCR model | `mistral-ocr-latest` |
 | `SILICONFLOW_DEFAULT_MODEL` | Default DeepSeek OCR model | `deepseek-ai/DeepSeek-OCR` |
+| `MATHPIX_DEFAULT_MODEL` | Metadata label for the Mathpix engine | `mathpix-pdf` |
+| `MATHPIX_TIMEOUT_SECONDS` | Request timeout and overall polling budget for Mathpix jobs | `120` |
+| `MATHPIX_RETRY_ATTEMPTS` | Retry attempts for Mathpix HTTP calls | `3` |
+| `MATHPIX_POLL_INTERVAL_SECONDS` | Poll interval while waiting for Mathpix document jobs | `5` |
+| `MATHPIX_OUTPUT_FORMAT` | Mathpix export format (`md` or `mmd`) | `md` |
 | `AUTO_PDF_ENGINE` | Auto-engine route for PDF | `local` |
 | `AUTO_DOCX_ENGINE` | Auto-engine route for DOCX | `local` |
 | `AUTO_PPTX_ENGINE` | Auto-engine route for PPTX | `local` |
@@ -273,6 +280,7 @@ Settings are centralized in `doc_to_md.config.settings`.
 | `html_local` | `pip install ".[html]"` for best extraction quality | Installs `trafilatura` plus BeautifulSoup support, then falls back to regex stripping when needed |
 | `mistral` | Base install plus `MISTRAL_API_KEY` | Remote OCR API; page headers and standalone page-number lines are omitted by default |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | Remote OCR API via SiliconFlow |
+| `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | Remote OCR API for PDFs, DOCX, PPTX, and common images; `MATHPIX_OUTPUT_FORMAT` controls `md` vs `mmd` |
 | `markitdown` | `pip install ".[markitdown]"` | Microsoft MarkItDown-based conversion |
 | `docling` | `pip install ".[docling]"` | Heavy transformer stack |
 | `paddleocr` | `pip install ".[paddleocr]"` | GPU-friendly OCR path |
@@ -281,6 +289,38 @@ Settings are centralized in `doc_to_md.config.settings`.
 | `opendataloader` | `pip install ".[opendataloader]"` | PDF-only, requires Java 11+ on `PATH` |
 | `api` | `pip install ".[api]"` | FastAPI plus uvicorn |
 | `office` support | `pip install ".[office]"` | Installs PPTX and XLSX helpers |
+
+### Mathpix setup
+
+`mathpix` does not require an extra dependency in this repository.  
+It uses the base `requests` install plus your Mathpix API credentials.
+
+1. Add your Mathpix credentials to `.env`:
+
+```bash
+MATHPIX_APP_ID=your_app_id
+MATHPIX_APP_KEY=your_app_key
+MATHPIX_OUTPUT_FORMAT=md
+```
+
+2. Optional format choice:
+
+- `md`: best first choice if you want conventional Markdown output
+- `mmd`: better when you want Mathpix Markdown conventions and formula fidelity
+
+3. Run a smoke test:
+
+```bash
+python -m doc_to_md.cli convert \
+  --input-path data/input \
+  --output-path data/output \
+  --engine mathpix
+```
+
+Current engine support in this repository:
+
+- document API path: `.pdf`, `.docx`, `.pptx`
+- image OCR path: `.png`, `.jpg`, `.jpeg`
 
 ### Formula-image postprocessing
 
@@ -366,7 +406,7 @@ AUTO_TEXT_ENGINE=local
 
 ```bash
 python -m doc_to_md.cli list-engines
-# Output: local, mistral, deepseekocr, markitdown, paddleocr, mineru, docling, marker, html_local, auto, opendataloader
+# Output: local, mistral, deepseekocr, mathpix, markitdown, paddleocr, mineru, docling, marker, html_local, auto, opendataloader
 ```
 
 ### Use the OpenDataLoader engine
@@ -537,6 +577,7 @@ For in-process programmatic use:
 - `local`: lightweight internal extraction pipeline
 - `mistral`: Mistral OCR API, with optional PDF chunking and page-aware output
 - `deepseekocr`: DeepSeek OCR via SiliconFlow
+- `mathpix`: Mathpix document OCR for PDF, DOCX, PPTX, plus image OCR for PNG/JPG/JPEG
 - `markitdown`: Microsoft MarkItDown-based local conversion
 - `paddleocr`: local PaddleOCR pipeline for PDFs and images
 - `mineru`: MinerU pipeline wrapper

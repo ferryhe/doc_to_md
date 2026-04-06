@@ -18,6 +18,7 @@ from doc_to_md.engines.deepseekocr import DeepSeekOCREngine
 from doc_to_md.engines.docling import DoclingEngine
 from doc_to_md.engines.html import HtmlLocalEngine
 from doc_to_md.engines.local import LocalEngine
+from doc_to_md.engines.mathpix import MathpixEngine
 from doc_to_md.engines.marker import MarkerEngine
 from doc_to_md.engines.markitdown import MarkItDownEngine
 from doc_to_md.engines.mineru import MinerUEngine
@@ -39,6 +40,7 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "local": LocalEngine,
     "mistral": MistralEngine,
     "deepseekocr": DeepSeekOCREngine,
+    "mathpix": MathpixEngine,
     "markitdown": MarkItDownEngine,
     "paddleocr": PaddleOCREngine,
     "mineru": MinerUEngine,
@@ -49,7 +51,7 @@ ENGINE_REGISTRY: Dict[EngineName, Type[Engine]] = {
     "opendataloader": OpenDataLoaderEngine,
 }
 
-ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "markitdown", "paddleocr", "mineru", "docling", "marker", "opendataloader"}
+ENGINES_REQUIRING_MODEL = {"deepseekocr", "mistral", "mathpix", "markitdown", "paddleocr", "mineru", "docling", "marker", "opendataloader"}
 
 
 ENGINES_SUPPORTING_PAGE_OPTIONS = {"mistral"}

@@ -13,6 +13,7 @@ _AUTO_REGISTRY: Mapping[str, tuple[str, str, bool]] = {
     "markitdown": ("doc_to_md.engines.markitdown", "MarkItDownEngine", True),
     "mistral": ("doc_to_md.engines.mistral", "MistralEngine", True),
     "deepseekocr": ("doc_to_md.engines.deepseekocr", "DeepSeekOCREngine", True),
+    "mathpix": ("doc_to_md.engines.mathpix", "MathpixEngine", True),
     "paddleocr": ("doc_to_md.engines.paddleocr", "PaddleOCREngine", True),
     "docling": ("doc_to_md.engines.docling", "DoclingEngine", True),
     "marker": ("doc_to_md.engines.marker", "MarkerEngine", True),

@@ -38,6 +38,26 @@ def test_instantiate_opendataloader() -> None:
     assert engine.name == "opendataloader"
 
 
+def test_instantiate_mathpix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from doc_to_md.config.settings import Settings
+    import doc_to_md.engines.mathpix as mathpix_mod
+
+    monkeypatch.setattr(
+        mathpix_mod,
+        "get_settings",
+        lambda: Settings(
+            _env_file=None,
+            input_dir=tmp_path / "input",
+            output_dir=tmp_path / "output",
+            mathpix_app_id="test-id",
+            mathpix_app_key="test-key",
+        ),
+    )
+
+    engine = _instantiate("mathpix")
+    assert engine.name == "mathpix"
+
+
 def test_instantiate_unknown_raises() -> None:
     with pytest.raises(ValueError, match="not supported in auto mode"):
         _instantiate("unknown_engine_xyz")
@@ -157,6 +177,7 @@ def test_list_engine_names_includes_new_engines() -> None:
     names = list_engine_names()
     assert "auto" in names
     assert "html_local" in names
+    assert "mathpix" in names
 
 
 # ---------------------------------------------------------------------------

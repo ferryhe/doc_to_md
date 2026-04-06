@@ -13,6 +13,7 @@ def test_list_engine_names_contains_core_engines() -> None:
     engines = list_engine_names()
     assert "local" in engines
     assert "mistral" in engines
+    assert "mathpix" in engines
     assert "markitdown" in engines
 
 
