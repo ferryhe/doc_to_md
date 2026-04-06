@@ -1,8 +1,8 @@
 {
   "timestamp": "2026-04-06T19:26:07.403057+00:00",
-  "test_file": "data\\input\\保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf",
+  "test_file": "benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/source_document.pdf",
   "file_size_bytes": 486749,
-  "reference_markdown": "data\\output\\保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md",
+  "reference_markdown": "benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/reviewed.md",
   "results": [
     {
       "engine_name": "opendataloader",
@@ -322,7 +322,7 @@
     },
     {
       "engine_name": "mathpix",
-      "model": "mathpix-pdf",
+      "model": "mathpix",
       "success": true,
       "conversion_time": 8.009216999998898,
       "markdown_length": 30421,

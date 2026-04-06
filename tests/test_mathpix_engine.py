@@ -32,7 +32,6 @@ def _mock_settings(tmp_path: Path, **overrides) -> Settings:
         "output_dir": tmp_path / "output",
         "mathpix_app_id": "test-id",
         "mathpix_app_key": "test-key",
-        "mathpix_default_model": "mathpix-pdf",
         "mathpix_timeout_seconds": 1.0,
         "mathpix_retry_attempts": 2,
         "mathpix_poll_interval_seconds": 0.01,
@@ -74,7 +73,7 @@ def test_mathpix_document_flow_downloads_markdown(tmp_path: Path) -> None:
     ):
         response = MathpixEngine().convert(pdf_file)
 
-    assert response.model == "mathpix-pdf"
+    assert response.model == "mathpix"
     assert "# Converted by Mathpix" in response.markdown
 
 
@@ -92,7 +91,7 @@ def test_mathpix_image_flow_uses_text_endpoint(tmp_path: Path) -> None:
         response = MathpixEngine().convert(image_file)
 
     assert response.markdown == "alpha + beta"
-    assert response.model == "mathpix-pdf"
+    assert response.model == "mathpix"
 
 
 def test_mathpix_rejects_unsupported_suffix(tmp_path: Path) -> None:
@@ -130,3 +129,12 @@ def test_mathpix_raises_on_error_status(tmp_path: Path) -> None:
     ):
         with pytest.raises(RuntimeError, match="quota exceeded"):
             MathpixEngine().convert(pdf_file)
+
+
+def test_mathpix_rejects_model_override(tmp_path: Path) -> None:
+    with patch(
+        "doc_to_md.engines.mathpix.get_settings",
+        return_value=_mock_settings(tmp_path),
+    ):
+        with pytest.raises(ValueError, match="does not support model overrides"):
+            MathpixEngine(model="custom-mathpix-model")

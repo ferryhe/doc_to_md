@@ -17,12 +17,18 @@ class MathpixEngine(RetryableRequestMixin, Engine):
     """Send supported documents or images to Mathpix and return Markdown."""
 
     name = "mathpix"
+    _REPORTED_MODEL = "mathpix"
     _BASE_URL = "https://api.mathpix.com/v3"
     _DOCUMENT_SUFFIXES = {".pdf", ".docx", ".pptx"}
     _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
     _TERMINAL_ERROR_STATUSES = {"error", "failed", "canceled", "cancelled"}
 
     def __init__(self, model: str | None = None) -> None:
+        if model is not None:
+            raise ValueError(
+                "MathpixEngine does not support model overrides. "
+                "The supported /v3/pdf and /v3/text APIs do not expose request-time model selection."
+            )
         settings = get_settings()
         if not settings.mathpix_app_id:
             raise RuntimeError("MATHPIX_APP_ID missing")
@@ -31,7 +37,7 @@ class MathpixEngine(RetryableRequestMixin, Engine):
         super().__init__(retry_attempts=settings.mathpix_retry_attempts)
         self.app_id = settings.mathpix_app_id
         self.app_key = settings.mathpix_app_key
-        self.model = model or settings.mathpix_default_model
+        self.model = self._REPORTED_MODEL
         self.timeout_seconds = settings.mathpix_timeout_seconds
         self.poll_interval_seconds = settings.mathpix_poll_interval_seconds
         self.output_format = settings.mathpix_output_format.lower()

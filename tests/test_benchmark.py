@@ -85,13 +85,12 @@ def test_default_benchmark_engines_include_mathpix(monkeypatch) -> None:
         lambda: SimpleNamespace(
             mistral_default_model="mistral-ocr-latest",
             siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
-            mathpix_default_model="mathpix-pdf",
         ),
     )
 
     runner = benchmark.EngineBenchmark()
 
-    assert ("mathpix", "mathpix-pdf") in runner.engines_to_test
+    assert ("mathpix", None) in runner.engines_to_test
 
 
 def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> None:
@@ -101,7 +100,6 @@ def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> No
         lambda: SimpleNamespace(
             mistral_default_model="mistral-ocr-latest",
             siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
-            mathpix_default_model="mathpix-pdf",
         ),
     )
 
@@ -111,5 +109,5 @@ def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> No
     assert selected == [
         ("opendataloader", None),
         ("mistral", "mistral-ocr-latest"),
-        ("mathpix", "mathpix-pdf"),
+        ("mathpix", None),
     ]

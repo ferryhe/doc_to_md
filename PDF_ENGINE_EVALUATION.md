@@ -280,8 +280,8 @@ Tracked report:
 
 Sample:
 
-- source PDF: `data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf`
-- reviewed reference: `data/output/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md`
+- source PDF: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/source_document.pdf`
+- reviewed reference: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/reviewed.md`
 
 Results:
 
@@ -307,8 +307,8 @@ Tracked report:
 
 Sample:
 
-- source PDF: `tmp_mathpix_handwritten_formula_benchmark/mathpix_handwritten_formulas.pdf`
-- reviewed reference: `tmp_mathpix_handwritten_formula_benchmark/reviewed.md`
+- source PDF: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/mathpix_handwritten_formulas.pdf`
+- reviewed reference: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/reviewed.md`
 - source images were assembled from official Mathpix example material
 
 Results:

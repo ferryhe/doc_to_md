@@ -8,7 +8,7 @@ This directory keeps curated benchmark artifacts that are useful for engine sele
 
 Directory:
 
-- [benchmark_results/ait170_ai_bulletin_january_2026_sample](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample)
+- [ait170_ai_bulletin_january_2026_sample](ait170_ai_bulletin_january_2026_sample/)
 
 What it shows:
 
@@ -21,14 +21,14 @@ What it shows:
 
 Open here first:
 
-- [README.md](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample/README.md)
-- [report.md](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
+- [README.md](ait170_ai_bulletin_january_2026_sample/README.md)
+- [report.md](ait170_ai_bulletin_january_2026_sample/report.md)
 
 ### 2. Printed vs handwritten formula suite
 
 Directory:
 
-- [benchmark_results/formula_printed_vs_handwritten_2026_04_06](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06)
+- [formula_printed_vs_handwritten_2026_04_06](formula_printed_vs_handwritten_2026_04_06/)
 
 What it shows:
 
@@ -39,8 +39,8 @@ What it shows:
 
 Open here first:
 
-- [README.md](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/README.md)
-- [summary.md](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md)
+- [README.md](formula_printed_vs_handwritten_2026_04_06/README.md)
+- [summary.md](formula_printed_vs_handwritten_2026_04_06/summary.md)
 
 ## Quick routing summary
 

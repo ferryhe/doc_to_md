@@ -20,9 +20,9 @@ Use this suite when the question is:
 
 ## Main artifacts
 
-- [report.md](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
-- [result.json](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
-- [outputs](c:/Project/doc_to_md/benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs)
+- [report.md](report.md)
+- [result.json](result.json)
+- [outputs](outputs/)
 
 ## Note about the original input PDF
 

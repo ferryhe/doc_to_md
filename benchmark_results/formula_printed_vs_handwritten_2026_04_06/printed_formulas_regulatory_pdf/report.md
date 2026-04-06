@@ -3,9 +3,9 @@
 ## Sample
 
 - Timestamp: `2026-04-06T19:26:07.403057+00:00`
-- Test file: `data\input\保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf`
+- Test file: `source_document.pdf`
 - File size: 475.34 KB
-- Reference Markdown: `data\output\保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md`
+- Reference Markdown: `reviewed.md`
 - Engines tested: 5
 
 ## Summary
@@ -31,7 +31,7 @@
 | `local` | `local-text-wrapper` | success | 0.50s | 13,142 | 0 | review | review | `formula_context_without_math` | `outputs\local\output.md` |
 | `markitdown` | `markitdown` | success | 1.46s | 61,614 | 0 | review | review | `formula_context_without_math` | `outputs\markitdown\output.md` |
 | `mistral` | `mistral-ocr-latest` | success | 11.59s | 30,408 | 0 | review | review | `fragmented_math_tokens` | `outputs\mistral\output.md` |
-| `mathpix` | `mathpix-pdf` | success | 8.01s | 30,421 | 0 | good | good | - | `outputs\mathpix\output.md` |
+| `mathpix` | `mathpix` | success | 8.01s | 30,421 | 0 | good | good | - | `outputs\mathpix\output.md` |
 
 ## Agent-readiness findings
 

@@ -15,7 +15,7 @@ This benchmark pass was designed to answer four practical routing questions for 
 
 We reused the existing benchmark artifacts in:
 
-- `benchmark_results/ait170_ai_bulletin_january_2026_sample/`
+- [../ait170_ai_bulletin_january_2026_sample/](../ait170_ai_bulletin_january_2026_sample/)
 
 That sample is still the best current reference for ordinary prose-heavy PDF conversion.
 
@@ -23,8 +23,8 @@ That sample is still the best current reference for ordinary prose-heavy PDF con
 
 We reused:
 
-- source PDF: `data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf`
-- reviewed reference: `data/output/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md`
+- source PDF: [printed_formulas_regulatory_pdf/source_document.pdf](printed_formulas_regulatory_pdf/source_document.pdf)
+- reviewed reference: [printed_formulas_regulatory_pdf/reviewed.md](printed_formulas_regulatory_pdf/reviewed.md)
 
 Why this sample:
 
@@ -43,8 +43,8 @@ We assembled a four-page PDF from official Mathpix example images:
 
 Sample inputs:
 
-- handwritten sample PDF: `tmp_mathpix_handwritten_formula_benchmark/mathpix_handwritten_formulas.pdf`
-- reviewed reference: `tmp_mathpix_handwritten_formula_benchmark/reviewed.md`
+- handwritten sample PDF: [handwritten_formulas_mathpix_sample/mathpix_handwritten_formulas.pdf](handwritten_formulas_mathpix_sample/mathpix_handwritten_formulas.pdf)
+- reviewed reference: [handwritten_formulas_mathpix_sample/reviewed.md](handwritten_formulas_mathpix_sample/reviewed.md)
 
 ### Step 4: Run the same five engines on both formula samples
 
@@ -60,9 +60,9 @@ Printed-formula run:
 
 ```bash
 python benchmark.py \
-  --test-file "data/input/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.pdf" \
+  --test-file "benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/source_document.pdf" \
   --engines opendataloader local markitdown mistral mathpix \
-  --reference-markdown "data/output/保险公司偿付能力监管规则第4号：保险风险最低资本（非寿险业务）.md" \
+  --reference-markdown "benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/reviewed.md" \
   --output-dir tmp_formula_printed_vs_handwritten/printed_formulas_regulatory_pdf \
   --save-json
 ```
@@ -71,9 +71,9 @@ Handwritten-formula run:
 
 ```bash
 python benchmark.py \
-  --test-file tmp_mathpix_handwritten_formula_benchmark/mathpix_handwritten_formulas.pdf \
+  --test-file benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/mathpix_handwritten_formulas.pdf \
   --engines opendataloader local markitdown mistral mathpix \
-  --reference-markdown tmp_mathpix_handwritten_formula_benchmark/reviewed.md \
+  --reference-markdown benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/reviewed.md \
   --output-dir tmp_formula_printed_vs_handwritten/handwritten_formulas_mathpix_sample \
   --save-json
 ```
@@ -93,7 +93,7 @@ That happened on the handwritten sample:
 
 Source:
 
-- `benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`
+- [../ait170_ai_bulletin_january_2026_sample/report.md](../ait170_ai_bulletin_january_2026_sample/report.md)
 
 Practical reading:
 
@@ -105,7 +105,7 @@ Practical reading:
 
 Source:
 
-- `benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md`
+- [printed_formulas_regulatory_pdf/report.md](printed_formulas_regulatory_pdf/report.md)
 
 Key results:
 
@@ -127,7 +127,7 @@ Interpretation:
 
 Source:
 
-- `benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md`
+- [handwritten_formulas_mathpix_sample/report.md](handwritten_formulas_mathpix_sample/report.md)
 
 Key results:
 
@@ -229,7 +229,7 @@ So today the practical workaround is routing or rerun fallback, not a true merge
 
 ## Artifact map
 
-- archived summary: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md`
-- printed formulas: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/`
-- handwritten formulas: `benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/`
-- general text baseline: `benchmark_results/ait170_ai_bulletin_january_2026_sample/`
+- archived summary: [summary.md](summary.md)
+- printed formulas: [printed_formulas_regulatory_pdf/](printed_formulas_regulatory_pdf/)
+- handwritten formulas: [handwritten_formulas_mathpix_sample/](handwritten_formulas_mathpix_sample/)
+- general text baseline: [../ait170_ai_bulletin_january_2026_sample/](../ait170_ai_bulletin_january_2026_sample/)

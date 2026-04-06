@@ -1,8 +1,8 @@
 {
   "timestamp": "2026-04-06T19:27:04.824214+00:00",
-  "test_file": "tmp_mathpix_handwritten_formula_benchmark\\mathpix_handwritten_formulas.pdf",
+  "test_file": "benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/mathpix_handwritten_formulas.pdf",
   "file_size_bytes": 284767,
-  "reference_markdown": "tmp_mathpix_handwritten_formula_benchmark\\reviewed.md",
+  "reference_markdown": "benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/reviewed.md",
   "results": [
     {
       "engine_name": "opendataloader",
@@ -304,7 +304,7 @@
     },
     {
       "engine_name": "mathpix",
-      "model": "mathpix-pdf",
+      "model": "mathpix",
       "success": true,
       "conversion_time": 5.656909400000586,
       "markdown_length": 256,

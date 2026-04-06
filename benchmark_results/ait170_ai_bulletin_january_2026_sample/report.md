@@ -36,7 +36,7 @@
 | `marker` | `marker` | success | 5990.15s | 124,355 | 59 | poor | poor | `formula_image_reference` | `outputs\marker\output.md` |
 | `mineru` | `pipeline:auto` | success | 1935.67s | 103,466 | 11 | poor | poor | `formula_image_reference`, `fragmented_math_tokens` | `outputs\mineru\output.md` |
 | `mistral` | `mistral-ocr-latest` | success | 29.19s | 110,549 | 14 | poor | poor | `formula_image_reference` | `outputs\mistral\output.md` |
-| `mathpix` | `mathpix-pdf` | success | 16.32s | 112,203 | 0 | poor | poor | `formula_image_reference`, `fragmented_math_tokens` | `outputs\mathpix\output.md` |
+| `mathpix` | `mathpix` | success | 16.32s | 112,203 | 0 | poor | poor | `formula_image_reference`, `fragmented_math_tokens` | `outputs\mathpix\output.md` |
 | `opendataloader` | `opendataloader` | success | 21.19s | 112,618 | 60 | poor | poor | `formula_image_reference` | `outputs\opendataloader\output.md` |
 
 ## Agent-readiness findings

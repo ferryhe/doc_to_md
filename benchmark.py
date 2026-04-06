@@ -200,7 +200,7 @@ class EngineBenchmark:
                 ("marker", None),
                 ("mineru", None),
                 ("mistral", self.settings.mistral_default_model),
-                ("mathpix", self.settings.mathpix_default_model),
+                ("mathpix", None),
                 ("deepseekocr", self.settings.siliconflow_default_model),
                 ("opendataloader", None),
             ]
@@ -229,6 +229,13 @@ class EngineBenchmark:
             slug = slug.replace("__", "_")
         return slug.strip("_") or "artifact"
 
+    @staticmethod
+    def _display_path(path: Path) -> str:
+        try:
+            return path.relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            return path.as_posix()
+
     def _write_success_artifacts(
         self,
         *,
@@ -253,8 +260,8 @@ class EngineBenchmark:
                 target_path = target_dir / asset.filename
                 target_path.write_bytes(asset.data)
 
-        return str(markdown_path.relative_to(output_dir)), (
-            str(asset_dir_path.relative_to(output_dir)) if asset_dir_path else None
+        return markdown_path.relative_to(output_dir).as_posix(), (
+            asset_dir_path.relative_to(output_dir).as_posix() if asset_dir_path else None
         )
 
     def _write_failure_artifact(self, *, engine_name: str, error_message: str, output_dir: Path) -> None:
@@ -376,9 +383,9 @@ class EngineBenchmark:
 
         benchmark_result = BenchmarkResult(
             timestamp=datetime.now(timezone.utc).isoformat(),
-            test_file=str(test_file),
+            test_file=self._display_path(test_file),
             file_size_bytes=test_file.stat().st_size,
-            reference_markdown=str(reference_markdown_path) if reference_markdown_path else None,
+            reference_markdown=self._display_path(reference_markdown_path) if reference_markdown_path else None,
         )
 
         for engine_name, model in self.engines_to_test:
@@ -616,7 +623,7 @@ def resolve_engines(engine_names: list[str] | None, profile: str | None = None) 
         if engine_name == "mistral":
             selected.append((engine_name, settings.mistral_default_model))
         elif engine_name == "mathpix":
-            selected.append((engine_name, settings.mathpix_default_model))
+            selected.append((engine_name, None))
         elif engine_name == "deepseekocr":
             selected.append((engine_name, settings.siliconflow_default_model))
         else:

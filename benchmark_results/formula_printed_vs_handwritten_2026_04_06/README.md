@@ -17,13 +17,13 @@ This suite is the evidence behind that routing split.
 
 ## Start here
 
-- [summary.md](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md)
+- [summary.md](summary.md)
 
 ## Printed formulas
 
 Directory:
 
-- [printed_formulas_regulatory_pdf](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf)
+- [printed_formulas_regulatory_pdf](printed_formulas_regulatory_pdf/)
 
 Key reading:
 
@@ -35,7 +35,7 @@ Key reading:
 
 Directory:
 
-- [handwritten_formulas_mathpix_sample](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample)
+- [handwritten_formulas_mathpix_sample](handwritten_formulas_mathpix_sample/)
 
 Key reading:
 
@@ -45,6 +45,6 @@ Key reading:
 
 ## Recommended reading order
 
-1. [summary.md](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md)
-2. [printed report](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md)
-3. [handwritten report](c:/Project/doc_to_md/benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md)
+1. [summary.md](summary.md)
+2. [printed report](printed_formulas_regulatory_pdf/report.md)
+3. [handwritten report](handwritten_formulas_mathpix_sample/report.md)

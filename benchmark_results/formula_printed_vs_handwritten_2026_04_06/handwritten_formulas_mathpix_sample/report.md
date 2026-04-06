@@ -3,9 +3,9 @@
 ## Sample
 
 - Timestamp: `2026-04-06T19:27:04.824214+00:00`
-- Test file: `tmp_mathpix_handwritten_formula_benchmark\mathpix_handwritten_formulas.pdf`
+- Test file: `mathpix_handwritten_formulas.pdf`
 - File size: 278.09 KB
-- Reference Markdown: `tmp_mathpix_handwritten_formula_benchmark\reviewed.md`
+- Reference Markdown: `reviewed.md`
 - Engines tested: 5
 
 ## Summary
@@ -31,7 +31,7 @@
 | `local` | `local-text-wrapper` | success | 0.00s | 80 | 0 | good | not_applicable | - | `outputs\local\output.md` |
 | `markitdown` | `markitdown` | success | 0.03s | 40 | 0 | good | not_applicable | - | `outputs\markitdown\output.md` |
 | `mistral` | `mistral-ocr-latest` | success | 3.41s | 316 | 1 | poor | poor | `formula_image_reference` | `outputs\mistral\output.md` |
-| `mathpix` | `mathpix-pdf` | success | 5.66s | 256 | 0 | good | good | - | `outputs\mathpix\output.md` |
+| `mathpix` | `mathpix` | success | 5.66s | 256 | 0 | good | good | - | `outputs\mathpix\output.md` |
 
 ## Agent-readiness findings
 

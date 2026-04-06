@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     default_engine: EngineName = Field(default="local")
     mistral_default_model: str = Field(default="mistral-ocr-latest")
     siliconflow_default_model: str = Field(default="deepseek-ai/DeepSeek-OCR")
-    mathpix_default_model: str = Field(default="mathpix-pdf")
+    # Backward-compatibility shim for older .env files; the Mathpix engine ignores it.
+    mathpix_default_model: str | None = Field(default=None)
     siliconflow_base_url: str = Field(default="https://api.siliconflow.cn/v1")
     mistral_timeout_seconds: float = Field(default=60.0)
     mistral_retry_attempts: int = Field(default=3)
