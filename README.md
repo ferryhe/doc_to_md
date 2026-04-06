@@ -6,6 +6,7 @@ This repository is designed first for actuaries and actuarial teams working with
 
 ## Version History
 
+- `unreleased` (April 6, 2026) - Mathpix OCR integration, printed-vs-handwritten formula benchmark suites, and benchmark-results reorganization
 - `0.1.2` (April 3, 2026) - Agent-ready quality scoring, inline API improvements, preferred-PDF benchmarking, and release polish
 - `0.1.1` (April 1, 2026) - Initial release
 
@@ -17,9 +18,11 @@ This repository is designed first for actuaries and actuarial teams working with
 - Python helpers for batch, inline, and readiness checks
 - Structured `quality` and `trace` signals for AI agents and services
 - Multiple local and remote extraction engines
+- Integrated `mathpix` OCR for printed and handwritten formula workflows
 - Format-aware `auto` engine with per-format routing from `.env`
 - Built-in support for PDF, DOCX, PPTX, XLSX, HTML, images, TXT, and Markdown
 - Benchmark script for side-by-side engine comparison
+- Curated tracked benchmark suites for general text PDFs, printed formulas, and handwritten formulas
 - Repository skill for agent orchestration plus reference-aware formula benchmarking
 - MIT licensed
 
@@ -129,7 +132,7 @@ There are now three clear install targets:
 
 | What you want | Use this | Includes |
 | --- | --- | --- |
-| Current recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` | `local`, `markitdown`, `opendataloader`, `docling`, `mistral` |
+| Current recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` | `local`, `markitdown`, `opendataloader`, `docling`, `mistral`, `mathpix` |
 | Pinned broad CPU environment | `pip install -r requirements-core.txt` | A wider non-GPU stack including `deepseekocr`, `html_local`, `office`, and `docling` |
 | Heavy full stack | `pip install -r requirements.txt` | Adds the GPU-oriented / harder-to-install engines |
 | Repo development and tests | `pip install -r requirements-dev.txt` | `pytest`, `fastapi`, `uvicorn`, `ruff`, `build`, `twine` on top of one runtime install |
@@ -143,6 +146,7 @@ It keeps:
 - `opendataloader`
 - `docling`
 - `mistral`
+- `mathpix`
 
 Equivalent direct command:
 
@@ -156,8 +160,9 @@ pip install "doc-to-markdown-converter[markitdown,docling,opendataloader]"
 
 Notes for the recommended setup:
 
-- `local` and `mistral` are already included in the base package
+- `local`, `mistral`, and `mathpix` are already included in the base package
 - `mistral` does not need an extra, but it does need `MISTRAL_API_KEY`
+- `mathpix` does not need an extra, but it does need `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`
 - `opendataloader` still needs Java 11+ on the system
 - on the Windows / Python 3.12 test machine used here, this setup occupied about `1.32 GB` for `.venv` plus about `303 MB` for the JDK
 
@@ -341,7 +346,9 @@ python -m doc_to_md.cli convert --input-path data/input --output-path data/outpu
 Current recommendation:
 
 - Use `opendataloader` first for prose-dominant PDFs where local speed and structure matter more than formula fidelity.
-- Use `mistral` first for formula-heavy regulatory PDFs where AI-readable math is the priority.
+- Use `mistral` first for printed formula-heavy regulatory PDFs where AI-readable math is the priority.
+- Use `mathpix` first for handwritten formulas or image-like math pages.
+- If an `opendataloader` result shows `formula_context_without_math` or `formula_image_reference`, rerun the document with `mistral` or `mathpix`.
 - Use `deepseekocr` only as a secondary option when you specifically want that OCR path.
 - Leave the feature off for image-heavy documents where embedded figures should stay as images.
 
@@ -349,16 +356,26 @@ Math postprocessing also normalizes spacing around `_` and `^` inside math segme
 
 ### Practical engine choice
 
-For day-to-day use, the most reliable rule is:
+The benchmark-driven routing rule is now:
 
-- If the document has little or no meaningful formula content:
+- If the PDF is ordinary text-heavy prose and you want the easiest local extra:
+  prefer `markitdown`
+- If the PDF is ordinary text-heavy prose and you want the stronger local default:
   prefer `opendataloader`
-- If the document is formula-heavy and the math needs to stay readable to an AI agent:
+- If the PDF contains printed formulas that must stay readable to an AI agent:
   prefer `mistral`
-- If the formula-heavy result still shows OCR-split decimals or percentages:
-  keep the `mistral` path and apply lightweight math cleanup rather than switching back to a formula-flattening engine
+- If the PDF contains handwritten formulas or formula images that must become explicit math:
+  prefer `mathpix`
+- If you start with `opendataloader` and the result shows `formula_context_without_math` or `formula_image_reference`:
+  rerun with `mistral` for printed formulas or `mathpix` for handwritten formulas
 
-This is the same rule the repository skill now follows for agent workflows.
+Short reading of the current benchmark evidence:
+
+- `markitdown` is still the simplest local extra for ordinary text-heavy PDFs.
+- `opendataloader` is still the stronger local default for prose-heavy PDFs when Java is acceptable.
+- `mistral` is currently strongest on the tracked printed-formula regulatory benchmark.
+- `mathpix` is currently strongest on the tracked handwritten-formula benchmark.
+- `opendataloader` remains fast and structurally useful, but formula-sensitive AI workflows need fallback logic because unreadable formulas can degrade into plain context or images.
 
 ## CLI usage
 
@@ -465,7 +482,7 @@ The stable response field contract for the conversion endpoints is documented in
 
 ### Preferred engine readiness
 
-If you mainly route PDF work through `opendataloader` and `mistral`, call:
+If you mainly route standard PDF work through `opendataloader` and `mistral`, call:
 
 ```bash
 curl http://localhost:8000/apps/conversion/engine-readiness
@@ -475,6 +492,8 @@ This returns the current readiness of the preferred PDF engines on the running m
 
 - `opendataloader`: checks Java 11+ on `PATH` and the `opendataloader-pdf` package
 - `mistral`: checks that the Mistral API key is configured and the client can initialize
+
+`mathpix` is also supported, but it is currently treated as a specialized handwritten-formula and image-math fallback rather than part of the built-in preferred-PDF readiness profile.
 
 ### Batch conversion request
 
@@ -577,7 +596,7 @@ For in-process programmatic use:
 - `local`: lightweight internal extraction pipeline
 - `mistral`: Mistral OCR API, with optional PDF chunking and page-aware output
 - `deepseekocr`: DeepSeek OCR via SiliconFlow
-- `mathpix`: Mathpix document OCR for PDF, DOCX, PPTX, plus image OCR for PNG/JPG/JPEG
+- `mathpix`: Mathpix document OCR for PDF, DOCX, PPTX, plus image OCR for PNG/JPG/JPEG; strongest current tracked option for handwritten-formula PDFs
 - `markitdown`: Microsoft MarkItDown-based local conversion
 - `paddleocr`: local PaddleOCR pipeline for PDFs and images
 - `mineru`: MinerU pipeline wrapper
@@ -592,6 +611,22 @@ All engines implement `Engine.convert(Path) -> EngineResponse`.
 ## Recommended PDF engines
 
 Detailed scoring, install-cost analysis, dependency conflicts, and full benchmark coverage live in [PDF_ENGINE_EVALUATION.md](PDF_ENGINE_EVALUATION.md).
+
+Important scope note:
+
+- The weighted star table below is still based on the tracked general text-heavy PDF baseline.
+- Formula-heavy routing is now informed by a separate tracked suite covering both printed and handwritten formulas.
+
+Scenario-specific benchmark reading:
+
+- General text-heavy PDF:
+  `markitdown` is the simplest local extra, `opendataloader` is the stronger local default, and `mistral` is the strongest managed OCR option.
+- Printed formula PDF:
+  `mistral` is currently the strongest tracked engine, with `mathpix` as the strongest backup.
+- Handwritten formula PDF:
+  `mathpix` is currently the strongest tracked engine, with `mistral` as the strongest backup.
+- `opendataloader`:
+  still valuable for prose-first PDFs, but formula-heavy AI workflows should treat it as a fast structural path that often needs a rerun or hybrid strategy when formulas remain non-machine-readable.
 
 Final score weights are `25%` install cost, `25%` speed, and `50%` quality.
 
@@ -619,6 +654,9 @@ Current sample artifacts:
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json`](benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
 - [`benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/`](benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/)
+- [`benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md`](benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md)
+- [`benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md`](benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/report.md)
+- [`benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md`](benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/report.md)
 
 ## Benchmarking
 
@@ -626,13 +664,20 @@ The repository includes `benchmark.py` for comparing engines on representative d
 
 Tracked benchmark suites and scenario-specific comparison artifacts are indexed in [benchmark_results/README.md](benchmark_results/README.md).
 
+The tracked benchmark suites currently cover:
+
+- general text-heavy PDFs
+- printed formulas inside real regulatory documents
+- handwritten formulas from image-like math pages
+
 Quick examples:
 
 ```bash
 python benchmark.py --test-file path/to/document.pdf
-python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral
+python benchmark.py --test-file path/to/document.pdf --engines docling opendataloader mistral mathpix
 python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --reference-markdown path/to/reviewed.md
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 
@@ -672,7 +717,7 @@ python -m build
 For a formula-heavy release candidate, also run one representative benchmark:
 
 ```bash
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md --save-json
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --reference-markdown path/to/reviewed.md --save-json
 ```
 
 ## License

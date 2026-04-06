@@ -47,11 +47,15 @@ Use those fields before doing manual review.
 
 1. Prose-dominant or formula-light PDFs:
    start with `opendataloader`
-2. Formula-heavy PDFs where AI-readable math matters:
+2. Printed formula-heavy PDFs where AI-readable math matters:
    start with `mistral`
-3. If a `mistral` result is structurally good but still has OCR-split decimals such as `0. 1 4 8`:
+3. Handwritten formulas or image-like math pages:
+   start with `mathpix`
+4. If a `mistral` result is structurally good but still has OCR-split decimals such as `0. 1 4 8`:
    keep `mistral` and apply lightweight numeric cleanup
-4. If residual formula images remain:
+5. If an `opendataloader` result shows `formula_context_without_math` or `formula_image_reference`:
+   rerun with `mistral` for printed formulas or `mathpix` for handwritten formulas
+6. If residual formula images remain and a full rerun is not practical:
    retry with `FORMULA_OCR_ENABLED=true`
 
 If the result is still `poor`, stop auto-trusting formulas and escalate to manual review or a more specialized engine experiment.

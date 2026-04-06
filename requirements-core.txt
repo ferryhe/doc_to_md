@@ -8,7 +8,7 @@
 # requirements-core.txt
 #
 # Pinned dependencies for the lightweight stack:
-#   local · mistral · deepseekocr · markitdown · html_local ·
+#   local · mistral · mathpix · deepseekocr · markitdown · html_local ·
 #   auto · office (pptx/xlsx) · docling
 #
 # Install:  pip install -r requirements-core.txt
@@ -87,6 +87,10 @@ python-pptx==1.0.2
 # ── mistral engine ──────────────────────────────────────────
 # Requires MISTRAL_API_KEY in .env
 mistralai==1.9.11
+
+# ── mathpix engine ──────────────────────────────────────────
+# Requires MATHPIX_APP_ID and MATHPIX_APP_KEY in .env.
+# Uses `requests` from the base stack; no extra Python package is needed.
 
 # ── deepseekocr engine (SiliconFlow API) ────────────────────
 # Requires SILICONFLOW_API_KEY in .env; pypdfium2 renders PDFs

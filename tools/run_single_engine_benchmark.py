@@ -17,11 +17,14 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 ENGINE_SPECS: dict[str, tuple[str, str]] = {
+    "deepseekocr": ("doc_to_md.engines.deepseekocr", "DeepSeekOCREngine"),
     "docling": ("doc_to_md.engines.docling", "DoclingEngine"),
     "local": ("doc_to_md.engines.local", "LocalEngine"),
+    "mathpix": ("doc_to_md.engines.mathpix", "MathpixEngine"),
     "marker": ("doc_to_md.engines.marker", "MarkerEngine"),
     "markitdown": ("doc_to_md.engines.markitdown", "MarkItDownEngine"),
     "mineru": ("doc_to_md.engines.mineru", "MinerUEngine"),
+    "mistral": ("doc_to_md.engines.mistral", "MistralEngine"),
     "opendataloader": ("doc_to_md.engines.opendataloader", "OpenDataLoaderEngine"),
     "paddleocr": ("doc_to_md.engines.paddleocr", "PaddleOCREngine"),
 }

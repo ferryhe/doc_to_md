@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "doc-to-markdown-converter"
 version = "0.1.2"
-description = "Document-to-Markdown conversion toolkit with Python, CLI, FastAPI, and agent-ready quality signals"
+description = "Formula-aware document-to-Markdown conversion toolkit with Python, CLI, FastAPI, and multi-engine OCR"
 authors = [{name = "Ferry He", email = "ferry.he@gmail.com"}]
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
-keywords = ["markdown", "ocr", "pdf", "document-conversion", "llm"]
+keywords = ["markdown", "ocr", "pdf", "document-conversion", "formula-ocr", "llm"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

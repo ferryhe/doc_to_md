@@ -28,8 +28,11 @@ python benchmark.py --test-file path/to/document.pdf --engines local markitdown
 # Test the preferred PDF profile
 python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
 
+# Test the formula-focused PDF profile
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf
+
 # Score formulas against a reviewed Markdown reference
-python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --reference-markdown path/to/reviewed.md
+python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --reference-markdown path/to/reviewed.md
 
 # Use a custom test file
 python benchmark.py --test-file path/to/your/document.pdf
@@ -44,24 +47,29 @@ python benchmark.py --test-file path/to/your/document.pdf --save-json
 # Save results to a custom directory
 python benchmark.py \
   --test-file path/to/document.pdf \
-  --engines local markitdown paddleocr docling \
+  --engines local markitdown paddleocr docling mathpix \
   --output-dir my_test_results \
   --save-json
 
 # Compare OCR-oriented engines on a PDF
 python benchmark.py \
   --test-file document.pdf \
-  --engines mistral deepseekocr paddleocr opendataloader
+  --engines mistral mathpix deepseekocr paddleocr opendataloader
 
 # Run the preferred PDF profile
 python benchmark.py \
   --test-file document.pdf \
   --profile preferred-pdf
 
+# Run the formula-focused profile
+python benchmark.py \
+  --test-file document.pdf \
+  --profile formula-pdf
+
 # Run the preferred profile and compare formulas to a reviewed Markdown
 python benchmark.py \
   --test-file document.pdf \
-  --profile preferred-pdf \
+  --profile formula-pdf \
   --reference-markdown reviewed.md
 
 # Test only local engines
@@ -85,7 +93,8 @@ python benchmark.py \
 ### API-based engines
 
 8. `mistral`
-9. `deepseekocr`
+9. `mathpix`
+10. `deepseekocr`
 
 ## Output files
 
@@ -107,8 +116,8 @@ The generated report includes:
 4. per-engine details such as output length, asset count, `quality`, `formula_status`, and diagnostic codes
 5. optional reference-formula alignment metrics such as recall and similarity when `--reference-markdown` is provided
 6. agent-readiness findings derived from the postprocessed Markdown
-6. engine pros, cons, and suggested use cases
-7. failure details and troubleshooting hints
+7. engine pros, cons, and suggested use cases
+8. failure details and troubleshooting hints
 
 ## Common scenarios
 
@@ -117,13 +126,17 @@ The generated report includes:
 ```bash
 python benchmark.py \
   --test-file "data/input/your_document.pdf" \
-  --profile preferred-pdf \
+  --profile formula-pdf \
   --reference-markdown "data/output/your_document.md" \
   --output-dir tmp_user_sample_benchmark \
   --save-json
 ```
 
-This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes and your preferred engines are `opendataloader` plus `mistral`.
+This is the recommended manual check when you want to evaluate a real formula-heavy or regulation-style PDF before making agent-facing changes.
+
+Use `preferred-pdf` when the main question is the default prose and printed-formula path.
+
+Use `formula-pdf` when handwritten formulas, scanned equations, or formula screenshots are plausible and you want `mathpix` in the comparison.
 
 When a reviewed Markdown file already exists, `--reference-markdown` is the best way to answer the question "can an AI really read the formulas?" because it turns that judgment into repeatable numbers:
 
@@ -143,7 +156,7 @@ python benchmark.py --test-file your_document.pdf --save-json
 ```bash
 python benchmark.py \
   --test-file production_sample.pdf \
-  --engines mistral deepseekocr \
+  --engines mistral mathpix deepseekocr \
   --output-dir validation_results
 ```
 
@@ -152,7 +165,7 @@ python benchmark.py \
 ```bash
 python benchmark.py \
   --test-file complex_document.pdf \
-  --engines local markitdown mistral paddleocr docling marker
+  --engines local markitdown mistral mathpix paddleocr docling marker
 ```
 
 ### Compare free and paid options
@@ -162,7 +175,7 @@ python benchmark.py \
 python benchmark.py --test-file document.pdf --engines local markitdown paddleocr docling marker mineru opendataloader
 
 # API-based
-python benchmark.py --test-file document.pdf --engines mistral deepseekocr
+python benchmark.py --test-file document.pdf --engines mistral mathpix deepseekocr
 ```
 
 ## FAQ
@@ -214,12 +227,14 @@ Metrics currently include:
 The built-in benchmark profiles currently include:
 
 - `preferred-pdf`: `opendataloader` then `mistral`
+- `formula-pdf`: `opendataloader`, `mistral`, then `mathpix`
 
 Optimization hints:
 
 - PaddleOCR benefits from GPU acceleration when available
 - MinerU generally performs better on GPU-equipped machines
 - OpenDataLoader requires Java 11+ on `PATH` and the optional `opendataloader-pdf` package
+- Mathpix requires `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`; `MATHPIX_OUTPUT_FORMAT` chooses `md` vs `mmd`
 - API engines may need higher timeout and retry values for large documents
 
 ## Related files

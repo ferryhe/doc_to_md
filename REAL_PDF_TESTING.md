@@ -52,7 +52,7 @@ Then run a focused benchmark:
 ```powershell
 .venv\Scripts\python benchmark.py `
   --test-file "data/input/your_document.pdf" `
-  --profile preferred-pdf `
+  --profile formula-pdf `
   --reference-markdown "data/output/your_document.md" `
   --output-dir tmp_user_sample_benchmark `
   --save-json
@@ -121,9 +121,16 @@ What this means:
 - the remaining gap on `mistral` is mostly fragmented math tokens and a small number of missed formulas
 - this document is now a strong representative regression sample for future formula-quality work
 
+Additional tracked suites added on `2026-04-06`:
+
+- `benchmark_results/ait170_ai_bulletin_january_2026_sample/` for general text-heavy PDFs
+- `benchmark_results/formula_printed_vs_handwritten_2026_04_06/printed_formulas_regulatory_pdf/` for printed formulas in a regulatory PDF
+- `benchmark_results/formula_printed_vs_handwritten_2026_04_06/handwritten_formulas_mathpix_sample/` for handwritten formulas from official Mathpix sample material
+
 Preferred-path note:
 
 - if your normal workflow prefers `opendataloader` and `mistral`, use `--profile preferred-pdf`
+- if the document may contain handwritten formulas or image-like math pages, use `--profile formula-pdf` so `mathpix` is included
 - if you also have a reviewed Markdown sample, always add `--reference-markdown`
 - before running that profile in a fresh shell, inspect `GET /apps/conversion/engine-readiness` or verify `java -version`
 
@@ -133,9 +140,10 @@ On the current machine:
 
 - `opendataloader` can run once Java 17 is available on `PATH` in the current shell
 - `mistral` can run when `MISTRAL_API_KEY` is present in `.env`
+- `mathpix` can run when `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` are present in `.env`
 - `markitdown` and `docling` are blocked until their optional packages are installed
 
 That means the current representative benchmark is most useful for:
 
-- side-by-side `opendataloader` versus `mistral` checks
+- side-by-side `opendataloader`, `mistral`, and `mathpix` checks
 - formula-reference checks against reviewed Markdown outputs

@@ -9,8 +9,8 @@
 - Sample document: `data/input/ait170-ai-bulletin-january-2026_1.pdf`
 - Sample size: `717,988` bytes
 - Current goal: recommend practical PDF engines for ordinary users, not just technically available ones
-- Included engine inventory: `local`, `markitdown`, `opendataloader`, `docling`, `paddleocr`, `marker`, `mineru`, `mistral`, `deepseekocr`
-- Excluded from this report: `auto` because it is a router, not a standalone extractor; `html_local` because it is not a PDF path
+- Included engine inventory: `local`, `markitdown`, `opendataloader`, `docling`, `paddleocr`, `marker`, `mineru`, `mistral`, `mathpix`, `deepseekocr`
+- Excluded from this report's scoring tables: `auto` because it is a router, not a standalone extractor; `html_local` because it is not a PDF path; `mathpix` because its tracked value is formula-specialist work rather than ordinary text-heavy PDF extraction
 - Full benchmark coverage completed in this report: `local`, `markitdown`, `opendataloader`, `docling`, `paddleocr`, `marker`, `mineru`, `mistral`
 - Still intentionally excluded from recommendation work: `deepseekocr`, because it is another third-party remote OCR path the project owner does not want to prioritize
 
@@ -19,6 +19,7 @@ Current sample artifacts:
 - Benchmark summary: [`benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md`](benchmark_results/ait170_ai_bulletin_january_2026_sample/report.md)
 - Raw machine-readable results: [`benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json`](benchmark_results/ait170_ai_bulletin_january_2026_sample/result.json)
 - Per-engine outputs: [`benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/`](benchmark_results/ait170_ai_bulletin_january_2026_sample/outputs/)
+- Formula-specialist benchmark suite: [`benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md`](benchmark_results/formula_printed_vs_handwritten_2026_04_06/summary.md)
 
 ## Evaluation method
 
@@ -125,6 +126,7 @@ If the project keeps only the currently recommended PDF engines:
 - `opendataloader`
 - `docling`
 - `mistral`
+- `mathpix`
 
 the official install target is:
 
@@ -142,6 +144,7 @@ Why this is enough:
 
 - `local` is part of the base package
 - `mistral` is part of the base package and only needs `MISTRAL_API_KEY`
+- `mathpix` is part of the base package and only needs `MATHPIX_APP_ID` plus `MATHPIX_APP_KEY`
 - `markitdown`, `docling`, and `opendataloader` are the only extras needed for that retained set
 - `requirements-core.txt` is broader than this retained set and should not be presented as the same thing
 
@@ -373,6 +376,7 @@ If README stays concise, the current summary should be:
 
 - `opendataloader` is the best current local default for PDFs when Java is acceptable
 - `mistral` is the best current managed-service OCR path
+- `mathpix` is the strongest current tracked option for handwritten formulas, but that conclusion comes from the dedicated formula suite rather than this general-text report
 - `docling` has the best practical local text quality in this sample, but is too slow on CPU to be the default
 - `markitdown` is the easiest local extra to try after base install
 - `marker` and `mineru` are now benchmarked, but their install cost is too high to recommend as default paths
