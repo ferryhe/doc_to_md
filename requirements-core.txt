@@ -67,10 +67,10 @@ urllib3==2.5.0
 # ── local engine (PDF · DOCX · images · text) ───────────────
 # Reads PDF pages, Word documents, and drives pytesseract OCR.
 beautifulsoup4==4.14.2
-pillow==10.4.0
-pypdf==5.0.1
+pillow==12.2.0
+pypdf==6.10.0
 pytesseract==0.3.13
-python-docx==1.1.2
+python-docx==1.2.0
 soupsieve==2.8
 
 # ── office extra  (PPTX · XLSX)  [pip install ".[office]"] ──
@@ -145,10 +145,10 @@ semchunk==2.2.2
 shapely==2.1.2
 sympy==1.14.0
 tokenizers==0.22.1
-# CPU torch — swap for torch==2.2.2+cu121 (or newer) on GPU machines
+# CPU torch for the CPU-oriented docling stack. Use requirements.txt for MinerU 3.x.
 torch==2.2.2
 tqdm==4.67.1
-transformers==4.57.1
+transformers==4.57.3
 tree-sitter==0.25.2
 tree-sitter-c==0.24.1
 tree-sitter-java==0.23.5

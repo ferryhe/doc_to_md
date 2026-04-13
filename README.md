@@ -52,6 +52,9 @@ Other install targets:
 | Recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` |
 | Broader CPU environment | `pip install -r requirements-core.txt` |
 | Full heavy stack | `pip install -r requirements.txt` |
+| MinerU 3.x pipeline or hybrid | `pip install -e ".[mineru]"` |
+| MinerU2.5-Pro remote client | `pip install -e ".[mineru-pro]"` |
+| MinerU2.5-Pro local transformers | `pip install -e ".[mineru-pro-local]"` |
 | Dev and test overlay | `pip install -r requirements-dev.txt` |
 
 ## Quick start
@@ -158,10 +161,17 @@ Other supported engines:
 - `docling`
 - `paddleocr`
 - `mineru`
+- `mineru_pro`
 - `marker`
 - `deepseekocr`
 - `html_local`
 - `auto`
+
+MinerU note:
+
+- `mineru` now targets the MinerU 3.x package path and still represents the classic MinerU pipeline/hybrid engine.
+- `mineru_pro` is a separate MinerU2.5-Pro VLM entry point. By default it expects `MINERU_PRO_SERVER_URL` for a running MinerU2.5-Pro service; local `transformers` use is intentionally opt-in through `.[mineru-pro-local]` because it is a heavy model path.
+- The upstream MinerU2.5-Pro model card lists AGPL-3.0 licensing, so keep it as an explicit optional path when license boundaries matter.
 
 ## Read next
 

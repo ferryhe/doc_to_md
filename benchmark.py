@@ -37,6 +37,7 @@ evaluate_formula_reference = formula_reference_module.evaluate_formula_reference
 BENCHMARK_PROFILES: dict[str, list[str]] = {
     "preferred-pdf": list_preferred_pdf_engines(),
     "formula-pdf": ["opendataloader", "mistral", "mathpix"],
+    "mineru-pro": ["mineru_pro"],
 }
 
 ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
@@ -95,6 +96,20 @@ ENGINE_NOTES: dict[str, dict[str, list[str] | str]] = {
             "Output quality did not justify the setup cost compared with the better local alternatives.",
         ],
         "best_for": "Research or specialized evaluation work where you explicitly want to test MinerU despite its setup overhead.",
+    },
+    "mineru_pro": {
+        "label": "MinerU2.5-Pro",
+        "pros": [
+            "Uses the updated MinerU2.5-Pro VLM path rather than the older MinerU pipeline benchmark.",
+            "Targets formulas, tables, charts, and hard layout cases called out in the 2026 technical report.",
+            "Can connect to a separately hosted MinerU2.5-Pro service through mineru-vl-utils http-client mode.",
+        ],
+        "cons": [
+            "Requires a running MinerU2.5-Pro service by default, or a heavy local transformers/vLLM setup.",
+            "Not yet part of the recommendation profiles because it has GPU and deployment assumptions.",
+            "Current repository benchmark artifacts still need a local rerun before it can change routing recommendations.",
+        ],
+        "best_for": "Targeted MinerU2.5-Pro evaluation on formula-heavy or table-heavy PDFs when you have the model service ready.",
     },
     "opendataloader": {
         "label": "OpenDataLoader",
@@ -199,6 +214,7 @@ class EngineBenchmark:
                 ("docling", None),
                 ("marker", None),
                 ("mineru", None),
+                ("mineru_pro", self.settings.mineru_pro_model),
                 ("mistral", self.settings.mistral_default_model),
                 ("mathpix", None),
                 ("deepseekocr", self.settings.siliconflow_default_model),
@@ -626,6 +642,8 @@ def resolve_engines(engine_names: list[str] | None, profile: str | None = None) 
             selected.append((engine_name, None))
         elif engine_name == "deepseekocr":
             selected.append((engine_name, settings.siliconflow_default_model))
+        elif engine_name == "mineru_pro":
+            selected.append((engine_name, settings.mineru_pro_model))
         else:
             selected.append((engine_name, None))
     return selected

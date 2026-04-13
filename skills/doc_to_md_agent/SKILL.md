@@ -51,6 +51,12 @@ python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf --r
 python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --reference-markdown path/to/reviewed.md --save-json
 ```
 
+   For a targeted MinerU2.5-Pro rerun, use `mineru_pro` separately:
+
+```bash
+python benchmark.py --test-file path/to/document.pdf --profile mineru-pro --reference-markdown path/to/reviewed.md --save-json
+```
+
    Use the reference metrics when formula fidelity matters:
    `reference_formula_status`, `reference_formula_recall`, and `reference_formula_similarity`.
 
@@ -77,6 +83,7 @@ python benchmark.py --test-file path/to/document.pdf --profile formula-pdf --ref
 - If `formula_status=review`, inspect the flagged regions and look for flattened formulas, fragmented OCR spacing, or missing math delimiters.
 - If `formula_status=poor`, switch engines or OCR strategy before trusting the result.
 - If the document is formula-heavy and `formula_context_without_math` appears, assume formulas may have been flattened into plain text and verify manually.
+- Treat `mineru_pro` as an explicit research/evaluation path until it has been rerun on the tracked local fixtures.
 
 ## Read These References
 

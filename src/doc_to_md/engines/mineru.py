@@ -22,6 +22,7 @@ class MinerUEngine(Engine):
         self.table_enable = settings.mineru_table_enable
         self.start_page = settings.mineru_start_page
         self.end_page = settings.mineru_end_page
+        self.server_url = settings.mineru_server_url
         # Model metadata is descriptive only; MinerU is a local pipeline.
         self.model = model or f"{self.backend}:{self.parse_method}"
         self._runtime: Tuple[
@@ -57,6 +58,7 @@ class MinerUEngine(Engine):
                 parse_method=self.parse_method,
                 formula_enable=self.formula_enable,
                 table_enable=self.table_enable,
+                server_url=self.server_url,
                 start_page_id=self.start_page,
                 end_page_id=self.end_page,
                 # Keep disk spill minimal; we only care about Markdown and images.
@@ -92,11 +94,22 @@ class MinerUEngine(Engine):
         return EngineResponse(markdown=markdown, model=self.model, assets=assets)
 
     def _resolve_output_folder(self, root: Path, stem: str) -> Path:
-        if self.backend == "pipeline":
-            subfolder = self.parse_method
+        candidates: list[Path]
+        if self.backend.startswith("pipeline"):
+            candidates = [root / stem / self.parse_method]
+        elif self.backend.startswith("vlm"):
+            candidates = [root / stem / "vlm"]
+        elif self.backend.startswith("hybrid"):
+            candidates = [root / stem / f"hybrid_{self.parse_method}"]
         else:
-            subfolder = "vlm"
-        parse_folder = root / stem / subfolder
-        if not parse_folder.exists():
-            raise RuntimeError(f"MinerU output folder {parse_folder} is missing.")
-        return parse_folder
+            candidates = [
+                root / stem / self.parse_method,
+                root / stem / "vlm",
+                root / stem / f"hybrid_{self.parse_method}",
+            ]
+
+        for parse_folder in candidates:
+            if parse_folder.exists():
+                return parse_folder
+        searched = ", ".join(str(path) for path in candidates)
+        raise RuntimeError(f"MinerU output folder is missing. Looked in: {searched}.")

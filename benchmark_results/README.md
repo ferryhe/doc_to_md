@@ -4,6 +4,10 @@ This directory keeps curated benchmark artifacts that are useful for engine sele
 
 ## Included benchmark suites
 
+### MinerU2.5-Pro status
+
+MinerU2.5-Pro has an upstream technical report and model card update from April 2026, but it has not yet been rerun on these archived local fixtures. Use the new `mineru_pro` engine and `python benchmark.py --profile mineru-pro ...` when a MinerU2.5-Pro service is available; until that local rerun exists, the archived MinerU row still describes the older `mineru` pipeline result, not MinerU2.5-Pro.
+
 ### 1. General text-heavy PDF baseline
 
 Directory:

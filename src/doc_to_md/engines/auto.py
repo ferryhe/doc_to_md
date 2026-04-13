@@ -18,6 +18,7 @@ _AUTO_REGISTRY: Mapping[str, tuple[str, str, bool]] = {
     "docling": ("doc_to_md.engines.docling", "DoclingEngine", True),
     "marker": ("doc_to_md.engines.marker", "MarkerEngine", True),
     "mineru": ("doc_to_md.engines.mineru", "MinerUEngine", True),
+    "mineru_pro": ("doc_to_md.engines.mineru_pro", "MinerUProEngine", True),
     "opendataloader": ("doc_to_md.engines.opendataloader", "OpenDataLoaderEngine", False),
 }
 

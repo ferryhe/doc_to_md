@@ -17,6 +17,7 @@ Use this suite when the question is:
 - `mistral` is the stronger managed OCR path when you want better output quality without maintaining a heavy local stack.
 - `mathpix` is now included in this baseline too, but it did not improve the recommendation for ordinary prose-heavy PDFs.
 - Keep `mathpix` as a formula-specialist engine, not the default choice for general text-heavy PDFs.
+- The archived `mineru` artifact predates the current MinerU2.5-Pro integration. Use `mineru_pro` and the `mineru-pro` benchmark profile for a new Pro-specific rerun.
 
 ## Main artifacts
 

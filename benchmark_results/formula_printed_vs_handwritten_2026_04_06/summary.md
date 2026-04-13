@@ -11,6 +11,14 @@ This benchmark pass was designed to answer four practical routing questions for 
 
 ## Detailed procedure
 
+### MinerU2.5-Pro follow-up status
+
+MinerU2.5-Pro was added to the project after this suite was archived. The printed-formula and handwritten-formula conclusions below are unchanged until `mineru_pro` is rerun against both fixtures with:
+
+```bash
+python benchmark.py --profile mineru-pro --test-file <fixture.pdf> --reference-markdown <reviewed.md> --save-json
+```
+
 ### Step 1: Keep the existing general-text benchmark as the prose baseline
 
 We reused the existing benchmark artifacts in:

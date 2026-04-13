@@ -85,6 +85,7 @@ def test_default_benchmark_engines_include_mathpix(monkeypatch) -> None:
         lambda: SimpleNamespace(
             mistral_default_model="mistral-ocr-latest",
             siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
+            mineru_pro_model="opendatalab/MinerU2.5-Pro-2604-1.2B",
         ),
     )
 
@@ -100,6 +101,7 @@ def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> No
         lambda: SimpleNamespace(
             mistral_default_model="mistral-ocr-latest",
             siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
+            mineru_pro_model="opendatalab/MinerU2.5-Pro-2604-1.2B",
         ),
     )
 
@@ -111,3 +113,19 @@ def test_resolve_engines_formula_pdf_profile_includes_mathpix(monkeypatch) -> No
         ("mistral", "mistral-ocr-latest"),
         ("mathpix", None),
     ]
+
+
+def test_resolve_engines_mineru_pro_profile_uses_default_model(monkeypatch) -> None:
+    monkeypatch.setattr(
+        benchmark,
+        "get_settings",
+        lambda: SimpleNamespace(
+            mistral_default_model="mistral-ocr-latest",
+            siliconflow_default_model="deepseek-ai/DeepSeek-OCR",
+            mineru_pro_model="opendatalab/MinerU2.5-Pro-2604-1.2B",
+        ),
+    )
+
+    selected = benchmark.resolve_engines(None, profile="mineru-pro")
+
+    assert selected == [("mineru_pro", "opendatalab/MinerU2.5-Pro-2604-1.2B")]

@@ -29,6 +29,26 @@ Important caution:
 - When it cannot recover explicit math, it often leaves formula context without machine-readable formulas or preserves formulas mainly as images.
 - That is why prose routing and formula routing should now be treated as separate decisions.
 
+## MinerU2.5-Pro update
+
+Checked on 2026-04-13:
+
+- MinerU2.5-Pro was published as a 2026 technical report, with arXiv v1 submitted on 2026-04-06 and v2 revised on 2026-04-09: <https://arxiv.org/abs/2604.04771>
+- The official model card is `opendatalab/MinerU2.5-Pro-2604-1.2B` and lists the model license as AGPL-3.0: <https://huggingface.co/opendatalab/MinerU2.5-Pro-2604-1.2B>
+- The upstream `mineru` package has moved to the 3.x line; the latest checked GitHub release was `mineru-3.0.9-released` on 2026-04-07: <https://github.com/opendatalab/MinerU/releases/tag/mineru-3.0.9-released>
+
+What changed for this repository:
+
+- `mineru` now targets the MinerU 3.x package path and supports 3.x `pipeline`, `vlm-*`, and `hybrid-*` output folders.
+- `mineru_pro` is a new, separate engine for the MinerU2.5-Pro VLM path through `mineru-vl-utils`.
+- `mineru_pro` defaults to `http-client` mode and requires `MINERU_PRO_SERVER_URL`; use this when a MinerU2.5-Pro service is already running.
+- The upstream report claims `95.69` on OmniDocBench v1.6, up from the same-architecture MinerU 2.5 baseline of `92.98`, and reports gains on dense formulas, tables, image/chart parsing, truncated paragraph merging, cross-page table merging, and in-table image recognition.
+
+Important local-evaluation caveat:
+
+- The archived `mineru` benchmark row below is still the older local MinerU pipeline result. It must not be read as a MinerU2.5-Pro result.
+- Until `mineru_pro` is rerun on the tracked prose, printed-formula, and handwritten-formula fixtures, it should not change the current routing recommendations.
+
 ## Current tracked benchmark suites
 
 This repository currently keeps three benchmark views that answer different questions.
@@ -53,6 +73,7 @@ Start with these index files:
 python benchmark.py --test-file path/to/document.pdf
 python benchmark.py --test-file path/to/document.pdf --profile preferred-pdf
 python benchmark.py --test-file path/to/document.pdf --profile formula-pdf
+python benchmark.py --test-file path/to/document.pdf --profile mineru-pro
 python benchmark.py --test-file path/to/document.pdf --save-json
 ```
 
@@ -60,6 +81,7 @@ Profile meaning:
 
 - `preferred-pdf`: `opendataloader` then `mistral`
 - `formula-pdf`: `opendataloader`, `mistral`, then `mathpix`
+- `mineru-pro`: `mineru_pro` only, for targeted MinerU2.5-Pro reruns
 
 ### Compare a custom engine set
 
@@ -90,6 +112,7 @@ If the document is just a normal prose-heavy PDF and handwritten formulas are no
 - `opendataloader` requires Java 11+ on `PATH` and `opendataloader-pdf`
 - `mistral` requires `MISTRAL_API_KEY`
 - `mathpix` requires `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`
+- `mineru_pro` requires `pip install -e ".[mineru-pro]"` and, by default, `MINERU_PRO_SERVER_URL`; local `transformers` mode requires `pip install -e ".[mineru-pro-local]"`
 
 The readiness endpoint currently covers the default prose and printed-formula pair:
 
@@ -137,7 +160,8 @@ Important interpretation rule:
 | `docling` | `pip install -e ".[docling]"` | `95` | `293.3 MiB` | Works now | Benchmarked | Heavy dependency stack, CPU-slow on the tracked prose sample |
 | `paddleocr` | `pip install -e ".[paddleocr]"`, plus a working Paddle runtime | `58` extra-only | `99.1 MiB` extra-only; about `1.9 GB` more for the working Windows GPU runtime used here | Works in the main env only after extra runtime setup | Benchmarked | Successful run required `paddlepaddle-gpu==3.3.0` and explicit CUDA DLL paths on Windows |
 | `marker` | `pip install -e ".[marker]"` in an isolated env | `78` | `250.4 MiB` | Fails in the main env | Benchmarked in an isolated env | Strong output, but not honest to present as a drop-in extra in this repo |
-| `mineru` | `pip install -e ".[mineru]"` in an isolated env, plus runtime repair | `82` | `214.0 MiB` | Fails in the main env | Benchmarked in an isolated env | Needed the most manual runtime repair before the benchmark would succeed |
+| `mineru` | `pip install -e ".[mineru]"` | not remeasured after 3.0.9 | not remeasured after 3.0.9 | Install path updated; still not recommended as default | Historical benchmark only | Old benchmark row used MinerU before the 3.x dependency refresh |
+| `mineru_pro` | `pip install -e ".[mineru-pro]"`, plus a running MinerU2.5-Pro service; use `.[mineru-pro-local]` for local transformers | not measured locally | model/service dependent | New optional path | Not yet benchmarked locally | Separate entry for `opendatalab/MinerU2.5-Pro-2604-1.2B`; upstream reports SOTA on OmniDocBench v1.6 |
 | `mistral` | Base install plus `MISTRAL_API_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Best current managed OCR path for general and printed-formula PDFs |
 | `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Strongest current handwritten-formula specialist; not a prose-default winner on the tracked text-heavy sample |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | `0` extra | `0` extra | Works now | Intentionally skipped | Supported, but still outside the main recommendation focus |
@@ -200,20 +224,21 @@ Interpretation:
 - `opendataloader` itself is relatively small on the Python side, but its Java requirement adds a separate system footprint
 - `mathpix` adds no extra Python footprint inside this repo, but it does add an external service dependency
 
-### Current dependency conflicts
+### Current dependency caveats
 
-These are real resolver conflicts in the current project.
+The old MinerU blocker from `pillow==10.4.0` has been removed by moving the project base dependency to `pillow>=11.0.0,<13`, and by allowing newer `pypdf` and `python-docx` versions required by the MinerU 3.x line.
 
 | Engine | Conflict |
 | --- | --- |
 | `marker` | Project pins `click==8.1.7`, while `marker-pdf>=1.10.1` requires `click>=8.2.0,<9` |
-| `mineru` | Project pins `pillow==10.4.0`, while `mineru>=2.6.4` requires `pillow>=11.0.0` |
+| `mineru` / `mineru_pro` | Heavy local modes require `torch>=2.6,<3`; use the `mineru`/`mineru-pro-local` extras or `requirements.txt`, not the older CPU-oriented `requirements-core.txt` torch pin |
 
 ### Runtime repair that was actually needed
 
 - `paddleocr`: the Python extra alone was not enough for a working Windows GPU run. A successful benchmark needed `paddlepaddle-gpu==3.3.0` from Paddle's `cu130` index and a process-level `PATH` update pointing at the bundled `nvidia/cu13` and `nvidia/cudnn` DLL directories.
 - `marker`: the benchmark worked only in an isolated environment so it could use `click>=8.2.0` without touching the repository pins.
-- `mineru`: the benchmark worked only after an isolated environment plus additional runtime packages and version adjustments, including `torch==2.2.2`, `torchvision==0.17.2`, `doclayout-yolo`, `ultralytics`, `ftfy`, `pyclipper`, `omegaconf`, `rapidocr`, `shapely`, `dill`, and `numpy<2`.
+- `mineru`: the historical benchmark worked only after an isolated environment plus additional runtime packages and version adjustments. The 3.x package path has since changed enough that this needs a fresh rerun before the old repair notes should be reused.
+- `mineru_pro`: not yet locally benchmarked; expected setup is either a running MinerU2.5-Pro service for `http-client` mode or a heavy local `transformers` environment.
 
 ## General text-heavy PDF baseline
 
@@ -242,6 +267,7 @@ Important scope note:
 
 - this weighted table is only for the tracked general text-heavy PDF baseline
 - `mathpix` has now been measured on the tracked prose-heavy sample too, but it is still left out of the weighted ranking because it does not change the prose-default recommendation and its main value in this repo remains formula-specialist work
+- `mineru_pro` is not in this weighted table yet; the `mineru` row is historical and does not represent MinerU2.5-Pro
 
 ### Weighted results
 
@@ -386,6 +412,10 @@ So today the practical workaround is routing or rerun fallback, not a true merge
 
 - `marker`
 - `mineru`
+
+### Added but still needs a local tracked rerun
+
+- `mineru_pro`
 
 ### Still intentionally out of scope for recommendation work
 

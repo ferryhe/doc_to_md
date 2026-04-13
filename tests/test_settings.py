@@ -76,3 +76,26 @@ def test_settings_with_overrides_preserves_base_and_applies_updates(tmp_path: Pa
     assert settings.formula_ocr_provider == "mistral"
     assert overridden.formula_ocr_enabled is True
     assert overridden.formula_ocr_provider == "deepseekocr"
+
+
+def test_settings_accepts_mineru_pro_engine_and_defaults(tmp_path: Path) -> None:
+    settings = Settings(
+        _env_file=None,
+        default_engine="mineru_pro",
+        input_dir=tmp_path / "input",
+        output_dir=tmp_path / "output",
+    )
+
+    assert settings.default_engine == "mineru_pro"
+    assert settings.mineru_pro_model == "opendatalab/MinerU2.5-Pro-2604-1.2B"
+    assert settings.mineru_pro_backend == "http-client"
+
+
+def test_settings_validates_mineru_pro_max_pages(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="MINERU_PRO_MAX_PAGES"):
+        Settings(
+            _env_file=None,
+            input_dir=tmp_path / "input",
+            output_dir=tmp_path / "output",
+            mineru_pro_max_pages=0,
+        )

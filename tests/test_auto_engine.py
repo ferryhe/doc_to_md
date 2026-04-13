@@ -178,6 +178,7 @@ def test_list_engine_names_includes_new_engines() -> None:
     assert "auto" in names
     assert "html_local" in names
     assert "mathpix" in names
+    assert "mineru_pro" in names
 
 
 # ---------------------------------------------------------------------------

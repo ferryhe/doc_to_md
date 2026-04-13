@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_INPUT_DIR = PROJECT_ROOT / "data" / "input"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "output"
 
-EngineName = Literal["mistral", "deepseekocr", "mathpix", "local", "markitdown", "paddleocr", "mineru", "docling", "marker", "html_local", "auto", "opendataloader"]
+EngineName = Literal["mistral", "deepseekocr", "mathpix", "local", "markitdown", "paddleocr", "mineru", "mineru_pro", "docling", "marker", "html_local", "auto", "opendataloader"]
 FormulaOcrProvider = Literal["mistral", "deepseekocr"]
 
 
@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     mineru_table_enable: bool = Field(default=True)
     mineru_start_page: int = Field(default=0)
     mineru_end_page: int | None = Field(default=None)
+    mineru_server_url: str | None = Field(default=None)
+
+    mineru_pro_model: str = Field(default="opendatalab/MinerU2.5-Pro-2604-1.2B")
+    mineru_pro_backend: str = Field(default="http-client")
+    mineru_pro_server_url: str | None = Field(default=None)
+    mineru_pro_render_dpi: int = Field(default=200)
+    mineru_pro_max_pages: int | None = Field(default=None)
+    mineru_pro_image_analysis: bool = Field(default=False)
 
     marker_use_llm: bool = Field(default=False)
     marker_processors: str | None = Field(default=None)
@@ -129,10 +137,14 @@ class Settings(BaseSettings):
             raise ValueError("MINERU_START_PAGE cannot be negative")
         if self.mineru_end_page is not None and self.mineru_end_page < self.mineru_start_page:
             raise ValueError("MINERU_END_PAGE must be >= MINERU_START_PAGE")
+        if self.mineru_pro_render_dpi <= 0:
+            raise ValueError("MINERU_PRO_RENDER_DPI must be positive")
+        if self.mineru_pro_max_pages is not None and self.mineru_pro_max_pages < 1:
+            raise ValueError("MINERU_PRO_MAX_PAGES must be at least 1 when provided")
 
         return self
 
-    @field_validator("paddleocr_max_pages", "docling_max_pages", "mineru_end_page", mode="before")
+    @field_validator("paddleocr_max_pages", "docling_max_pages", "mineru_end_page", "mineru_pro_max_pages", mode="before")
     @classmethod
     def _blank_to_none(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
