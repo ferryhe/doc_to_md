@@ -14,4 +14,4 @@ Then read:
 2. `.hermes/project-status.md`
 3. The active plan under `docs/plans/`
 
-Do not commit, push, or open PRs without explicit approval.
+Do not commit, push, or open PRs from a standalone Codex CLI worker without explicit approval. When this repo is being operated through Hermes/project-agent automation, follow `AGENTS.md` as the authoritative repo workflow policy.
