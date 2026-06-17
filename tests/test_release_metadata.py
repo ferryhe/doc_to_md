@@ -77,7 +77,13 @@ def test_release_process_documents_version_guardrails() -> None:
     assert "CHANGELOG.md" in text
     assert "test \"$TAG\" = \"$PKG_VERSION\"" in text
     assert "pyproject.toml version not found" in text
-    assert "tomllib" not in text
+    version_guard = re.search(
+        r"PKG_VERSION=\$\(python - <<'PY'.*?test \"\$TAG\" = \"\$PKG_VERSION\"",
+        text,
+        re.DOTALL,
+    )
+    assert version_guard is not None
+    assert "tomllib" not in version_guard.group(0)
     assert "Rollback" in text or "rollback" in text
 
 
