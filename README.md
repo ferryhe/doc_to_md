@@ -186,6 +186,8 @@ Release rules:
 - Every release must promote `CHANGELOG.md` entries out of `Unreleased` into a dated version section.
 - During `0.x`, breaking changes are allowed only when they are explicitly marked as **BREAKING** and bump at least the minor version.
 - Routine runtime dependencies use compatible version ranges in package metadata; reproducible local environments live in the `requirements-*.txt` files.
+- CI validates release metadata, audits direct runtime dependencies with `pip-audit`, and runs lightweight smoke matrices before merge.
+- Pushing a matching `vX.Y.Z` tag runs the release workflow, builds wheel/sdist artifacts, extracts notes from `CHANGELOG.md`, and publishes a GitHub Release.
 
 See [docs/release-process.md](docs/release-process.md) for the full checklist.
 

@@ -12,10 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Add a documented release process covering SemVer rules, release preparation, tag naming, changelog promotion, and rollback handling.
 - Add README release-governance guidance for contributors.
+- Add GitHub Actions release automation for `vX.Y.Z` tags, including version/changelog verification, wheel/sdist build, twine validation, changelog-driven release notes, and GitHub Release publishing.
+- Add direct-runtime dependency security auditing with `pip-audit` in CI.
+- Add PR and nightly smoke matrices for lightweight engine coverage.
+- Add reusable release metadata and changelog extraction helper scripts.
 
 ### Changed
 
 - Relax routine runtime dependency constraints in `pyproject.toml` from exact pins to compatible ranges so patch/minor fixes can be absorbed without republishing the package for every upstream release.
+- Raise `pypdf` and `pillow` lower bounds in package metadata and pinned environment profiles to audited versions that clear the CI security gate.
 
 ## [0.1.2] - 2026-06-17
 

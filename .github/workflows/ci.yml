@@ -26,8 +26,11 @@ jobs:
           python -m pip install -e .
           python -m pip install -r requirements-dev.txt
 
+      - name: Release metadata consistency
+        run: python tools/check_release_metadata.py --tag ""
+
       - name: Ruff
-        run: python -m ruff check src tests config benchmark.py
+        run: python -m ruff check src tests config benchmark.py tools
 
       - name: Pytest
         run: python -m pytest -q
@@ -37,3 +40,52 @@ jobs:
 
       - name: Twine check
         run: python -m twine check dist/*
+
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pip-audit>=2.7,<3"
+
+      - name: Export direct runtime requirements
+        run: python tools/export_runtime_requirements.py --output /tmp/doc-to-md-runtime-requirements.txt
+
+      - name: Audit direct runtime dependency set
+        run: python -m pip_audit -r /tmp/doc-to-md-runtime-requirements.txt --strict --progress-spinner off
+
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: local
+            install_target: "."
+            pytest_target: "tests/test_real_pdf_smoke.py -q"
+          - engine: html_local
+            install_target: ".[html]"
+            pytest_target: "tests/test_html_engine.py -q"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install smoke dependencies for ${{ matrix.engine }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "${{ matrix.install_target }}"
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run ${{ matrix.engine }} smoke tests
+        run: python -m pytest ${{ matrix.pytest_target }}

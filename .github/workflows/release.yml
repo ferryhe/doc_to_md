@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and release tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements-dev.txt
+
+      - name: Verify release tag, package version, and changelog
+        run: python tools/check_release_metadata.py --tag "${GITHUB_REF_NAME}"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Audit direct runtime dependency set
+        run: |
+          python tools/export_runtime_requirements.py --output /tmp/doc-to-md-runtime-requirements.txt
+          python -m pip_audit -r /tmp/doc-to-md-runtime-requirements.txt --strict --progress-spinner off
+
+      - name: Build distribution
+        run: python -m build --outdir dist
+
+      - name: Verify distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Extract changelog release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          python tools/extract_changelog_section.py "$VERSION" --output /tmp/release-notes.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag

@@ -121,6 +121,8 @@ def test_runtime_dependency_policy_uses_compatible_ranges_for_routine_deps() -> 
         assert "<" in requirement
 
     assert dependencies["click"] == "click>=8.1,<8.2"
+    assert dependencies["pypdf"] == "pypdf>=6.13,<7.0"
+    assert dependencies["pillow"] == "pillow>=12.2,<13.0"
 
     exact_until_covered = {"mistralai", "openai", "pytesseract"}
     for name in exact_until_covered:
