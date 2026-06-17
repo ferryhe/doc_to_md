@@ -172,7 +172,22 @@ Use the rest of the docs this way:
 - [benchmark_results/README.md](benchmark_results/README.md): archived benchmark artifacts
   Includes the tracked general-text, printed-formula, and handwritten-formula suites.
 - [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md): stable API field shapes
+- [CHANGELOG.md](CHANGELOG.md): release history and current `Unreleased` changes
+- [docs/release-process.md](docs/release-process.md): SemVer, changelog, tag, and rollback process
 - [skills/doc_to_md_agent/SKILL.md](skills/doc_to_md_agent/SKILL.md): agent workflow guidance
+
+## Release governance
+
+The project uses `pyproject.toml` as the package version source and `CHANGELOG.md` as the user-facing release history.
+
+Release rules:
+
+- Tags use `vX.Y.Z` and must match the package version after removing the leading `v`.
+- Every release must promote `CHANGELOG.md` entries out of `Unreleased` into a dated version section.
+- During `0.x`, breaking changes are allowed only when they are explicitly marked as **BREAKING** and bump at least the minor version.
+- Routine runtime dependencies use compatible version ranges in package metadata; reproducible local environments live in the `requirements-*.txt` files.
+
+See [docs/release-process.md](docs/release-process.md) for the full checklist.
 
 ## Development
 
