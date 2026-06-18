@@ -54,7 +54,7 @@ def test_mineru_missing_runtime_raises_install_hint() -> None:
         return real_import(name, *args, **kwargs)
 
     with patch.object(builtins, "__import__", side_effect=_block_mineru_import):
-        with pytest.raises(RuntimeError, match="MinerU engine requires.*pip install mineru"):
+        with pytest.raises(RuntimeError, match="MinerU engine requires.*mineru\\[pipeline\\]"):
             engine._ensure_runtime()
 
 
@@ -111,3 +111,21 @@ def test_mineru_convert_collects_markdown_assets_and_runtime_options(tmp_path: P
     assert calls["end_page_id"] == 3
     assert calls["f_dump_md"] is True
     assert calls["f_make_md_mode"] == "mm_md"
+
+
+def test_mineru_convert_wraps_missing_pipeline_dependency(tmp_path: Path) -> None:
+    engine = _engine()
+    pdf_file = tmp_path / "sample.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4\n")
+
+    def fake_read_fn(path: Path) -> bytes:
+        assert path == pdf_file
+        return b"pdf-bytes"
+
+    def fake_do_parse(**_kwargs) -> None:
+        raise ModuleNotFoundError("No module named 'transformers'")
+
+    engine._runtime = (fake_do_parse, fake_read_fn, SimpleNamespace(MM_MD="mm_md"))
+
+    with pytest.raises(RuntimeError, match="MinerU pipeline runtime is incomplete.*mineru\\[pipeline\\]"):
+        engine.convert(pdf_file)

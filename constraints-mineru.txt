@@ -1,27 +1,41 @@
-# MinerU experimental constraint overlay.
+# MinerU experimental CPU pipeline constraint overlay.
 #
-# Usage:
-#   python -m pip install -e ".[mineru]" -c constraints-mineru.txt
+# Usage from a clean isolated environment:
+#   python -m pip install \
+#     --extra-index-url https://download.pytorch.org/whl/cpu \
+#     -e ".[mineru]" \
+#     -c constraints-mineru.txt
 #
 # This is intentionally a constraints overlay, not part of the base runtime
-# install. MinerU is a heavy optional engine with fast-moving transitive
-# dependencies; keep it isolated from the main package and refresh this file
-# after a successful MinerU smoke run.
+# install or the recommended PDF install. MinerU is a heavy optional beta
+# engine with fast-moving transitive dependencies; keep it isolated from the
+# main package environment and refresh this file only after a successful real
+# MinerU smoke run.
 #
-# Last validated baseline source: PDF_ENGINE_EVALUATION.md runtime-repair notes.
+# 2026-06-18 probe summary:
+#   - bare mineru installed to about 598 MB but real conversion failed because
+#     torch was missing
+#   - adding older CPU torch/torchvision grew the venv to about 1.4 GB but then
+#     conversion failed because transformers was missing
+#   - current MinerU 3.x pipeline therefore needs mineru[pipeline], not bare
+#     mineru; full validation should be done only with 20 GB+ free disk
+#
 # Keep Python constrained by pyproject.toml: >=3.10,<3.13.
 
-mineru>=2.6.4
+# Constraints files cannot include extras; the repository extra supplies
+# `mineru[pipeline]`, and this line only constrains the resolved MinerU version.
+mineru>=3.4,<4
 numpy<2
-# CPU baseline. Replace with the matching torch+cuXXX wheel for GPU machines.
-torch==2.2.2
-torchvision==0.17.2
 
-doclayout-yolo
-ultralytics
-ftfy
-pyclipper
-omegaconf
-rapidocr
-shapely
-dill
+# CPU PyTorch wheels. The +cpu local versions require the PyTorch CPU wheel
+# index shown in the install command above; without that index, pip may resolve
+# much larger default Linux wheels.
+torch==2.6.0+cpu
+torchvision==0.21.0+cpu
+
+transformers>=4.57.3,<5.0.0
+safetensors>=0.4.0,<1
+ftfy>=6.3.1,<7
+shapely>=2.0.7,<3
+pyclipper>=1.3.0,<2
+onnxruntime>1.17.0

@@ -137,23 +137,22 @@ Important interpretation rule:
 | `docling` | `pip install -e ".[docling]"` | `95` | `293.3 MiB` | Works now | Benchmarked | Heavy dependency stack, CPU-slow on the tracked prose sample |
 | `paddleocr` | `pip install -e ".[paddleocr]"`, plus a working Paddle runtime | `58` extra-only | `99.1 MiB` extra-only; about `1.9 GB` more for the working Windows GPU runtime used here | Works in the main env only after extra runtime setup | Benchmarked | Successful run required `paddlepaddle-gpu==3.3.0` and explicit CUDA DLL paths on Windows |
 | `marker` | `pip install -e ".[marker]"` in an isolated env | `78` | `250.4 MiB` | Fails in the main env | Benchmarked in an isolated env | Strong output, but not honest to present as a drop-in extra in this repo |
-| `mineru` | `pip install -e ".[mineru]"` in an isolated env; use `constraints-mineru.txt` for the experimental repair overlay | `82` | `214.0 MiB` | Beta optional engine; base dependency floor now allows installation, but real smoke still requires an isolated repaired runtime | Benchmarked in an isolated env | Needed the most manual runtime repair before the benchmark would succeed |
+| `mineru` | `pip install -e ".[mineru]"` in an isolated env; use the CPU PyTorch index plus `constraints-mineru.txt` for experimental CPU-pipeline validation | not stable across MinerU releases | 20GB+ free disk recommended for full pipeline/model validation | Beta optional engine; not part of the recommended install | Prior benchmark succeeded only after isolated runtime repair | 2026-06-18 probe showed bare MinerU installs/imports but cannot convert; real pipeline needs `mineru[pipeline]`, torch, transformers, and enough disk |
 | `mistral` | Base install plus `MISTRAL_API_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Best current managed OCR path for general and printed-formula PDFs |
 | `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Strongest current handwritten-formula specialist; not a prose-default winner on the tracked text-heavy sample |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | `0` extra | `0` extra | Works now | Intentionally skipped | Supported, but still outside the main recommendation focus |
 
-### Recommended minimal retained setup
+### Recommended common PDF setup
 
-If the project keeps only the currently recommended PDF engines:
+For normal users, keep only the engines that are first-choice or direct fallback paths in the current routing guidance:
 
 - `local`
 - `markitdown`
 - `opendataloader`
-- `docling`
 - `mistral`
 - `mathpix`
 
-the install target should remain:
+The install target is:
 
 ```bash
 pip install -r requirements-recommended-pdf.txt
@@ -162,19 +161,27 @@ pip install -r requirements-recommended-pdf.txt
 Equivalent direct command:
 
 ```bash
-pip install -e ".[markitdown,docling,opendataloader]"
+pip install -e ".[markitdown,opendataloader]"
 ```
 
 Why this is enough:
 
 - `local`, `mistral`, and `mathpix` are already in the base package
-- `markitdown`, `docling`, and `opendataloader` are the only extras needed for that retained set
+- `markitdown` and `opendataloader` are the only extras needed for the common recommended local PDF path
+- `docling`, `paddleocr`, `marker`, and `mineru` remain supported or documented as specialist engines, but they are too heavy or too fragile for the common install target
 - `requirements-core.txt` is broader than the recommended PDF setup and should not be presented as the same thing
 
-### Observed installed footprint for the retained setup
+Fresh install check on Linux / Python 3.11, 2026-06-18:
 
-The `Approx payload` column above is only a download estimate.
-Actual installed size is larger.
+- `pip install -r requirements-recommended-pdf.txt` succeeded in a temporary venv
+- installed venv size was about `356 MB`
+- `markitdown` and `opendataloader-pdf` were installed
+- `docling`, `mineru`, `marker-pdf`, and `paddleocr` were not installed
+- the temporary venv was deleted after the check
+
+### Historical footprint when `docling` was included
+
+The previous retained setup included `docling`. That remains useful as a historical install-cost reference, but it is no longer the default recommended install because most of the footprint came from the `docling` stack.
 
 On the Windows / Python 3.12 machine used for the tracked evaluation:
 
@@ -196,7 +203,7 @@ Largest installed components in that retained setup:
 
 Interpretation:
 
-- most of the retained footprint comes from the `docling` stack, not from `markitdown` or `opendataloader`
+- removing `docling` from `requirements-recommended-pdf.txt` keeps the common install focused on the engines ordinary users are told to try first
 - `opendataloader` itself is relatively small on the Python side, but its Java requirement adds a separate system footprint
 - `mathpix` adds no extra Python footprint inside this repo, but it does add an external service dependency
 
@@ -207,13 +214,13 @@ These are real resolver conflicts or compatibility watch items in the current pr
 | Engine | Status |
 | --- | --- |
 | `marker` | Project keeps `click>=8.1,<8.2`, while `marker-pdf>=1.10.1` requires `click>=8.2.0,<9`; keep Marker isolated until the CLI Click cap is tested and relaxed. |
-| `mineru` | Direct `pillow` conflict is resolved by the audited `pillow>=12.2,<13.0` floor, but MinerU remains beta because the successful benchmark required an isolated repaired runtime. Use `docs/mineru.md` and `constraints-mineru.txt` for smoke validation. |
+| `mineru` | Direct `pillow` conflict is resolved by the audited `pillow>=12.2,<13.0` floor, but MinerU remains beta because a real run needs MinerU's `pipeline` extra, PyTorch, Transformers, model/cache space, and an isolated large-disk environment. Use `docs/mineru.md` and `constraints-mineru.txt` for smoke validation. |
 
 ### Runtime repair that was actually needed
 
 - `paddleocr`: the Python extra alone was not enough for a working Windows GPU run. A successful benchmark needed `paddlepaddle-gpu==3.3.0` from Paddle's `cu130` index and a process-level `PATH` update pointing at the bundled `nvidia/cu13` and `nvidia/cudnn` DLL directories.
 - `marker`: the benchmark worked only in an isolated environment so it could use `click>=8.2.0` without touching the repository pins.
-- `mineru`: the benchmark worked only after an isolated environment plus additional runtime packages and version adjustments, including `torch==2.2.2`, `torchvision==0.17.2`, `doclayout-yolo`, `ultralytics`, `ftfy`, `pyclipper`, `omegaconf`, `rapidocr`, `shapely`, `dill`, and `numpy<2`.
+- `mineru`: the historical benchmark worked only after an isolated environment plus additional runtime packages and version adjustments. A fresh Linux/Python 3.11 probe on 2026-06-18 found that bare `mineru` installed to about `598 MB` but failed real conversion with missing `torch`; adding older CPU `torch`/`torchvision` grew the venv to about `1.4 GB` but then failed with missing `transformers`. Current MinerU 3.x should be treated as a `mineru[pipeline]` workflow requiring PyTorch, Transformers, model/cache downloads, and 20GB+ free disk before a full smoke is attempted.
 
 ## General text-heavy PDF baseline
 

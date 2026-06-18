@@ -10,6 +10,13 @@ from doc_to_md.utils.hardware import ensure_mineru_accelerator_env
 from .base import Engine, EngineAsset, EngineResponse
 
 
+_MINERU_INSTALL_HINT = (
+    "Install this package with the MinerU extra, for example "
+    "`pip install 'doc-to-markdown-converter[mineru]'`, or install "
+    "MinerU's pipeline extra directly with `pip install 'mineru[pipeline]'`."
+)
+
+
 class MinerUEngine(Engine):
     name = "mineru"
 
@@ -37,8 +44,8 @@ class MinerUEngine(Engine):
             from mineru.utils.enum_class import MakeMode  # type: ignore
         except ImportError as exc:  # pragma: no cover - optional dependency
             raise RuntimeError(
-                "MinerU engine requires the `mineru` package and its dependencies. "
-                "Install it via `pip install mineru` before using this engine."
+                "MinerU engine requires MinerU's pipeline runtime. "
+                f"{_MINERU_INSTALL_HINT}"
             ) from exc
 
         self._runtime = (do_parse, read_fn, MakeMode)
@@ -48,27 +55,33 @@ class MinerUEngine(Engine):
         do_parse, read_fn, MakeMode = self._ensure_runtime()
         pdf_bytes = read_fn(path)
         with tempfile.TemporaryDirectory(prefix="mineru_") as temp_dir:
-            do_parse(
-                output_dir=temp_dir,
-                pdf_file_names=[path.stem],
-                pdf_bytes_list=[pdf_bytes],
-                p_lang_list=[self.lang],
-                backend=self.backend,
-                parse_method=self.parse_method,
-                formula_enable=self.formula_enable,
-                table_enable=self.table_enable,
-                start_page_id=self.start_page,
-                end_page_id=self.end_page,
-                # Keep disk spill minimal; we only care about Markdown and images.
-                f_draw_layout_bbox=False,
-                f_draw_span_bbox=False,
-                f_dump_md=True,
-                f_dump_middle_json=False,
-                f_dump_model_output=False,
-                f_dump_orig_pdf=False,
-                f_dump_content_list=False,
-                f_make_md_mode=MakeMode.MM_MD,
-            )
+            try:
+                do_parse(
+                    output_dir=temp_dir,
+                    pdf_file_names=[path.stem],
+                    pdf_bytes_list=[pdf_bytes],
+                    p_lang_list=[self.lang],
+                    backend=self.backend,
+                    parse_method=self.parse_method,
+                    formula_enable=self.formula_enable,
+                    table_enable=self.table_enable,
+                    start_page_id=self.start_page,
+                    end_page_id=self.end_page,
+                    # Keep disk spill minimal; we only care about Markdown and images.
+                    f_draw_layout_bbox=False,
+                    f_draw_span_bbox=False,
+                    f_dump_md=True,
+                    f_dump_middle_json=False,
+                    f_dump_model_output=False,
+                    f_dump_orig_pdf=False,
+                    f_dump_content_list=False,
+                    f_make_md_mode=MakeMode.MM_MD,
+                )
+            except ModuleNotFoundError as exc:
+                raise RuntimeError(
+                    "MinerU pipeline runtime is incomplete. "
+                    f"Missing dependency: {exc}. {_MINERU_INSTALL_HINT}"
+                ) from exc
 
             parse_folder = self._resolve_output_folder(Path(temp_dir), path.stem)
             markdown_path = parse_folder / f"{path.stem}.md"
