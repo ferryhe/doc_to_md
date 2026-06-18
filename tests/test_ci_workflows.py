@@ -44,5 +44,7 @@ def test_nightly_smoke_workflow_runs_scheduled_optional_profiles() -> None:
     assert "profile: core-local" in workflow
     assert "profile: html-extra" in workflow
     assert "profile: recommended-pdf" in workflow
+    assert "profile: mineru-adapter" in workflow
     assert "requirements-recommended-pdf.txt" in workflow
     assert "tests/test_opendataloader_engine.py" in workflow
+    assert "tests/test_mineru_engine.py" in workflow

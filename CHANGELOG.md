@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Add direct-runtime dependency security auditing with `pip-audit` in CI.
 - Add PR and nightly smoke matrices for lightweight engine coverage.
 - Add reusable release metadata and changelog extraction helper scripts.
+- Add MinerU beta-engine governance documentation, an experimental constraint overlay, and mocked adapter smoke tests for release readiness.
 
 ### Changed
 

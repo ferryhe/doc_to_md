@@ -1,0 +1,27 @@
+# MinerU experimental constraint overlay.
+#
+# Usage:
+#   python -m pip install -e ".[mineru]" -c constraints-mineru.txt
+#
+# This is intentionally a constraints overlay, not part of the base runtime
+# install. MinerU is a heavy optional engine with fast-moving transitive
+# dependencies; keep it isolated from the main package and refresh this file
+# after a successful MinerU smoke run.
+#
+# Last validated baseline source: PDF_ENGINE_EVALUATION.md runtime-repair notes.
+# Keep Python constrained by pyproject.toml: >=3.10,<3.13.
+
+mineru>=2.6.4
+numpy<2
+# CPU baseline. Replace with the matching torch+cuXXX wheel for GPU machines.
+torch==2.2.2
+torchvision==0.17.2
+
+doclayout-yolo
+ultralytics
+ftfy
+pyclipper
+omegaconf
+rapidocr
+shapely
+dill
