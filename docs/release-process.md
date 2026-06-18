@@ -24,6 +24,7 @@ Published package dependencies should be compatible ranges, not deployment lock 
 - Routine runtime libraries use lower bounds plus a major-version upper bound, for example `requests>=2.32,<3.0`.
 - API-sensitive, CLI-compatibility-sensitive, or system-bridge packages can stay exact or use narrower caps until targeted regression coverage exists. Current examples: `mistralai`, `openai`, `pytesseract`, and the Typer/Click compatibility cap.
 - Heavy optional engines are distributed through extras and can use minimum versions; stricter constraints belong in dedicated constraints files or CI matrices.
+- Security-audited lower bounds can be raised even during `0.x` when older compatible ranges resolve to vulnerable versions; current examples include `pypdf>=6.13,<7.0` and `pillow>=12.2,<13.0`.
 - Development and benchmark environments may stay more tightly pinned in `requirements-*.txt` files because they describe reproducible local profiles, not package metadata.
 
 ## Release preparation checklist
@@ -74,6 +75,16 @@ test "$TAG" = "$PKG_VERSION"
 ```
 
 The same version must also exist as a heading in `CHANGELOG.md`.
+
+## CI/CD release gates
+
+Release governance is enforced by GitHub Actions:
+
+- `CI` runs on pull requests and pushes to `main`, including the Python test matrix, release metadata consistency, a direct-runtime `pip-audit` security gate, and lightweight smoke tests for the local and HTML engines.
+- `Release` runs on `vX.Y.Z` tags, verifies that the tag, `pyproject.toml`, `src/doc_to_md/__init__.py`, and `CHANGELOG.md` agree, runs the test/build/twine checks, extracts release notes from `CHANGELOG.md`, and publishes a GitHub Release with the wheel and sdist.
+- `Nightly Engine Smoke` runs scheduled optional-engine smoke coverage so heavier profiles can be observed without slowing every pull request.
+
+If a vulnerability cannot be fixed immediately, document the exception with an owner and expiry date before adding any allowlist. Do not leave permanent unaudited ignores in CI.
 
 ## Rollback and hotfix handling
 

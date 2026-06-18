@@ -1,0 +1,39 @@
+name: Nightly Engine Smoke
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  engine-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: core-local
+            install_command: python -m pip install -e .
+            pytest_target: tests/test_real_pdf_smoke.py -q
+          - profile: html-extra
+            install_command: python -m pip install -e ".[html]"
+            pytest_target: tests/test_html_engine.py -q
+          - profile: recommended-pdf
+            install_command: python -m pip install -r requirements-recommended-pdf.txt
+            pytest_target: tests/test_opendataloader_engine.py tests/test_mistral_engine.py tests/test_mathpix_engine.py -q
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ${{ matrix.profile }} profile
+        run: |
+          python -m pip install --upgrade pip
+          ${{ matrix.install_command }}
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run ${{ matrix.profile }} smoke tests
+        run: python -m pytest ${{ matrix.pytest_target }}

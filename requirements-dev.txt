@@ -18,6 +18,7 @@
 #   - fastapi so tests/test_api.py does not get skipped
 #   - uvicorn for local API smoke tests
 #   - ruff, build, twine for release checks
+#   - pip-audit for CI dependency security gates
 #
 # This file is intentionally not a runtime profile.
 # ============================================================
@@ -35,3 +36,5 @@ python-multipart>=0.0.9,<1
 ruff>=0.15.0
 build>=1.0.0
 twine>=6.0.0
+pip-audit>=2.7,<3
+tomli>=2.0,<3; python_version < "3.11"
