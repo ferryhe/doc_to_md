@@ -21,6 +21,9 @@ jobs:
           - profile: recommended-pdf
             install_command: python -m pip install -r requirements-recommended-pdf.txt
             pytest_target: tests/test_opendataloader_engine.py tests/test_mistral_engine.py tests/test_mathpix_engine.py -q
+          - profile: mineru-adapter
+            install_command: python -m pip install -e .
+            pytest_target: tests/test_mineru_engine.py -q
 
     steps:
       - uses: actions/checkout@v4

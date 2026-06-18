@@ -157,7 +157,7 @@ Other supported engines:
 
 - `docling`
 - `paddleocr`
-- `mineru`
+- `mineru` (beta optional engine; see [docs/mineru.md](docs/mineru.md))
 - `marker`
 - `deepseekocr`
 - `html_local`
@@ -174,6 +174,7 @@ Use the rest of the docs this way:
 - [API_RESPONSE_CONTRACT.md](API_RESPONSE_CONTRACT.md): stable API field shapes
 - [CHANGELOG.md](CHANGELOG.md): release history and current `Unreleased` changes
 - [docs/release-process.md](docs/release-process.md): SemVer, changelog, tag, and rollback process
+- [docs/mineru.md](docs/mineru.md): MinerU beta engine install constraints, smoke checks, and release-governance status
 - [skills/doc_to_md_agent/SKILL.md](skills/doc_to_md_agent/SKILL.md): agent workflow guidance
 
 ## Release governance

@@ -137,7 +137,7 @@ Important interpretation rule:
 | `docling` | `pip install -e ".[docling]"` | `95` | `293.3 MiB` | Works now | Benchmarked | Heavy dependency stack, CPU-slow on the tracked prose sample |
 | `paddleocr` | `pip install -e ".[paddleocr]"`, plus a working Paddle runtime | `58` extra-only | `99.1 MiB` extra-only; about `1.9 GB` more for the working Windows GPU runtime used here | Works in the main env only after extra runtime setup | Benchmarked | Successful run required `paddlepaddle-gpu==3.3.0` and explicit CUDA DLL paths on Windows |
 | `marker` | `pip install -e ".[marker]"` in an isolated env | `78` | `250.4 MiB` | Fails in the main env | Benchmarked in an isolated env | Strong output, but not honest to present as a drop-in extra in this repo |
-| `mineru` | `pip install -e ".[mineru]"` in an isolated env, plus runtime repair | `82` | `214.0 MiB` | Fails in the main env | Benchmarked in an isolated env | Needed the most manual runtime repair before the benchmark would succeed |
+| `mineru` | `pip install -e ".[mineru]"` in an isolated env; use `constraints-mineru.txt` for the experimental repair overlay | `82` | `214.0 MiB` | Beta optional engine; base dependency floor now allows installation, but real smoke still requires an isolated repaired runtime | Benchmarked in an isolated env | Needed the most manual runtime repair before the benchmark would succeed |
 | `mistral` | Base install plus `MISTRAL_API_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Best current managed OCR path for general and printed-formula PDFs |
 | `mathpix` | Base install plus `MATHPIX_APP_ID` and `MATHPIX_APP_KEY` | `0` extra | `0` extra | Works now | Benchmarked | Strongest current handwritten-formula specialist; not a prose-default winner on the tracked text-heavy sample |
 | `deepseekocr` | Base install plus `SILICONFLOW_API_KEY` | `0` extra | `0` extra | Works now | Intentionally skipped | Supported, but still outside the main recommendation focus |
@@ -202,12 +202,12 @@ Interpretation:
 
 ### Current dependency conflicts
 
-These are real resolver conflicts in the current project.
+These are real resolver conflicts or compatibility watch items in the current project.
 
-| Engine | Conflict |
+| Engine | Status |
 | --- | --- |
-| `marker` | Project pins `click==8.1.7`, while `marker-pdf>=1.10.1` requires `click>=8.2.0,<9` |
-| `mineru` | Project pins `pillow==10.4.0`, while `mineru>=2.6.4` requires `pillow>=11.0.0` |
+| `marker` | Project keeps `click>=8.1,<8.2`, while `marker-pdf>=1.10.1` requires `click>=8.2.0,<9`; keep Marker isolated until the CLI Click cap is tested and relaxed. |
+| `mineru` | Direct `pillow` conflict is resolved by the audited `pillow>=12.2,<13.0` floor, but MinerU remains beta because the successful benchmark required an isolated repaired runtime. Use `docs/mineru.md` and `constraints-mineru.txt` for smoke validation. |
 
 ### Runtime repair that was actually needed
 
