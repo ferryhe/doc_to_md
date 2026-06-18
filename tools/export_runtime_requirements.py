@@ -2,19 +2,25 @@
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
 
-
-DEPENDENCIES_RE = re.compile(r"^dependencies\s*=\s*\[(?P<body>.*?)^\]", re.MULTILINE | re.DOTALL)
-REQUIREMENT_RE = re.compile(r'"([^"]+)"')
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    import tomli as tomllib  # type: ignore[no-redef]
 
 
 def project_dependencies(pyproject_text: str) -> list[str]:
-    match = DEPENDENCIES_RE.search(pyproject_text)
-    if match is None:
-        raise ValueError("pyproject.toml does not contain a [project] dependencies array")
-    return REQUIREMENT_RE.findall(match.group("body"))
+    data = tomllib.loads(pyproject_text)
+    project = data.get("project")
+    if not isinstance(project, dict):
+        raise ValueError("pyproject.toml does not contain a [project] table")
+    dependencies = project.get("dependencies")
+    if not isinstance(dependencies, list):
+        raise ValueError("pyproject.toml does not contain [project].dependencies")
+    if not all(isinstance(requirement, str) for requirement in dependencies):
+        raise ValueError("[project].dependencies must contain only strings")
+    return dependencies
 
 
 def main(argv: list[str] | None = None) -> int:

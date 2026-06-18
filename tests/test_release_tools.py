@@ -80,7 +80,7 @@ def test_export_runtime_requirements_reads_project_dependencies() -> None:
     pyproject = '''
 [project]
 dependencies = [
-    "typer>=0.12,<1.0",
+    'typer>=0.12,<1.0',
     "click>=8.1,<8.2",
 ]
 '''
@@ -90,5 +90,6 @@ dependencies = [
 
 def test_release_metadata_validator_accepts_current_repository_tag() -> None:
     tool = _load_tool("check_release_metadata")
+    metadata = tool.inspect_release_metadata(PROJECT_ROOT)
 
-    assert tool.validate_release_metadata(PROJECT_ROOT, tag="v0.1.2") == []
+    assert tool.validate_release_metadata(PROJECT_ROOT, tag=f"v{metadata.pyproject_version}") == []

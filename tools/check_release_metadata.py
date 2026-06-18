@@ -8,9 +8,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    import tomli as tomllib  # type: ignore[no-redef]
+
 
 SEMVER_TAG_RE = re.compile(r"^v(?P<version>\d+\.\d+\.\d+)$")
-PYPROJECT_VERSION_RE = re.compile(r'^version\s*=\s*"(?P<version>[^"]+)"$', re.MULTILINE)
 INIT_VERSION_RE = re.compile(r'^__version__\s*=\s*"(?P<version>[^"]+)"$', re.MULTILINE)
 
 
@@ -27,6 +31,17 @@ def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
         raise ValueError(f"Missing required file: {path}") from exc
+
+
+def _project_version(pyproject_text: str) -> str:
+    data = tomllib.loads(pyproject_text)
+    project = data.get("project")
+    if not isinstance(project, dict):
+        raise ValueError("Could not find [project] table in pyproject.toml")
+    version = project.get("version")
+    if not isinstance(version, str) or not version:
+        raise ValueError("Could not find project.version in pyproject.toml")
+    return version
 
 
 def _extract(pattern: re.Pattern[str], text: str, label: str) -> str:
@@ -46,7 +61,7 @@ def inspect_release_metadata(project_root: Path) -> ReleaseMetadata:
     package_init = _read_text(project_root / "src" / "doc_to_md" / "__init__.py")
     changelog = _read_text(project_root / "CHANGELOG.md")
 
-    pyproject_version = _extract(PYPROJECT_VERSION_RE, pyproject, "project.version in pyproject.toml")
+    pyproject_version = _project_version(pyproject)
     package_version = _extract(INIT_VERSION_RE, package_init, "__version__ in src/doc_to_md/__init__.py")
 
     return ReleaseMetadata(
