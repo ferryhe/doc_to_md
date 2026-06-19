@@ -23,18 +23,17 @@ Important caution:
 
 ## Recommended install
 
-For the current recommended PDF setup:
+For the common PDF setup most users should try first:
 
 ```bash
 pip install -r requirements-recommended-pdf.txt
 ```
 
-That setup keeps:
+That setup keeps only the engines that are currently recommended for normal use:
 
 - `local`
 - `markitdown`
 - `opendataloader`
-- `docling`
 - `mistral`
 - `mathpix`
 
@@ -44,12 +43,16 @@ Notes:
 - `mistral` needs `MISTRAL_API_KEY`
 - `mathpix` needs `MATHPIX_APP_ID` and `MATHPIX_APP_KEY`
 - `opendataloader` needs Java 11+ on `PATH`
+- a fresh Linux / Python 3.11 install check produced a temporary venv of about `356 MB`
+- heavier research/beta engines such as `docling`, `paddleocr`, `marker`, and `mineru` are intentionally excluded from this install target
 
 Other install targets:
 
 | Use case | Command |
 | --- | --- |
 | Recommended PDF setup | `pip install -r requirements-recommended-pdf.txt` |
+| Docling one-off evaluation | `pip install -e ".[docling]"` |
+| MinerU beta research | see [docs/mineru.md](docs/mineru.md); do not use on small disks |
 | Broader CPU environment | `pip install -r requirements-core.txt` |
 | Full heavy stack | `pip install -r requirements.txt` |
 | Dev and test overlay | `pip install -r requirements-dev.txt` |

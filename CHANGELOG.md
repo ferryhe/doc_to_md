@@ -22,6 +22,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Relax routine runtime dependency constraints in `pyproject.toml` from exact pins to compatible ranges so patch/minor fixes can be absorbed without republishing the package for every upstream release.
 - Raise `pypdf` and `pillow` lower bounds in package metadata and pinned environment profiles to audited versions that clear the CI security gate.
+- Narrow the recommended PDF install target to common engines only and document the real MinerU beta install findings separately.
+- Point MinerU runtime dependency errors at the `mineru[pipeline]` path instead of bare `mineru`.
 
 ## [0.1.2] - 2026-06-17
 
