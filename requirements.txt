@@ -167,5 +167,5 @@ pywin32==311
 # version: https://download.pytorch.org/whl/
 # For CPU-only (docling without GPU) use requirements-core.txt.
 torch==2.2.2+cu121
-torchaudio==2.2.2+cu121
+torchaudio==2.11.0
 torchvision==0.17.2+cu121
