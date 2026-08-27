@@ -1,14 +1,14 @@
 # NOTE
-# This file is the heavy full-stack environment.
-# It includes the GPU-oriented and harder-to-install engines.
-# It is not the default recommendation for ordinary PDF use.
+# This file is a legacy GPU-oriented environment snapshot.
+# It is not a single supported all-engine environment: fast-moving optional
+# tools can impose mutually incompatible dependency ranges. Prefer isolated
+# extras plus constraints and the scheduled dependency-resolution workflow.
 #
 # ============================================================
-# requirements.txt — full GPU stack (all engines)
+# requirements.txt — legacy GPU dependency snapshot
 #
-# Includes every engine: local · mistral · mathpix · deepseekocr ·
-# markitdown · html_local · auto · office · docling ·
-# paddleocr · mineru · marker
+# Covers the shared base, Docling, and historical GPU dependencies. Install
+# current optional engine packages through their pyproject extras instead.
 #
 # Install:  pip install -r requirements.txt
 #
@@ -16,13 +16,15 @@
 # use requirements-core.txt instead.
 # ============================================================
 
+--extra-index-url https://download.pytorch.org/whl/cu121
+
 # ── core / project infrastructure ───────────────────────────
 annotated-types==0.7.0
 anyio==4.11.0
 attrs==25.4.0
 certifi==2025.11.12
 charset-normalizer==3.4.4
-click==8.1.7
+click==8.3.3
 colorama==0.4.6
 colorlog==6.10.1
 distro==1.9.0
@@ -42,14 +44,14 @@ mdurl==0.1.2
 packaging==25.0
 pluggy==1.6.0
 pydantic==2.12.4
-pydantic-settings==2.7.0
+pydantic-settings==2.15.0
 pydantic_core==2.41.5
 Pygments==2.19.2
 python-dotenv==1.0.1
 pytz==2025.2
 regex==2025.11.3
 requests==2.32.3
-rich==13.7.1
+rich==15.0.0
 rpds-py==0.29.0
 setuptools==80.9.0
 shellingham==1.5.4
@@ -57,7 +59,7 @@ six==1.17.0
 sniffio==1.3.1
 tabulate==0.9.0
 tiktoken==0.7.0
-typer==0.12.5
+typer==0.26.8
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
@@ -69,7 +71,7 @@ beautifulsoup4==4.14.2
 pillow==12.2.0
 pypdf==6.13.0
 pytesseract==0.3.13
-python-docx==1.1.2
+python-docx==1.2.0
 soupsieve==2.8
 
 # ── office extra  (PPTX · XLSX)  [pip install ".[office]"] ──
@@ -85,7 +87,7 @@ python-pptx==1.0.2
 
 # ── mistral engine ──────────────────────────────────────────
 # Requires MISTRAL_API_KEY in .env
-mistralai==1.9.11
+mistralai==2.9.4
 
 # ── mathpix engine ──────────────────────────────────────────
 # Requires MATHPIX_APP_ID and MATHPIX_APP_KEY in .env.
@@ -94,7 +96,7 @@ mistralai==1.9.11
 # ── deepseekocr engine (SiliconFlow API) ────────────────────
 # Requires SILICONFLOW_API_KEY in .env; pypdfium2 renders PDFs
 # to images for the vision model.
-openai==1.109.1
+openai==2.54.0
 pypdfium2==4.30.0
 
 # ── markitdown engine  [pip install ".[markitdown]"] ────────
@@ -106,16 +108,17 @@ pypdfium2==4.30.0
 accelerate==1.11.0
 antlr4-python3-runtime==4.9.3
 dill==0.4.0
-docling==2.62.0
-docling-core==2.51.1
-docling-ibm-models==3.10.2
-docling-parse==4.7.1
+docling==2.123.0
+docling-core==2.92.0
+docling-ibm-models==3.14.0
+docling-parse==7.16.0
 Faker==38.0.0
 filelock==3.19.1
 fsspec==2025.9.0
 huggingface-hub==0.36.0
 invoke==2.2.1
 jsonlines==4.0.0
+jsonpath-python==1.1.6
 jsonref==1.1.0
 jsonschema==4.25.1
 jsonschema-specifications==2025.9.1
@@ -132,7 +135,7 @@ psutil==7.1.3
 pylatexenc==2.10
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
-rapidocr==3.4.2
+rapidocr==3.9.2
 referencing==0.37.0
 rtree==1.4.1
 safetensors==0.6.2

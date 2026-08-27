@@ -48,3 +48,25 @@ def test_nightly_smoke_workflow_runs_scheduled_optional_profiles() -> None:
     assert "requirements-recommended-pdf.txt" in workflow
     assert "tests/test_opendataloader_engine.py" in workflow
     assert "tests/test_mineru_engine.py" in workflow
+
+
+def test_dependency_resolution_workflow_checks_optional_extras_weekly() -> None:
+    workflow = (WORKFLOWS / "dependency-resolution.yml").read_text(encoding="utf-8")
+
+    assert "schedule:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "pip install --dry-run --ignore-installed" in workflow
+    assert "-r requirements-core.txt" in workflow
+    for extra in ("markitdown", "paddleocr", "mineru", "docling", "opendataloader"):
+        assert f"- {extra}" in workflow
+    assert "tests/test_upstream_dependency_policy.py" in workflow
+
+
+def test_dependabot_groups_converter_updates_without_hiding_major_releases() -> None:
+    config = (PROJECT_ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8")
+
+    assert "package-ecosystem: pip" in config
+    assert "package-ecosystem: github-actions" in config
+    assert "converter-adapters:" in config
+    assert "- marker-pdf" in config
+    assert "ignore:" not in config

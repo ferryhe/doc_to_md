@@ -1,0 +1,46 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      converter-adapters:
+        patterns:
+          - mistralai
+          - openai
+          - markitdown
+          - paddleocr
+          - mineru
+          - docling
+          - marker-pdf
+          - opendataloader-pdf
+        update-types:
+          - minor
+          - patch
+      development-tools:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      github-actions:
+        patterns:
+          - "*"
