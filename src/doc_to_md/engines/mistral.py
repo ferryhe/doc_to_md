@@ -9,12 +9,12 @@ from io import BytesIO
 from pathlib import Path
 from typing import Callable, List, Tuple, TypeVar
 
-from mistralai import Mistral
-from mistralai.models.file import File
-from mistralai.models.filechunk import FileChunk
-from mistralai.models.ocrimageobject import OCRImageObject
-from mistralai.models.ocrpageobject import OCRPageObject
-from mistralai.models.ocrresponse import OCRResponse
+try:
+    from mistralai.client import Mistral
+    from mistralai.client import models as mistral_models
+except ImportError:  # mistralai 1.x compatibility during upgrades
+    from mistralai import Mistral
+    import mistralai.models as mistral_models
 from pypdf import PdfReader, PdfWriter
 
 from doc_to_md.config.settings import get_settings
@@ -22,6 +22,9 @@ from doc_to_md.utils.tokens import count_tokens
 from .base import Engine, EngineAsset, EngineResponse
 
 T = TypeVar("T")
+OCRImageObject = mistral_models.OCRImageObject
+OCRPageObject = mistral_models.OCRPageObject
+OCRResponse = mistral_models.OCRResponse
 
 
 @dataclass(slots=True)
@@ -137,7 +140,7 @@ class MistralEngine(Engine):
     def _process_chunk(self, chunk: _DocumentChunk, index: int) -> OCRResponse:
         upload = self._request_with_retry(
             lambda: self.client.files.upload(
-                file=File(file_name=chunk.label, content=chunk.data),
+                file={"file_name": chunk.label, "content": chunk.data},
                 purpose="ocr",
             ),
             operation=f"mistral_upload_{index}",
@@ -147,7 +150,7 @@ class MistralEngine(Engine):
             response = self._request_with_retry(
                 lambda: self.client.ocr.process(
                     model=self.model,
-                    document=FileChunk(file_id=upload.id),
+                    document={"file_id": upload.id, "type": "file"},
                     include_image_base64=self.include_images,
                 ),
                 operation=f"mistral_process_{index}",

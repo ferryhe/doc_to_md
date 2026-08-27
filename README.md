@@ -54,8 +54,10 @@ Other install targets:
 | Docling one-off evaluation | `pip install -e ".[docling]"` |
 | MinerU beta research | see [docs/mineru.md](docs/mineru.md); do not use on small disks |
 | Broader CPU environment | `pip install -r requirements-core.txt` |
-| Full heavy stack | `pip install -r requirements.txt` |
+| Legacy GPU snapshot | `pip install -r requirements.txt` (not a single all-engine environment) |
 | Dev and test overlay | `pip install -r requirements-dev.txt` |
+
+`marker` is intentionally not exposed as an install extra in `0.2.0`. Marker 2.0 requires `Pillow<11`, while the audited base package requires `Pillow>=12.2`. Keeping those packages in one Python environment is not resolvable today. The adapter remains available for existing isolated environments, and upstream Marker versions are still monitored for a compatible release.
 
 ## Quick start
 
@@ -161,7 +163,7 @@ Other supported engines:
 - `docling`
 - `paddleocr`
 - `mineru` (beta optional engine; see [docs/mineru.md](docs/mineru.md))
-- `marker`
+- `marker` (existing isolated environments only; no package extra in `0.2.0`)
 - `deepseekocr`
 - `html_local`
 - `auto`
@@ -191,6 +193,8 @@ Release rules:
 - During `0.x`, breaking changes are allowed only when they are explicitly marked as **BREAKING** and bump at least the minor version.
 - Routine runtime dependencies use compatible version ranges in package metadata; reproducible local environments live in the `requirements-*.txt` files.
 - CI validates release metadata, audits direct runtime dependencies with `pip-audit`, and runs lightweight smoke matrices before merge.
+- Dependabot checks Python packages and GitHub Actions weekly. Compatible converter updates are grouped, next-major updates are surfaced separately for explicit adapter review, and `Dependency Resolution` verifies each optional extra in isolation.
+- `requirements-upstream-watch.txt` records the direct converter versions under active compatibility monitoring; it is not a combined install profile.
 - Pushing a matching `vX.Y.Z` tag runs the release workflow, builds wheel/sdist artifacts, extracts notes from `CHANGELOG.md`, and publishes a GitHub Release.
 
 See [docs/release-process.md](docs/release-process.md) for the full checklist.

@@ -33,7 +33,7 @@ uvicorn>=0.34,<1
 python-multipart>=0.0.9,<1
 
 # Quality and release checks
-ruff>=0.15.0
+ruff>=0.15.0,<0.16
 build>=1.0.0
 twine>=6.0.0
 pip-audit>=2.7,<3

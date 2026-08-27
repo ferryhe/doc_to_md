@@ -1,6 +1,9 @@
+import sys
+from types import ModuleType
+
 from doc_to_md.config.settings import Settings
 from doc_to_md.engines.base import EngineAsset
-from doc_to_md.pipeline.formula_ocr import replace_formula_images
+from doc_to_md.pipeline.formula_ocr import _MistralFormulaOcrClient, replace_formula_images
 from doc_to_md.pipeline.postprocessor import ConversionResult, enforce_markdown, postprocess_conversion_result
 
 
@@ -20,6 +23,26 @@ def _settings(tmp_path, *, enabled: bool = True) -> Settings:
         output_dir=tmp_path / "output",
         formula_ocr_enabled=enabled,
     )
+
+
+def test_mistral_formula_client_uses_sdk2_namespace(tmp_path, monkeypatch) -> None:
+    captured: dict[str, object] = {}
+    client_module = ModuleType("mistralai.client")
+
+    class _FakeMistral:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+    client_module.Mistral = _FakeMistral
+    monkeypatch.setitem(sys.modules, "mistralai.client", client_module)
+    settings = _settings(tmp_path).model_copy(
+        update={"mistral_api_key": "test-key", "mistral_timeout_seconds": 45.0}
+    )
+
+    client = _MistralFormulaOcrClient(settings).client
+
+    assert isinstance(client, _FakeMistral)
+    assert captured == {"api_key": "test-key", "timeout_ms": 45_000}
 
 
 def test_replace_formula_images_rewrites_standalone_formula(tmp_path) -> None:

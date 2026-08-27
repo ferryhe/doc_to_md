@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from doc_to_md.engines.mistral import MistralEngine
+from doc_to_md.engines.mistral import MistralEngine, _DocumentChunk
 
 
 class _FakeMistralClient:
@@ -52,3 +52,40 @@ def test_strip_page_artifacts_removes_page_headers_and_standalone_page_numbers()
     assert "正文第一段" in cleaned
     assert "正文第二段" in cleaned
     assert "正文第三段" in cleaned
+
+
+def test_process_chunk_uses_sdk_public_dict_payloads() -> None:
+    calls: dict[str, object] = {}
+
+    class _Files:
+        def upload(self, **kwargs):
+            calls["upload"] = kwargs
+            return SimpleNamespace(id="file-123")
+
+        def delete(self, **kwargs) -> None:
+            calls["delete"] = kwargs
+
+    class _OCR:
+        def process(self, **kwargs):
+            calls["process"] = kwargs
+            return "response"
+
+    client = SimpleNamespace(files=_Files(), ocr=_OCR())
+    with patch("doc_to_md.engines.mistral.get_settings", return_value=_mock_settings()), patch(
+        "doc_to_md.engines.mistral.Mistral", return_value=client
+    ):
+        engine = MistralEngine()
+
+    response = engine._process_chunk(_DocumentChunk(data=b"pdf", label="sample.pdf"), 1)
+
+    assert response == "response"
+    assert calls["upload"] == {
+        "file": {"file_name": "sample.pdf", "content": b"pdf"},
+        "purpose": "ocr",
+    }
+    assert calls["process"] == {
+        "model": "mistral-ocr-latest",
+        "document": {"file_id": "file-123", "type": "file"},
+        "include_image_base64": True,
+    }
+    assert calls["delete"] == {"file_id": "file-123"}

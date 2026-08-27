@@ -33,7 +33,10 @@ class _MistralFormulaOcrClient(RetryableRequestMixin):
     @property
     def client(self):
         if self._client is None:
-            from mistralai import Mistral
+            try:
+                from mistralai.client import Mistral
+            except ImportError:  # mistralai 1.x compatibility during upgrades
+                from mistralai import Mistral
 
             self._client = Mistral(api_key=self.api_key, timeout_ms=self.timeout_ms)
         return self._client

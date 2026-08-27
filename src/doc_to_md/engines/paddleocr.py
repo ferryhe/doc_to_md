@@ -36,11 +36,11 @@ class PaddleOCREngine(Engine):
 
         device = self._preferred_device()
         try:
-            self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device=device)
+            self._ocr = PaddleOCR(use_textline_orientation=True, lang=self.lang, device=device)
         except Exception:
             if device.startswith("gpu"):
                 self._device = "cpu"
-                self._ocr = PaddleOCR(use_angle_cls=True, lang=self.lang, device="cpu")
+                self._ocr = PaddleOCR(use_textline_orientation=True, lang=self.lang, device="cpu")
             else:
                 raise
         return self._ocr
@@ -107,8 +107,24 @@ class PaddleOCREngine(Engine):
         import numpy as np
 
         data = np.array(image)
-        results = ocr.ocr(data)
+        predict = getattr(ocr, "predict", None)
+        results = predict(data) if predict is not None else ocr.ocr(data)
         lines: list[str] = []
+
+        for result in results or []:
+            payload = PaddleOCREngine._paddle_v3_payload(result)
+            if payload is None:
+                continue
+            texts, scores = payload
+            for text, confidence in zip(texts, scores):
+                cleaned = str(text).strip()
+                if cleaned:
+                    lines.append(f"- {cleaned} _(conf {float(confidence):.2f})_")
+
+        if lines:
+            return lines
+
+        # PaddleOCR 2.x returned nested lists instead of result mappings.
         normalized = results
         if normalized and isinstance(normalized[0], tuple):
             normalized = [normalized]
@@ -126,6 +142,25 @@ class PaddleOCREngine(Engine):
                 confidence = float(text_meta[1])
                 lines.append(f"- {text} _(conf {confidence:.2f})_")
         return lines
+
+    @staticmethod
+    def _paddle_v3_payload(result) -> tuple[object, object] | None:
+        candidates = [result]
+        try:
+            nested = result["res"]
+        except (KeyError, TypeError, IndexError):
+            nested = None
+        if nested is not None:
+            candidates.insert(0, nested)
+
+        for candidate in candidates:
+            try:
+                texts = candidate["rec_texts"]
+                scores = candidate["rec_scores"]
+            except (KeyError, TypeError, IndexError):
+                continue
+            return texts, scores
+        return None
 
     def _preferred_device(self) -> str:
         if self._device is not None:

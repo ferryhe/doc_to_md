@@ -24,7 +24,7 @@
 
 # Constraints files cannot include extras; the repository extra supplies
 # `mineru[pipeline]`, and this line only constrains the resolved MinerU version.
-mineru>=3.4,<4
+mineru>=3.4.5,<4
 numpy<2
 
 # CPU PyTorch wheels. The +cpu local versions require the PyTorch CPU wheel

@@ -22,10 +22,19 @@ During `0.x`, breaking changes are allowed but must not be silent. Any change th
 Published package dependencies should be compatible ranges, not deployment lock files.
 
 - Routine runtime libraries use lower bounds plus a major-version upper bound, for example `requests>=2.32,<3.0`.
-- API-sensitive, CLI-compatibility-sensitive, or system-bridge packages can stay exact or use narrower caps until targeted regression coverage exists. Current examples: `mistralai`, `openai`, `pytesseract`, and the Typer/Click compatibility cap.
-- Heavy optional engines are distributed through extras and can use minimum versions; stricter constraints belong in dedicated constraints files or CI matrices.
+- API-sensitive, CLI-compatibility-sensitive, or system-bridge packages can stay exact or use narrower caps until targeted regression coverage exists. Current examples are `mistralai`, `openai`, and `pytesseract`.
+- Heavy optional engines are distributed through isolated extras and use a tested lower bound plus a next-major upper bound. Stricter constraints belong in dedicated constraints files or CI matrices.
+- A package that cannot resolve with the audited base runtime must not be advertised as an install extra. Keep it in the upstream watch list and document the conflict until either the upstream bounds or the adapter architecture changes.
 - Security-audited lower bounds can be raised even during `0.x` when older compatible ranges resolve to vulnerable versions; current examples include `pypdf>=6.13,<7.0` and `pillow>=12.2,<13.0`.
 - Development and benchmark environments may stay more tightly pinned in `requirements-*.txt` files because they describe reproducible local profiles, not package metadata.
+
+## Automated dependency updates
+
+- Dependabot checks the `pip` and `github-actions` ecosystems every Monday and opens grouped pull requests for converter SDKs and development tooling.
+- Patch and minor changes within supported compatibility ranges go through the normal CI and review path. Next-major converter changes are surfaced in separate pull requests and must not merge until an adapter review explicitly expands the supported range.
+- `requirements-upstream-watch.txt` keeps exact direct-tool versions so Dependabot can detect releases even when `pyproject.toml` intentionally uses compatible ranges.
+- The scheduled `Dependency Resolution` workflow resolves each optional extra in isolation. This avoids pretending that GPU/research stacks with conflicting transitive dependencies form one supported environment.
+- Dependency pull requests are not blindly auto-merged. Passing resolution, tests, and review is required before merge and release.
 
 ## Release preparation checklist
 
@@ -83,6 +92,7 @@ Release governance is enforced by GitHub Actions:
 - `CI` runs on pull requests and pushes to `main`, including the Python test matrix, release metadata consistency, a direct-runtime `pip-audit` security gate, and lightweight smoke tests for the local and HTML engines.
 - `Release` runs on `vX.Y.Z` tags, verifies that the tag, `pyproject.toml`, `src/doc_to_md/__init__.py`, and `CHANGELOG.md` agree, runs the test/build/twine checks, extracts release notes from `CHANGELOG.md`, and publishes a GitHub Release with the wheel and sdist.
 - `Nightly Engine Smoke` runs scheduled optional-engine smoke coverage so heavier profiles can be observed without slowing every pull request.
+- `Dependency Resolution` runs weekly and on dependency-manifest pull requests to resolve the pinned CPU profile, resolve supported optional extras independently, and enforce upstream-watch version policy.
 
 If a vulnerability cannot be fixed immediately, document the exception with an owner and expiry date before adding any allowlist. Do not leave permanent unaudited ignores in CI.
 

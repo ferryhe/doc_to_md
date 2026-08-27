@@ -1,6 +1,11 @@
 from pathlib import Path
 import re
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
+
 from doc_to_md import __version__
 
 
@@ -120,10 +125,23 @@ def test_runtime_dependency_policy_uses_compatible_ranges_for_routine_deps() -> 
         assert ">=" in requirement
         assert "<" in requirement
 
-    assert dependencies["click"] == "click>=8.1,<8.2"
+    assert dependencies["typer"] == "typer>=0.26.8,<1.0"
+    assert dependencies["click"] == "click>=8.3.3,<9.0"
     assert dependencies["pypdf"] == "pypdf>=6.13,<7.0"
     assert dependencies["pillow"] == "pillow>=12.2,<13.0"
 
     exact_until_covered = {"mistralai", "openai", "pytesseract"}
     for name in exact_until_covered:
         assert "==" in dependencies[name]
+
+
+def test_optional_converter_dependencies_have_reviewable_compatibility_bounds() -> None:
+    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extras = pyproject["project"]["optional-dependencies"]
+
+    assert extras["markitdown"] == ["markitdown[pdf]>=0.1.7,<0.2"]
+    assert extras["paddleocr"] == ["paddleocr>=3.7,<4", "pypdfium2>=4.30.0,<6"]
+    assert extras["mineru"] == ["mineru[pipeline]>=3.4.5,<4"]
+    assert extras["docling"] == ["docling>=2.123,<3"]
+    assert extras["opendataloader"] == ["opendataloader-pdf>=2.5.5,<3"]
+    assert "marker" not in extras
