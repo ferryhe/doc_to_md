@@ -1,6 +1,11 @@
 from pathlib import Path
 import re
 
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
+
 from doc_to_md import __version__
 
 
@@ -131,11 +136,12 @@ def test_runtime_dependency_policy_uses_compatible_ranges_for_routine_deps() -> 
 
 
 def test_optional_converter_dependencies_have_reviewable_compatibility_bounds() -> None:
-    pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extras = pyproject["project"]["optional-dependencies"]
 
-    assert 'markitdown = ["markitdown[pdf]>=0.1.7,<0.2"]' in pyproject
-    assert 'paddleocr = ["paddleocr>=3.7,<4", "pypdfium2>=4.30.0,<6"]' in pyproject
-    assert 'mineru = ["mineru[pipeline]>=3.4.5,<4"]' in pyproject
-    assert 'docling = ["docling>=2.123,<3"]' in pyproject
-    assert 'opendataloader = ["opendataloader-pdf>=2.5.5,<3"]' in pyproject
-    assert "marker =" not in pyproject
+    assert extras["markitdown"] == ["markitdown[pdf]>=0.1.7,<0.2"]
+    assert extras["paddleocr"] == ["paddleocr>=3.7,<4", "pypdfium2>=4.30.0,<6"]
+    assert extras["mineru"] == ["mineru[pipeline]>=3.4.5,<4"]
+    assert extras["docling"] == ["docling>=2.123,<3"]
+    assert extras["opendataloader"] == ["opendataloader-pdf>=2.5.5,<3"]
+    assert "marker" not in extras
