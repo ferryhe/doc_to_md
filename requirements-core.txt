@@ -38,7 +38,7 @@ jiter==0.12.0
 lxml==6.0.2
 markdown-it-py==4.0.0
 marko==2.2.1
-MarkupSafe==2.1.5
+MarkupSafe==3.0.3
 mdurl==0.1.2
 packaging==25.0
 pluggy==1.6.0
