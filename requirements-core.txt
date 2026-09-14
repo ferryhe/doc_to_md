@@ -86,7 +86,7 @@ python-pptx==1.0.2
 
 # ── mistral engine ──────────────────────────────────────────
 # Requires MISTRAL_API_KEY in .env
-mistralai==2.9.4
+mistralai==2.10.0
 
 # ── mathpix engine ──────────────────────────────────────────
 # Requires MATHPIX_APP_ID and MATHPIX_APP_KEY in .env.
@@ -110,7 +110,7 @@ pypdfium2==4.30.0
 accelerate==1.11.0
 antlr4-python3-runtime==4.9.3
 dill==0.4.0
-docling==2.123.0
+docling==2.126.0
 docling-core==2.92.0
 docling-ibm-models==3.14.0
 docling-parse==7.16.0
