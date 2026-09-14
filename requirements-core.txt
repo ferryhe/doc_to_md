@@ -142,7 +142,7 @@ referencing==0.37.0
 rtree==1.4.1
 safetensors==0.6.2
 scipy==1.16.3
-semchunk==2.2.2
+semchunk==4.1.1
 shapely==2.1.2
 sympy==1.14.0
 tokenizers==0.22.1
