@@ -5,13 +5,13 @@
 # stacks can conflict with each other. The package extras in pyproject.toml
 # remain the install source of truth.
 
-mistralai==2.9.4
+mistralai==2.10.0
 openai==2.54.0
 markitdown==0.1.7
 paddleocr==3.7.0
 mineru==3.4.5
-docling==2.123.0
-opendataloader-pdf==2.5.5
+docling==2.126.0
+opendataloader-pdf==2.5.8
 
 # Marker is watch-only. marker-pdf 2.0 requires Pillow<11, which conflicts
 # with this package's audited Pillow>=12.2.
