@@ -67,7 +67,7 @@ urllib3==2.5.0
 
 # ── local engine (PDF · DOCX · images · text) ───────────────
 # Reads PDF pages, Word documents, and drives pytesseract OCR.
-beautifulsoup4==4.14.2
+beautifulsoup4==4.15.0
 pillow==12.2.0
 pypdf==6.18.1
 pytesseract==0.3.13
